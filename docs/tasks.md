@@ -45,6 +45,7 @@
 **文件**: `tests/unit/domain/value_objects/test_stock_code.py`
 
 **测试用例**:
+
 - `test_valid_stock_code_creation()`: 验证合法股票代码创建
 - `test_invalid_stock_code_raises_error()`: 验证非法代码抛出异常
 - `test_stock_code_immutability()`: 验证StockCode不可变性
@@ -56,6 +57,7 @@
 **文件**: `src/domain/value_objects/stock_code.py`
 
 **实现**:
+
 ```python
 from dataclasses import dataclass
 from typing import Final
@@ -81,6 +83,7 @@ class StockCode:
 - 优化错误消息
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 = 100%
 - ✅ 代码通过Black/Ruff/MyPy检查
@@ -96,6 +99,7 @@ class StockCode:
 **文件**: `tests/unit/domain/value_objects/test_market.py`
 
 **测试用例**:
+
 - `test_valid_market_values()`: 验证有效市场枚举值
 - `test_invalid_market_raises_error()`: 验证无效市场抛出异常
 - `test_market_from_string()`: 验证从字符串创建Market
@@ -105,6 +109,7 @@ class StockCode:
 **文件**: `src/domain/value_objects/market.py`
 
 **实现**:
+
 ```python
 from enum import Enum
 
@@ -118,6 +123,7 @@ class Market(str, Enum):
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -132,6 +138,7 @@ class Market(str, Enum):
 **文件**: `tests/unit/domain/entities/test_stock.py`
 
 **测试用例**:
+
 - `test_stock_creation()`: 验证股票实体创建
 - `test_stock_is_tradable_when_active()`: 验证活跃股票可交易
 - `test_stock_not_tradable_when_inactive()`: 验证非活跃股票不可交易
@@ -142,6 +149,7 @@ class Market(str, Enum):
 **文件**: `src/domain/entities/stock.py`
 
 **实现**:
+
 ```python
 from dataclasses import dataclass
 from datetime import date
@@ -169,6 +177,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -183,6 +192,7 @@ class Stock:
 **文件**: `tests/unit/domain/value_objects/test_date_range.py`
 
 **测试用例**:
+
 - `test_valid_date_range()`: 验证有效日期范围
 - `test_invalid_date_range_raises_error()`: start_date > end_date 抛出异常
 - `test_date_range_contains()`: 验证日期是否在范围内
@@ -195,6 +205,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -209,6 +220,7 @@ class Stock:
 **文件**: `tests/unit/domain/entities/test_kline_data.py`
 
 **测试用例**:
+
 - `test_kline_data_creation()`: 验证K线数据创建
 - `test_validate_ohlc_valid()`: 验证合法OHLC关系
 - `test_validate_ohlc_invalid_high()`: high < max(open, close) 抛出异常
@@ -222,6 +234,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -236,6 +249,7 @@ class Stock:
 **文件**: `tests/unit/domain/entities/test_model.py`
 
 **测试用例**:
+
 - `test_model_creation()`: 验证模型创建(初始状态UNTRAINED)
 - `test_mark_as_trained()`: 验证标记为已训练状态
 - `test_validate_metrics_above_threshold()`: 验证指标达标
@@ -250,6 +264,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -264,6 +279,7 @@ class Stock:
 **文件**: `tests/unit/domain/entities/test_prediction.py`
 
 **测试用例**:
+
 - `test_prediction_creation()`: 验证预测实体创建
 - `test_is_above_threshold()`: 验证分数阈值判断
 - `test_normalize_score()`: 验证分数标准化
@@ -277,6 +293,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -291,6 +308,7 @@ class Stock:
 **文件**: `tests/unit/domain/entities/test_trading_signal.py`
 
 **测试用例**:
+
 - `test_trading_signal_creation()`: 验证交易信号创建
 - `test_is_buy_signal()`: 验证买入信号判断
 - `test_is_sell_signal()`: 验证卖出信号判断
@@ -305,6 +323,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -319,6 +338,7 @@ class Stock:
 **文件**: `tests/unit/domain/entities/test_portfolio.py`
 
 **测试用例**:
+
 - `test_portfolio_creation()`: 验证投资组合创建
 - `test_add_position()`: 验证添加持仓
 - `test_remove_position()`: 验证移除持仓
@@ -334,6 +354,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -348,6 +369,7 @@ class Stock:
 **文件**: `tests/unit/domain/entities/test_backtest_result.py`
 
 **测试用例**:
+
 - `test_backtest_result_creation()`: 验证回测结果创建
 - `test_calculate_sharpe_ratio()`: 验证夏普比率计算
 - `test_calculate_max_drawdown()`: 验证最大回撤计算
@@ -362,6 +384,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -376,6 +399,7 @@ class Stock:
 **文件**: `tests/unit/domain/value_objects/test_configuration.py`
 
 **测试用例**:
+
 - `test_data_source_config_valid()`: 验证数据源配置有效性
 - `test_data_source_config_invalid_path()`: 验证路径不存在抛出异常
 - `test_model_config_valid()`: 验证模型配置有效性
@@ -389,6 +413,7 @@ class Stock:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥95%
 
@@ -399,12 +424,14 @@ class Stock:
 **需求**: [DR-012](./requirements.md#dr-012-domain-ports-领域端口接口)
 
 **注意**: Port接口无需测试(仅定义),但需确保:
+
 - ✅ 接口定义清晰
 - ✅ 使用ABC抽象基类
 - ✅ 所有方法标记@abstractmethod
 - ✅ 无任何外部框架依赖
 
 **文件列表**:
+
 - `src/domain/ports/stock_data_provider.py`: IStockDataProvider
 - `src/domain/ports/model_trainer.py`: IModelTrainer
 - `src/domain/ports/backtest_engine.py`: IBacktestEngine
@@ -413,6 +440,7 @@ class Stock:
 - `src/domain/ports/model_repository.py`: IModelRepository
 
 **完成标准**:
+
 - ✅ 所有Port接口定义完成
 - ✅ 接口符合Domain需求规范
 - ✅ 通过MyPy类型检查
@@ -430,12 +458,14 @@ class Stock:
 **文件**: `tests/unit/use_cases/data/test_load_stock_data.py`
 
 **测试用例**:
+
 - `test_load_stock_data_success()`: Mock IStockDataProvider,验证成功加载
 - `test_load_stock_data_invalid_stock_code()`: 验证StockCode验证失败
 - `test_load_stock_data_invalid_date_range()`: 验证DateRange验证失败
 - `test_load_stock_data_provider_error()`: 验证数据源错误处理
 
 **Mock对象**:
+
 ```python
 from unittest.mock import AsyncMock
 provider_mock = AsyncMock(spec=IStockDataProvider)
@@ -446,6 +476,7 @@ provider_mock = AsyncMock(spec=IStockDataProvider)
 **文件**: `src/use_cases/data/load_stock_data.py`
 
 **实现**:
+
 ```python
 from domain.ports.stock_data_provider import IStockDataProvider
 from domain.value_objects.stock_code import StockCode
@@ -472,6 +503,7 @@ class LoadStockDataUseCase:
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥90%
 - ✅ 正确使用依赖注入
@@ -487,6 +519,7 @@ class LoadStockDataUseCase:
 **文件**: `tests/unit/use_cases/model/test_train_model.py`
 
 **测试用例**:
+
 - `test_train_model_success()`: Mock IModelTrainer,验证训练成功
 - `test_train_model_validates_config()`: 验证配置参数验证
 - `test_train_model_updates_status()`: 验证状态转换(UNTRAINED → TRAINING → TRAINED)
@@ -496,6 +529,7 @@ class LoadStockDataUseCase:
 - `test_train_model_training_failure()`: 验证训练失败处理(状态→FAILED)
 
 **Mock对象**:
+
 ```python
 trainer_mock = AsyncMock(spec=IModelTrainer)
 repository_mock = AsyncMock(spec=IModelRepository)
@@ -508,6 +542,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥90%
 - ✅ 事件发布机制正确
@@ -523,6 +558,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 **文件**: `tests/unit/use_cases/model/test_generate_predictions.py`
 
 **测试用例**:
+
 - `test_generate_predictions_success()`: 验证预测生成成功
 - `test_generate_predictions_model_not_found()`: 验证模型未找到异常
 - `test_generate_predictions_model_not_ready()`: 验证模型状态不可用异常
@@ -536,6 +572,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥90%
 
@@ -550,6 +587,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 **文件**: `tests/unit/use_cases/signal/test_convert_predictions_to_signals.py`
 
 **测试用例**:
+
 - `test_convert_predictions_success()`: 验证转换成功
 - `test_convert_with_top_k_strategy()`: 验证Top-K策略
 - `test_convert_with_threshold_strategy()`: 验证阈值策略
@@ -563,6 +601,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥90%
 
@@ -577,6 +616,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 **文件**: `tests/unit/use_cases/backtest/test_run_backtest.py`
 
 **测试用例**:
+
 - `test_run_backtest_success()`: Mock IBacktestEngine,验证回测成功
 - `test_run_backtest_validates_config()`: 验证BacktestConfig验证
 - `test_run_backtest_calculates_metrics()`: 验证回测指标计算
@@ -590,6 +630,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥90%
 
@@ -598,6 +639,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 ### 📦 Task 2.6 ~ 2.10: 其他Use Cases
 
 按照相同的TDD流程实现:
+
 - Task 2.6: [CalculateIndicatorsUseCase](./requirements.md#uc-006-calculate-indicators-计算技术指标)
 - Task 2.7: [ManagePortfolioUseCase](./requirements.md#uc-007-manage-portfolio-管理投资组合)
 - Task 2.8: [LoadConfigurationUseCase](./requirements.md#uc-008-load-configuration-加载配置)
@@ -605,6 +647,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 - Task 2.10: [AnalyzeBacktestResultUseCase](./requirements.md#uc-010-analyze-backtest-result-分析回测结果)
 
 **每个Use Case完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥90%
 - ✅ 正确使用Domain Ports
@@ -623,6 +666,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 **文件**: `tests/unit/adapters/hikyuu/test_data_adapter.py`
 
 **测试用例**:
+
 - `test_load_stock_data_calls_hikyuu_api()`: Mock hikyuu.Stock,验证API调用
 - `test_load_stock_data_converts_to_domain()`: 验证Hikyuu → Domain转换
 - `test_load_stock_data_handles_hikyuu_error()`: 验证Hikyuu错误处理
@@ -630,6 +674,7 @@ repository_mock = AsyncMock(spec=IModelRepository)
 - `test_get_stock_list_converts_to_domain()`: 验证股票列表转换
 
 **Mock对象**:
+
 ```python
 from unittest.mock import MagicMock, patch
 
@@ -649,6 +694,7 @@ def test_load_stock_data_calls_hikyuu_api(mock_stock):
 **文件**: `src/adapters/hikyuu/data_adapter.py`
 
 **实现**:
+
 ```python
 import hikyuu as hku
 from domain.ports.stock_data_provider import IStockDataProvider
@@ -682,6 +728,7 @@ class HikyuuDataAdapter(IStockDataProvider):
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥85%
 - ✅ 正确实现IStockDataProvider接口
@@ -698,6 +745,7 @@ class HikyuuDataAdapter(IStockDataProvider):
 **文件**: `tests/unit/adapters/qlib/test_data_adapter.py`
 
 **测试用例**:
+
 - `test_load_stock_data_calls_qlib_api()`: Mock qlib.data.D
 - `test_load_stock_data_converts_to_domain()`: 验证Qlib → Domain转换
 - `test_load_stock_data_handles_qlib_error()`: 验证Qlib错误处理
@@ -707,6 +755,7 @@ class HikyuuDataAdapter(IStockDataProvider):
 **文件**: `src/adapters/qlib/data_adapter.py`
 
 **实现**:
+
 ```python
 import qlib
 from qlib.data import D
@@ -740,6 +789,7 @@ class QlibDataAdapter(IStockDataProvider):
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥85%
 
@@ -754,6 +804,7 @@ class QlibDataAdapter(IStockDataProvider):
 **文件**: `tests/unit/adapters/qlib/test_model_trainer_adapter.py`
 
 **测试用例**:
+
 - `test_train_calls_qlib_model()`: Mock qlib.model.LGBModel
 - `test_train_converts_domain_to_qlib()`: 验证Domain Model → Qlib转换
 - `test_train_converts_qlib_to_domain()`: 验证Qlib → Domain Model转换
@@ -765,6 +816,7 @@ class QlibDataAdapter(IStockDataProvider):
 **文件**: `src/adapters/qlib/model_trainer_adapter.py`
 
 **实现**:
+
 ```python
 from qlib.model.gbdt import LGBModel
 from domain.ports.model_trainer import IModelTrainer
@@ -799,6 +851,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥85%
 - ✅ 支持多种Qlib模型(LGBModel, MLP, LSTM)
@@ -814,6 +867,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
 **文件**: `tests/unit/adapters/hikyuu/test_backtest_adapter.py`
 
 **测试用例**:
+
 - `test_run_backtest_calls_hikyuu_portfolio()`: Mock hikyuu.Portfolio
 - `test_run_backtest_converts_signals()`: 验证SignalBatch → Hikyuu信号转换
 - `test_run_backtest_converts_result()`: 验证Hikyuu → BacktestResult转换
@@ -824,6 +878,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
 **文件**: `src/adapters/hikyuu/backtest_adapter.py`
 
 **实现**:
+
 ```python
 import hikyuu as hku
 from domain.ports.backtest_engine import IBacktestEngine
@@ -862,6 +917,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 #### 🔵 REFACTOR: 优化代码
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥85%
 
@@ -870,12 +926,14 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 ### 📦 Task 3.5 ~ 3.8: 其他Adapters
 
 按照相同的TDD流程实现:
+
 - Task 3.5: [SignalConverterAdapter](./requirements.md#ad-005-signal-converter-adapter)
 - Task 3.6: [YAMLConfigRepository](./requirements.md#ad-006-yaml-config-repository)
 - Task 3.7: [SQLiteModelRepository](./requirements.md#ad-007-sqlite-model-repository)
 - Task 3.8: [CLI Interface Adapter](./requirements.md#ad-008-cli-interface-adapter)
 
 **每个Adapter完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥85%
 - ✅ 正确实现Port接口
@@ -891,16 +949,19 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `src/infrastructure/di/container.py`
 
 **功能**:
+
 - 使用dependency-injector实现DI容器
 - 注册所有Adapters和Use Cases
 - 提供容器初始化和配置
 
 **测试**:
+
 - `test_container_registers_all_adapters()`: 验证所有Adapter注册
 - `test_container_registers_all_use_cases()`: 验证所有Use Case注册
 - `test_container_resolves_dependencies()`: 验证依赖解析
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥88%
 
@@ -911,12 +972,14 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `src/infrastructure/logging/logger.py`
 
 **功能**:
+
 - 使用Loguru实现日志管理
 - 支持多级别日志(DEBUG/INFO/WARN/ERROR)
 - 日志文件自动轮转和清理
 - 敏感信息自动脱敏
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥88%
 
@@ -927,11 +990,13 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `src/infrastructure/config/settings.py`
 
 **功能**:
+
 - 使用Pydantic BaseSettings加载配置
 - 支持环境变量覆盖
 - 配置验证和类型检查
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥88%
 
@@ -942,11 +1007,13 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `src/infrastructure/events/event_bus.py`
 
 **功能**:
+
 - 实现简单的内存事件总线
 - 支持Domain Events发布和订阅
 - 异步事件处理
 
 **完成标准**:
+
 - ✅ 所有测试通过
 - ✅ 测试覆盖率 ≥88%
 
@@ -959,11 +1026,13 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `src/cli/main.py`
 
 **功能**:
+
 - 使用Click框架实现CLI
 - 主命令: `hikyuu-qlib`
 - 子命令: `data`, `train`, `predict`, `backtest`, `analyze`, `config`
 
 **完成标准**:
+
 - ✅ 所有CLI命令可用
 - ✅ 参数验证准确
 - ✅ 帮助文档完整
@@ -973,6 +1042,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 ### 📦 Task 5.2 ~ 5.7: CLI子命令
 
 按照相同的TDD流程实现:
+
 - Task 5.2: `hikyuu-qlib data load`: 加载股票数据
 - Task 5.3: `hikyuu-qlib train`: 训练模型
 - Task 5.4: `hikyuu-qlib predict`: 生成预测
@@ -981,6 +1051,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 - Task 5.7: `hikyuu-qlib config`: 配置管理
 
 **每个子命令完成标准**:
+
 - ✅ 功能测试通过
 - ✅ 参数验证准确
 - ✅ 错误处理完善
@@ -994,11 +1065,13 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `tests/integration/test_domain_use_cases.py`
 
 **测试用例**:
+
 - `test_train_and_predict_workflow()`: 训练→预测完整流程
 - `test_predict_and_convert_workflow()`: 预测→信号转换流程
 - `test_convert_and_backtest_workflow()`: 信号→回测流程
 
 **完成标准**:
+
 - ✅ 所有集成测试通过
 - ✅ 无跨层依赖泄漏
 
@@ -1009,12 +1082,14 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `tests/integration/test_use_cases_adapters.py`
 
 **测试用例**:
+
 - `test_load_data_with_hikyuu_adapter()`: Use Case + Hikyuu Adapter
 - `test_load_data_with_qlib_adapter()`: Use Case + Qlib Adapter
 - `test_train_with_qlib_adapter()`: Use Case + Qlib Model Trainer
 - `test_backtest_with_hikyuu_adapter()`: Use Case + Hikyuu Backtest
 
 **完成标准**:
+
 - ✅ 所有集成测试通过
 - ✅ Adapters正确实现Ports接口
 
@@ -1025,10 +1100,12 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `tests/e2e/test_full_workflow.py`
 
 **测试用例**:
+
 - `test_full_workflow_hikyuu_to_qlib()`: Hikyuu数据→Qlib训练→Hikyuu回测
 - `test_full_workflow_with_real_data()`: 使用真实数据测试(可选)
 
 **完成标准**:
+
 - ✅ 端到端流程测试通过
 - ✅ 所有层协作正确
 
@@ -1041,6 +1118,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `docs/api/`
 
 **内容**:
+
 - Domain层API文档
 - Use Cases层API文档
 - Adapters层API文档
@@ -1052,6 +1130,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `docs/user_guide.md`
 
 **内容**:
+
 - 安装指南
 - 快速开始
 - CLI命令参考
@@ -1064,6 +1143,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 **文件**: `pyproject.toml`, `setup.py`
 
 **内容**:
+
 - 依赖管理
 - CLI entry points
 - 打包配置

@@ -14,11 +14,13 @@
 ### 1.1 架构目标
 
 **业务目标**:
+
 - 构建框架无关的核心业务逻辑
 - 实现AI建模与策略执行的完整闭环
 - 提供高度可测试和可维护的系统架构
 
 **技术目标**:
+
 - **依赖倒置**: Domain层定义接口(Ports),Adapters层实现
 - **框架独立**: Domain层零外部依赖,可独立测试
 - **高度可测试**: 每层独立测试,测试覆盖率>=90%
@@ -40,12 +42,14 @@
 **为什么选择六边形架构?**
 
 传统分层架构的问题:
+
 - ❌ Core模块直接依赖Hikyuu/Qlib框架
 - ❌ 业务逻辑与技术实现耦合
 - ❌ 难以测试(需要Mock整个框架)
 - ❌ 框架升级影响业务逻辑
 
 六边形架构的优势:
+
 - ✅ 业务逻辑完全独立
 - ✅ 框架可随时替换
 - ✅ 高度可测试(Mock接口即可)
@@ -150,6 +154,7 @@ graph TB
 **职责**: 包含所有业务规则,零外部依赖
 
 **目录结构**:
+
 ```
 src/domain/
 ├── entities/           # 实体 (有ID,可变)
@@ -187,6 +192,7 @@ src/domain/
 ```
 
 **核心约束**:
+
 - ✅ 零外部依赖 (不能`import hikyuu`, `import qlib`)
 - ✅ 所有Ports定义在此层
 - ✅ 包含所有业务规则
@@ -251,6 +257,7 @@ class IStockDataProvider(ABC):
 **职责**: 编排Domain对象完成业务流程,只依赖Domain Ports
 
 **目录结构**:
+
 ```
 src/use_cases/
 ├── data/
@@ -273,6 +280,7 @@ src/use_cases/
 ```
 
 **核心约束**:
+
 - ✅ 只依赖Domain (通过Ports接口)
 - ✅ 使用Request/Response DTOs
 - ✅ 编排流程,不包含业务规则
@@ -352,6 +360,7 @@ class TrainModelUseCase:
 **职责**: 实现Domain Ports,封装外部框架
 
 **目录结构**:
+
 ```
 src/adapters/
 ├── hikyuu/
@@ -379,6 +388,7 @@ src/adapters/
 ```
 
 **核心约束**:
+
 - ✅ 实现Domain Ports接口
 - ✅ 可以调用外部框架 (Hikyuu, Qlib)
 - ✅ 不包含业务逻辑
@@ -493,6 +503,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
 **职责**: 提供技术支持
 
 **目录结构**:
+
 ```
 src/infrastructure/
 ├── config/
@@ -509,6 +520,7 @@ src/infrastructure/
 ```
 
 **核心约束**:
+
 - ✅ 提供技术基础设施
 - ✅ 不包含业务逻辑
 - ✅ 测试覆盖率 >= 88%

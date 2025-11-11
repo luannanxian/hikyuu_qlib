@@ -81,6 +81,7 @@
 **业务描述**: 定义股票领域实体及其业务规则
 
 **Domain对象**:
+
 - **Entity**: `Stock`
   - 属性: `code: StockCode`, `name: str`, `market: Market`, `is_active: bool`, `listing_date: date`
   - 业务规则:
@@ -93,6 +94,7 @@
   - 枚举值: `SH`, `SZ`, `BJ`
 
 **验收标准**:
+
 - Stock Entity实现完整业务规则
 - StockCode格式验证准确无误
 - 测试覆盖率 ≥95%
@@ -107,6 +109,7 @@
 **业务描述**: 定义日期范围及其业务规则
 
 **Domain对象**:
+
 - **Value Object**: `DateRange`
   - 属性: `start_date: date`, `end_date: date`
   - 业务规则:
@@ -115,6 +118,7 @@
     - `overlap_with(other: DateRange) -> bool`: 判断两个日期范围是否重叠
 
 **验收标准**:
+
 - DateRange验证逻辑准确
 - 边界条件处理正确
 - 测试覆盖率 ≥95%
@@ -129,6 +133,7 @@
 **业务描述**: 定义K线数据实体及其业务规则
 
 **Domain对象**:
+
 - **Entity**: `KLineData`
   - 属性: `stock_code: StockCode`, `timestamp: datetime`, `open: Decimal`, `high: Decimal`, `low: Decimal`, `close: Decimal`, `volume: int`, `amount: Decimal`
   - 业务规则:
@@ -138,6 +143,7 @@
   - 枚举值: `MIN_1`, `MIN_5`, `DAY`, `WEEK`, `MONTH`
 
 **验收标准**:
+
 - KLineData OHLC验证准确
 - 价格计算逻辑正确
 - 测试覆盖率 ≥95%
@@ -152,6 +158,7 @@
 **业务描述**: 定义技术指标及其计算规则
 
 **Domain对象**:
+
 - **Entity**: `Indicator`
   - 属性: `name: str`, `parameters: Dict[str, Any]`, `values: List[Decimal]`
   - 业务规则:
@@ -162,6 +169,7 @@
   - 属性: 根据不同指标类型定义(如MA的period参数)
 
 **验收标准**:
+
 - 指标参数验证准确
 - 支持常用技术指标类型
 - 测试覆盖率 ≥95%
@@ -176,6 +184,7 @@
 **业务描述**: 定义机器学习模型实体及其生命周期管理
 
 **Domain对象**:
+
 - **Entity**: `Model`
   - 属性: `id: ModelId`, `type: ModelType`, `parameters: ModelParameters`, `metrics: ModelMetrics`, `status: ModelStatus`, `created_at: datetime`
   - 业务规则:
@@ -192,6 +201,7 @@
   - 属性: `ic: Decimal`, `icir: Decimal`, `rank_ic: Decimal`, `mse: Decimal`
 
 **验收标准**:
+
 - Model生命周期状态转换正确
 - 指标验证逻辑准确
 - 测试覆盖率 ≥95%
@@ -206,6 +216,7 @@
 **业务描述**: 定义预测结果及其业务规则
 
 **Domain对象**:
+
 - **Entity**: `Prediction`
   - 属性: `model_id: ModelId`, `stock_code: StockCode`, `timestamp: datetime`, `score: Decimal`, `confidence: Decimal`
   - 业务规则:
@@ -221,6 +232,7 @@
     - `filter_by_threshold(threshold: Decimal) -> List[Prediction]`: 按阈值过滤
 
 **验收标准**:
+
 - Prediction分数验证准确
 - PredictionBatch聚合逻辑正确
 - 测试覆盖率 ≥95%
@@ -235,6 +247,7 @@
 **业务描述**: 定义交易信号及其业务规则
 
 **Domain对象**:
+
 - **Entity**: `TradingSignal`
   - 属性: `stock_code: StockCode`, `timestamp: datetime`, `direction: SignalDirection`, `strength: Decimal`, `source: SignalSource`
   - 业务规则:
@@ -252,6 +265,7 @@
     - `get_buy_signals() -> List[TradingSignal]`
 
 **验收标准**:
+
 - TradingSignal业务规则准确
 - SignalBatch聚合逻辑正确
 - 测试覆盖率 ≥95%
@@ -266,6 +280,7 @@
 **业务描述**: 定义投资组合及其管理规则
 
 **Domain对象**:
+
 - **Entity**: `Portfolio`
   - 属性: `id: PortfolioId`, `name: str`, `positions: List[Position]`, `cash: Decimal`, `total_value: Decimal`
   - 业务规则:
@@ -282,6 +297,7 @@
   - 属性: `value: str`
 
 **验收标准**:
+
 - Portfolio持仓管理逻辑准确
 - Position盈亏计算正确
 - 测试覆盖率 ≥95%
@@ -296,6 +312,7 @@
 **业务描述**: 定义回测结果及其分析规则
 
 **Domain对象**:
+
 - **Entity**: `BacktestResult`
   - 属性: `id: str`, `strategy_name: str`, `start_date: date`, `end_date: date`, `metrics: BacktestMetrics`, `trades: List[Trade]`
   - 业务规则:
@@ -311,6 +328,7 @@
     - `calculate_hold_days() -> int`: 计算持有天数
 
 **验收标准**:
+
 - BacktestResult指标计算准确
 - Trade盈亏计算正确
 - 测试覆盖率 ≥95%
@@ -325,6 +343,7 @@
 **业务描述**: 定义系统配置及其验证规则
 
 **Domain对象**:
+
 - **Value Object**: `DataSourceConfig`
   - 属性: `hikyuu_data_dir: str`, `qlib_data_dir: str`, `cache_dir: str`
   - 验证规则: 路径必须存在且可访问
@@ -336,6 +355,7 @@
   - 验证规则: 所有费率必须在合理范围内(0-1)
 
 **验收标准**:
+
 - Configuration验证逻辑准确
 - 支持配置序列化/反序列化
 - 测试覆盖率 ≥95%
@@ -350,6 +370,7 @@
 **业务描述**: 定义领域事件及其发布规则
 
 **Domain对象**:
+
 - **Domain Event**: `ModelTrained`
   - 属性: `model_id: ModelId`, `metrics: ModelMetrics`, `occurred_at: datetime`
 - **Domain Event**: `PredictionGenerated`
@@ -360,6 +381,7 @@
   - 属性: `result_id: str`, `metrics: BacktestMetrics`, `occurred_at: datetime`
 
 **验收标准**:
+
 - 事件定义清晰
 - 事件数据完整
 - 测试覆盖率 ≥95%
@@ -376,6 +398,7 @@
 **Port接口**:
 
 #### IStockDataProvider
+
 ```python
 class IStockDataProvider(ABC):
     """股票数据提供者接口"""
@@ -397,6 +420,7 @@ class IStockDataProvider(ABC):
 ```
 
 #### IModelTrainer
+
 ```python
 class IModelTrainer(ABC):
     """模型训练接口"""
@@ -422,6 +446,7 @@ class IModelTrainer(ABC):
 ```
 
 #### IBacktestEngine
+
 ```python
 class IBacktestEngine(ABC):
     """回测引擎接口"""
@@ -438,6 +463,7 @@ class IBacktestEngine(ABC):
 ```
 
 #### ISignalConverter
+
 ```python
 class ISignalConverter(ABC):
     """信号转换接口"""
@@ -453,6 +479,7 @@ class ISignalConverter(ABC):
 ```
 
 #### IConfigRepository
+
 ```python
 class IConfigRepository(ABC):
     """配置仓储接口"""
@@ -469,6 +496,7 @@ class IConfigRepository(ABC):
 ```
 
 #### IModelRepository
+
 ```python
 class IModelRepository(ABC):
     """模型仓储接口"""
@@ -485,6 +513,7 @@ class IModelRepository(ABC):
 ```
 
 **验收标准**:
+
 - Port接口定义清晰
 - 遵循依赖倒置原则
 - 无外部框架依赖
@@ -501,25 +530,30 @@ class IModelRepository(ABC):
 **业务描述**: 从数据源加载股票K线数据到系统
 
 **输入**:
+
 - `stock_code: StockCode`
 - `date_range: DateRange`
 - `kline_type: KLineType`
 
 **输出**:
+
 - `List[KLineData]`
 
 **业务流程**:
+
 1. 验证StockCode和DateRange
 2. 调用IStockDataProvider.load_stock_data()
 3. 验证返回数据的完整性
 4. 返回KLineData列表
 
 **异常处理**:
+
 - StockCode格式无效 → 抛出ValidationError
 - DateRange无效 → 抛出ValidationError
 - 数据加载失败 → 抛出DataLoadError
 
 **验收标准**:
+
 - 数据加载准确
 - 异常处理完善
 - 测试覆盖率 ≥90%
@@ -534,14 +568,17 @@ class IModelRepository(ABC):
 **业务描述**: 使用特征数据训练机器学习模型
 
 **输入**:
+
 - `model_config: ModelConfig`
 - `features: pd.DataFrame`
 - `labels: pd.Series`
 
 **输出**:
+
 - `Model` (trained)
 
 **业务流程**:
+
 1. 验证ModelConfig参数
 2. 创建Model Entity (status=UNTRAINED)
 3. 调用IModelTrainer.train()
@@ -551,11 +588,13 @@ class IModelRepository(ABC):
 7. 发布ModelTrained事件
 
 **异常处理**:
+
 - 参数验证失败 → 抛出ValidationError
 - 训练失败 → 更新Model状态为FAILED
 - 指标不达标 → 抛出MetricsThresholdError
 
 **验收标准**:
+
 - 模型训练成功
 - 状态转换正确
 - 测试覆盖率 ≥90%
@@ -570,13 +609,16 @@ class IModelRepository(ABC):
 **业务描述**: 使用已训练模型生成预测结果
 
 **输入**:
+
 - `model_id: ModelId`
 - `features: pd.DataFrame`
 
 **输出**:
+
 - `PredictionBatch`
 
 **业务流程**:
+
 1. 从IModelRepository查找Model
 2. 验证Model状态(is_ready_for_prediction)
 3. 调用IModelTrainer.predict()
@@ -585,11 +627,13 @@ class IModelRepository(ABC):
 6. 返回PredictionBatch
 
 **异常处理**:
+
 - Model未找到 → 抛出ModelNotFoundError
 - Model状态不可用 → 抛出ModelNotReadyError
 - 预测失败 → 抛出PredictionError
 
 **验收标准**:
+
 - 预测结果准确
 - 批量处理正确
 - 测试覆盖率 ≥90%
@@ -604,13 +648,16 @@ class IModelRepository(ABC):
 **业务描述**: 将模型预测结果转换为交易信号
 
 **输入**:
+
 - `predictions: PredictionBatch`
 - `strategy_params: Dict` (如top_k, threshold等)
 
 **输出**:
+
 - `SignalBatch`
 
 **业务流程**:
+
 1. 验证strategy_params
 2. 根据策略参数过滤预测(如get_top_k, filter_by_threshold)
 3. 调用ISignalConverter.convert_predictions_to_signals()
@@ -619,10 +666,12 @@ class IModelRepository(ABC):
 6. 返回SignalBatch
 
 **异常处理**:
+
 - 参数验证失败 → 抛出ValidationError
 - 转换失败 → 抛出SignalConversionError
 
 **验收标准**:
+
 - 信号转换逻辑准确
 - 支持多种策略参数
 - 测试覆盖率 ≥90%
@@ -637,14 +686,17 @@ class IModelRepository(ABC):
 **业务描述**: 使用交易信号运行策略回测
 
 **输入**:
+
 - `signals: SignalBatch`
 - `backtest_config: BacktestConfig`
 - `date_range: DateRange`
 
 **输出**:
+
 - `BacktestResult`
 
 **业务流程**:
+
 1. 验证BacktestConfig和DateRange
 2. 调用IBacktestEngine.run_backtest()
 3. 创建BacktestResult Entity
@@ -653,10 +705,12 @@ class IModelRepository(ABC):
 6. 返回BacktestResult
 
 **异常处理**:
+
 - 配置验证失败 → 抛出ValidationError
 - 回测失败 → 抛出BacktestError
 
 **验收标准**:
+
 - 回测指标计算准确
 - 支持多种回测参数
 - 测试覆盖率 ≥90%
@@ -671,14 +725,17 @@ class IModelRepository(ABC):
 **业务描述**: 基于K线数据计算技术指标
 
 **输入**:
+
 - `kline_data: List[KLineData]`
 - `indicator_type: IndicatorType`
 - `parameters: IndicatorParameters`
 
 **输出**:
+
 - `Indicator`
 
 **业务流程**:
+
 1. 验证IndicatorParameters
 2. 根据indicator_type选择计算方法
 3. 计算指标值
@@ -686,11 +743,13 @@ class IModelRepository(ABC):
 5. 返回Indicator
 
 **异常处理**:
+
 - 参数验证失败 → 抛出ValidationError
 - 数据不足 → 抛出InsufficientDataError
 - 计算失败 → 抛出IndicatorCalculationError
 
 **验收标准**:
+
 - 指标计算准确
 - 支持常用技术指标
 - 测试覆盖率 ≥90%
@@ -705,14 +764,17 @@ class IModelRepository(ABC):
 **业务描述**: 根据交易信号管理投资组合
 
 **输入**:
+
 - `portfolio: Portfolio`
 - `signals: SignalBatch`
 - `current_prices: Dict[StockCode, Decimal]`
 
 **输出**:
+
 - `Portfolio` (updated)
 
 **业务流程**:
+
 1. 遍历signals中的买入信号
 2. 根据signal.strength计算持仓量
 3. 调用portfolio.add_position()
@@ -722,10 +784,12 @@ class IModelRepository(ABC):
 7. 返回更新后的Portfolio
 
 **异常处理**:
+
 - 资金不足 → 抛出InsufficientFundsError
 - 持仓不存在 → 抛出PositionNotFoundError
 
 **验收标准**:
+
 - 持仓管理逻辑准确
 - 资金管理正确
 - 测试覆盖率 ≥90%
@@ -740,21 +804,26 @@ class IModelRepository(ABC):
 **业务描述**: 从配置仓储加载系统配置
 
 **输入**:
+
 - `config_type: str` (如"data_source", "model", "backtest")
 
 **输出**:
+
 - `Configuration`
 
 **业务流程**:
+
 1. 调用IConfigRepository.load_config()
 2. 验证配置有效性
 3. 返回Configuration
 
 **异常处理**:
+
 - 配置不存在 → 抛出ConfigNotFoundError
 - 配置验证失败 → 抛出ConfigValidationError
 
 **验收标准**:
+
 - 配置加载准确
 - 验证逻辑完善
 - 测试覆盖率 ≥90%
@@ -769,21 +838,26 @@ class IModelRepository(ABC):
 **业务描述**: 保存系统配置到配置仓储
 
 **输入**:
+
 - `config: Configuration`
 
 **输出**:
+
 - `None`
 
 **业务流程**:
+
 1. 验证配置有效性
 2. 调用IConfigRepository.save_config()
 3. 返回成功
 
 **异常处理**:
+
 - 配置验证失败 → 抛出ValidationError
 - 保存失败 → 抛出ConfigSaveError
 
 **验收标准**:
+
 - 配置保存成功
 - 验证逻辑完善
 - 测试覆盖率 ≥90%
@@ -798,21 +872,26 @@ class IModelRepository(ABC):
 **业务描述**: 对回测结果进行详细分析
 
 **输入**:
+
 - `backtest_result: BacktestResult`
 
 **输出**:
+
 - `Dict[str, Any]` (分析报告)
 
 **业务流程**:
+
 1. 计算各项绩效指标(sharpe, max_drawdown, win_rate等)
 2. 分析交易分布(买入/卖出次数、持仓时间等)
 3. 生成分析报告
 4. 返回报告Dict
 
 **异常处理**:
+
 - 数据不足 → 抛出InsufficientDataError
 
 **验收标准**:
+
 - 分析指标准确
 - 报告格式清晰
 - 测试覆盖率 ≥90%
@@ -829,10 +908,12 @@ class IModelRepository(ABC):
 **业务描述**: 实现IStockDataProvider接口,适配Hikyuu数据源
 
 **实现**:
+
 - 实现`load_stock_data()`: 调用hikyuu API加载K线数据并转换为Domain对象
 - 实现`get_stock_list()`: 调用hikyuu.StockManager获取股票列表
 
 **验收标准**:
+
 - 正确适配Hikyuu API
 - 数据转换准确(Hikyuu → Domain)
 - 测试覆盖率 ≥85%
@@ -847,10 +928,12 @@ class IModelRepository(ABC):
 **业务描述**: 实现IStockDataProvider接口,适配Qlib数据源
 
 **实现**:
+
 - 实现`load_stock_data()`: 调用qlib.data.D加载数据并转换为Domain对象
 - 实现`get_stock_list()`: 从Qlib获取股票列表
 
 **验收标准**:
+
 - 正确适配Qlib API
 - 数据转换准确(Qlib → Domain)
 - 测试覆盖率 ≥85%
@@ -865,10 +948,12 @@ class IModelRepository(ABC):
 **业务描述**: 实现IModelTrainer接口,适配Qlib模型训练
 
 **实现**:
+
 - 实现`train()`: 调用qlib.model训练模型并转换为Domain对象
 - 实现`predict()`: 调用qlib.model.predict()并转换为Prediction列表
 
 **验收标准**:
+
 - 正确适配Qlib模型API
 - 支持LGBModel、MLP、LSTM等模型
 - 测试覆盖率 ≥85%
@@ -883,9 +968,11 @@ class IModelRepository(ABC):
 **业务描述**: 实现IBacktestEngine接口,适配Hikyuu回测引擎
 
 **实现**:
+
 - 实现`run_backtest()`: 调用hikyuu.Portfolio/TradeManager运行回测并转换为Domain对象
 
 **验收标准**:
+
 - 正确适配Hikyuu回测API
 - 回测结果转换准确
 - 测试覆盖率 ≥85%
@@ -900,9 +987,11 @@ class IModelRepository(ABC):
 **业务描述**: 实现ISignalConverter接口,将预测转换为交易信号
 
 **实现**:
+
 - 实现`convert_predictions_to_signals()`: 根据策略参数转换Prediction为TradingSignal
 
 **验收标准**:
+
 - 转换逻辑准确
 - 支持多种转换策略(Top-K、阈值过滤等)
 - 测试覆盖率 ≥85%
@@ -917,10 +1006,12 @@ class IModelRepository(ABC):
 **业务描述**: 实现IConfigRepository接口,使用YAML文件存储配置
 
 **实现**:
+
 - 实现`load_config()`: 从YAML文件加载配置
 - 实现`save_config()`: 保存配置到YAML文件
 
 **验收标准**:
+
 - YAML序列化/反序列化准确
 - 配置验证完善
 - 测试覆盖率 ≥85%
@@ -935,10 +1026,12 @@ class IModelRepository(ABC):
 **业务描述**: 实现IModelRepository接口,使用SQLite存储模型元数据
 
 **实现**:
+
 - 实现`save()`: 保存Model元数据到SQLite
 - 实现`find_by_id()`: 根据ModelId查询Model
 
 **验收标准**:
+
 - 持久化逻辑准确
 - 支持模型版本管理
 - 测试覆盖率 ≥85%
@@ -953,10 +1046,12 @@ class IModelRepository(ABC):
 **业务描述**: 提供命令行接口调用Use Cases
 
 **实现**:
+
 - 使用Click框架实现CLI
 - 支持命令: `train`, `predict`, `backtest`, `analyze`
 
 **验收标准**:
+
 - CLI功能完整
 - 参数验证准确
 - 测试覆盖率 ≥85%
@@ -975,6 +1070,7 @@ class IModelRepository(ABC):
 **以便于** 快速开始机器学习建模
 
 **验收条件**:
+
 - 执行`hikyuu-qlib data load --code sh600000 --start 2020-01-01`
 - 数据加载成功并显示统计信息
 - 数据存储在Domain层可识别的格式
@@ -988,6 +1084,7 @@ class IModelRepository(ABC):
 **以便于** 验证技术指标的预测能力
 
 **验收条件**:
+
 - 执行`hikyuu-qlib train --config model_config.yaml`
 - 模型训练成功并保存
 - 显示训练指标(IC, ICIR等)
@@ -1001,6 +1098,7 @@ class IModelRepository(ABC):
 **以便于** 验证策略有效性
 
 **验收条件**:
+
 - 执行`hikyuu-qlib backtest --model-id xxx --config backtest_config.yaml`
 - 回测成功并生成报告
 - 显示关键指标(夏普比率、最大回撤等)
