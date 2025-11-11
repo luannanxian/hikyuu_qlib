@@ -1,0 +1,174 @@
+# 任务规划文档 - Hikyuu × Qlib 个人量化工作站
+
+## 任务规划
+
+- [ ] 1. 实现【数据流通模块】功能子需求
+  - 实现HikyuuDataLoader类，使用hikyuu.StockManager.instance()加载Hikyuu HDF5数据
+  - 实现HikyuuDataExtractor类，从Hikyuu KData中提取开高低收量额、复权因子等核心字段
+  - 实现QlibDataConverter类，将Hikyuu数据转换为Qlib所需的MultiIndex DataFrame格式（datetime, instrument）
+  - 实现QlibFeatureCalculator类，基于Hikyuu技术指标计算Qlib特征表达式，支持EMA、MACD、RSI等
+  - 实现QlibFeatureExpressionBuilder类，构建Qlib特征表达式，支持$close、$volume等变量
+  - 实现QlibDatasetBuilder类，使用qlib.data.D.save()构建Qlib Dataset并生成.bin格式数据
+  - 实现DataConfiguration类，管理Hikyuu数据目录、市场、标的、时间范围配置
+  - 实现DataIntegrityValidator类，验证数据转换的完整性和准确性
+  - 实现命令行工具hikyuu-qlib-data，支持init、convert、validate等子命令
+  - 确保子需求可独立运行
+  - _需求：[FR-001, FR-002, FR-003]_
+
+- [ ] 2. 实现【机器学习建模模块】功能子需求
+  - 实现QlibWorkflowManager类，使用qrun命令和YAML配置管理模型训练工作流
+  - 实现ModelTrainer类，集成Qlib的LGBModel、MLP、LSTM等模型训练功能
+  - 实现ModelPredictor类，使用训练好的模型进行预测并生成pred.pkl文件
+  - 实现QlibRecorderIntegration类，集成Qlib Recorder进行实验记录和管理
+  - 实现ModelAnalysis类，提供IC分析、风险分析、累积收益分析功能
+  - 实现快速训练脚本，支持一键训练并生成预测结果
+  - 实现命令行工具hikyuu-qlib-train，支持train、predict、list等子命令
+  - 确保子需求可独立运行
+  - _需求：[FR-004, FR-005, FR-006, FR-007]_
+
+- [ ] 3. 实现【策略执行模块】功能子需求
+  - 实现QlibPredictionParser类，解析Qlib pred.pkl文件中的预测结果
+  - 实现PredictionScoreProcessor类，处理预测分数的标准化和阈值过滤
+  - 实现TopKStockSelector类，实现基于预测分数的Top-K选股逻辑
+  - 实现CustomSG_QlibFactor类，继承自hikyuu.SignalBase，将Qlib预测结果转换为Hikyuu信号
+  - 实现HikyuuTradeManager集成，使用hikyuu.TradeManager进行交易账户管理
+  - 实现HikyuuSystemComposer类，构建完整的Hikyuu交易系统（SG、MM、ST、TP、EV、CN、SP）
+  - 实现HikyuuPortfolioManager类，使用hikyuu.trade_sys进行投资组合管理
+  - 实现基础调仓建议功能，基于预测结果和资金管理策略生成调仓建议
+  - 实现命令行工具hikyuu-qlib-backtest，支持run、report、summary等子命令
+  - 确保子需求可独立运行
+  - _需求：[FR-008, FR-009, FR-010]_
+
+- [ ] 4. 实现【配置管理模块】功能子需求
+  - 实现ConfigBridge类，作为Hikyuu INI和Qlib YAML配置的桥接层，统一管理两种格式配置
+  - 实现INIConfigLoader类，负责Hikyuu INI配置文件的加载和解析，支持[hikyuu]、[baseinfo]、[kdata]、[preload]等节
+  - 实现YAMLConfigLoader类，负责Qlib YAML配置文件的加载和解析，支持data、model、strategy、backtest等配置
+  - 实现QlibConfigValidator类，负责Qlib相关配置参数的验证，检查必要的配置键是否存在
+  - 实现HikyuuConfigValidator类，负责Hikyuu相关配置参数的验证，检查必需的配置节是否存在
+  - 实现ConfigManager类，负责配置的版本管理和更新，支持配置文件的版本控制和回滚
+  - 实现EnvironmentSetup类，负责Hikyuu和Qlib环境初始化和配置，使用load_hikyuu()和qlib.init()
+  - 实现配置优先设计，所有参数可配置化，支持通过命令行参数覆盖配置文件中的设置
+  - 实现命令行工具hikyuu-qlib-config，支持generate、validate、update等子命令，使用Click框架实现
+  - 确保子需求可独立运行
+  - _需求：[FR-011]_
+
+- [ ] 5. 实现【复盘分析模块】功能子需求
+  - 实现HikyuuPerformanceAnalyzer类，使用hikyuu.Performance分析回测结果
+  - 实现QlibAnalysisIntegration类，集成Qlib分析功能进行结果评估
+  - 实现HikyuuVisualization类，使用hikyuu.interactive进行结果可视化
+  - 实现StrategyComparator类，负责多策略对比分析
+  - 实现ReportGenerator类，负责回测报告的生成
+  - 实现日志与监控功能，记录数据更新、训练、信号生成、执行结果
+  - 实现命令行工具hikyuu-qlib-analyze，支持report、compare、plot等子命令
+  - 确保子需求可独立运行
+  - _需求：[FR-012, FR-013, FR-014]_
+
+- [ ] 6. 实现【Hikyuu Python API集成】功能子需求
+  - 实现HikyuuInitializer类，使用load_hikyuu()初始化Hikyuu框架，支持config_file、stock_list、ktype_list、preload_num等参数
+  - 实现HikyuuStockManagerWrapper类，封装hikyuu.StockManager的证券管理功能，支持获取证券列表、基本信息
+  - 实现HikyuuKDataWrapper类，封装hikyuu.KData的数据查询功能，支持Query对象和多种K线类型
+  - 实现HikyuuIndicatorWrapper类，封装hikyuu.indicator的技术指标计算功能，支持EMA、MACD、RSI等
+  - 实现HikyuuTradeManagerWrapper类，封装hikyuu.TradeManager的交易管理功能，支持crtTM()创建
+  - 实现HikyuuSystemComposer类，使用SYS_Simple()创建交易系统，正确配置SG、MM、ST、SP组件
+  - 实现HikyuuPortfolioWrapper类，封装hikyuu.trade_sys的投资组合功能，支持PF_Simple()和PF_WithoutAF()
+  - 实现HikyuuPerformanceAnalyzer类，使用hikyuu.Performance进行回测绩效分析
+  - 实现HikyuuInteractiveWrapper类，封装hikyuu.interactive的绘图功能，支持K线图、指标图
+  - 实现HikyuuEventDrivenBacktest类，支持事件驱动回测功能，使用backtest()函数
+  - 确保子需求可独立运行
+  - _需求：[FR-001, FR-008, FR-009]_
+
+- [ ] 7. 实现【Qlib API集成】功能子需求
+  - 实现QlibInitializer类，使用qlib.init()初始化Qlib框架，配置provider_uri、region、redis_host、redis_port、expression_cache、dataset_cache等参数
+  - 实现QlibDataLoaderWrapper类，封装qlib.data.D的数据加载功能，支持$close、$volume、Ref($close, 1)等表达式
+  - 实现QlibDataProcessor类，使用Qlib的DropnaProcessor、ZscoreNorm、CSRankNorm等处理器进行特征工程
+  - 实现QlibDatasetWrapper类，封装qlib.data.Dataset管理功能，支持特征表达式和数据集构建
+  - 实现QlibModelWrapper类，封装qlib.model的模型训练和预测功能，支持LGBModel、MLP、LSTM等
+  - 实现QlibWorkflowWrapper类，封装qlib.workflow的工作流管理功能，支持qrun和YAML配置
+  - 实现QlibRecorderWrapper类，封装qlib.workflow.R的实验记录功能，支持MLflow集成和SignalRecord、PortAnaRecord
+  - 实现QlibAnalysisWrapper类，封装qlib.evaluate的分析和评估功能，支持IC分析、风险分析
+  - 实现QlibExpressionWrapper类，封装Qlib表达式引擎，支持特征表达式和Alpha因子
+  - 实现QlibPortfolioStrategyWrapper类，封装TopkDropoutStrategy等投资组合策略
+  - 确保子需求可独立运行
+  - _需求：[FR-002, FR-004, FR-005]_
+
+- [ ] 8. 实现【信号转换处理】功能子需求
+  - 实现QlibPredictionParser类，解析Qlib pred.pkl文件中的MultiIndex(datetime, instrument)预测结果
+  - 实现PredictionScoreNormalizer类，实现预测分数的标准化（Z-Score、Min-Max等）
+  - 实现DynamicThresholdCalculator类，基于统计方法动态计算信号阈值
+  - 实现TopKStockSelector类，实现基于预测分数的Top-K选股逻辑，支持等权重和市值加权
+  - 实现TimingSignalMapper类，将预测分数映射为Hikyuu的买入/卖出信号（+1/-1/0）
+  - 实现SignalTimeAligner类，处理预测信号与Hikyuu K线的时间对齐问题
+  - 实现CustomSG_QlibFactor类，继承自hikyuu.SignalBase，重写_calculate()方法，集成Qlib预测结果
+  - 实现SignalRecordManager类，使用Qlib的SignalRecord和PortAnaRecord进行信号记录和投资组合分析
+  - 实现SignalValidator类，验证信号格式和有效性，确保符合Hikyuu交易系统要求
+  - 实现CSVJSONSignalFormatter类，支持CSV/JSON多种输出格式，兼容Hikyuu外部信号接口
+  - 实现EventDrivenSignalProcessor类，支持事件驱动的信号处理，与Hikyuu事件驱动回测结合
+  - 确保子需求可独立运行
+  - _需求：[FR-008]_
+
+- [ ] 9. 实现【端到端示例策略】功能子需求
+  - 实现技术指标策略示例，使用SG_Cross(MA(CLOSE(), 5), MA(CLOSE(), 20))构建双均线交叉策略
+  - 实现机器学习择时策略示例，展示Qlib LGBModel训练与CustomSG_QlibFactor信号转换的完整流程
+  - 实现多因子选股策略示例，使用PF_Simple + SE_PerformanceOptimal构建投资组合
+  - 实现组合策略示例，展示MM_FixedPercent资金管理 + ST_FixedPercent止损 + ST_FixedPercent止盈的组合使用
+  - 实现滚动交易系统示例，使用SYS_WalkForward构建滚动训练和回测系统
+  - 实现实时策略示例，展示Hikyuu实时数据获取和交易信号生成
+  - 实现配置文件示例，展示数据源配置、模型配置、策略配置的完整YAML结构
+  - 实现信号转换示例，展示从Qlib pred.pkl到Hikyuu交易信号的完整转换过程
+  - 确保子需求可独立运行
+  - _需求：[FR-012]_
+
+- [ ] 10. 实现【数据流完整性验证】功能子需求
+  - 实现HikyuuDataValidator类，使用Hikyuu API验证输入数据质量
+  - 实现QlibDataValidator类，使用Qlib API验证数据转换正确性
+  - 实现PredictionValidator类，验证模型输出有效性
+  - 实现SignalValidator类，验证信号格式正确性
+  - 实现BacktestValidator类，使用Hikyuu Performance验证执行结果可靠性
+  - 实现EndToEndValidator类，确保整个流程的数据一致性
+  - 确保子需求可独立运行
+  - _需求：[FR-001, FR-002, FR-004, FR-008, FR-009]_
+
+- [ ] 11. 实现【滚动交易系统集成】功能子需求
+  - 实现SYS_WalkForwardIntegration类，集成Hikyuu的SYS_WalkForward滚动寻优系统
+  - 实现CandidateSystemCreator类，基于不同Qlib模型创建候选交易系统列表
+  - 实现CustomSelector类，继承自hikyuu.SelectorBase，支持自定义选择标准
+  - 实现WalkForwardSystemRunner类，执行滚动寻优回测并收集结果
+  - 实现PerformanceBasedSelector类，基于SE_PerformanceOptimal实现绩效选择器
+  - 实现RollingWindowManager类，管理训练期和测试期的滚动窗口
+  - 实现SystemSwitchingLogic类，处理系统切换逻辑和交易连续性
+  - 实现命令行工具hikyuu-qlib-backtest的walkforward子命令，支持滚动寻优回测
+  - 确保子需求可独立运行
+  - _需求：[FR-009, FR-010]_
+
+- [ ] 12. 实现【批量系统分析】功能子需求
+  - 实现BatchSystemAnalyzer类，集成Hikyuu的analysisSystemList批量分析功能
+  - 实现MultiModelSystemGenerator类，生成基于多个Qlib模型的交易系统
+  - 实然ParallelAnalysisExecutor类，利用Hikyuu的parallel_for_index进行并行计算
+  - 实现AnalysisResultProcessor类，处理批量分析结果并生成统计报告
+  - 实现SystemPerformanceComparator类，对比多个系统的绩效指标
+  - 实现BatchAnalysisExporter类，导出批量分析结果到CSV/Excel格式
+  - 实现命令行工具hikyuu-qlib-analyze的batch子命令，支持批量系统分析
+  - 确保子需求可独立运行
+  - _需求：[FR-012, FR-013, FR-014]_
+
+- [ ] 13. 实现【可视化功能集成】功能子需求
+  - 实现SystemVisualizer类，集成Hikyuu的sys_performance系统绩效可视化功能
+  - 实现HeatmapVisualizer类，集成Hikyuu的sys_heatmap收益热力图可视化功能
+  - 实现BatchSystemVisualizer类，实现多系统对比可视化
+  - 实现WalkForwardResultVisualizer类，可视化滚动寻优系统的切换时机和绩效
+  - 实现InteractiveChartGenerator类，生成交互式图表和报告
+  - 实现VisualizationExporter类，导出可视化结果到HTML/PDF格式
+  - 实现命令行工具hikyuu-qlib-analyze的plot子命令，支持多种可视化类型
+  - 确保子需求可独立运行
+  - _需求：[FR-012, FR-014]_
+
+- [ ] 14. 实现【命令行工具打包】功能子需求
+  - 实现setup.py配置，使用entry_points配置五个主要命令行工具
+  - 实现CLI模块结构，将五个命令行工具分别组织到cli子模块中
+  - 实现Click框架集成，为所有命令行工具提供统一的参数验证和帮助文档
+  - 实现命令行工具依赖管理，确保所有必需的Python包正确安装
+  - 实现命令行工具测试，确保所有子命令正常工作
+  - 实现安装脚本，支持一键安装所有命令行工具
+  - 实现命令行工具文档，提供详细的使用说明和示例
+  - 确保子需求可独立运行
+  - _需求：[FR-011]_
