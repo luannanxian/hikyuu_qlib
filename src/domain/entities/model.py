@@ -83,6 +83,68 @@ class Model:
         """
         self.metrics = metrics
 
+    def mark_as_trained(
+        self, metrics: Dict[str, float], threshold: float = 0.5
+    ) -> None:
+        """
+        标记模型为已训练状态
+
+        Args:
+            metrics: 训练后的评估指标
+            threshold: 指标阈值,默认0.5
+
+        Raises:
+            ValueError: 如果指标低于阈值
+        """
+        # 验证指标是否达标
+        if not self.validate_metrics(metrics, threshold):
+            raise ValueError(
+                f"Model metrics below threshold. Required: {threshold}, "
+                f"got: {metrics}"
+            )
+
+        self.status = ModelStatus.TRAINED
+        self.metrics = metrics
+        self.training_date = datetime.now()
+
+    def validate_metrics(
+        self, metrics: Dict[str, float], threshold: float = 0.5
+    ) -> bool:
+        """
+        验证模型指标是否达标
+
+        Args:
+            metrics: 评估指标字典
+            threshold: 阈值
+
+        Returns:
+            bool: 是否所有指标都达标
+        """
+        if not metrics:
+            return False
+
+        # 检查所有指标是否达到阈值
+        return all(value >= threshold for value in metrics.values())
+
+    def is_ready_for_prediction(self) -> bool:
+        """
+        判断模型是否可以用于预测
+
+        Returns:
+            bool: 模型是否已训练且可用于预测
+        """
+        return self.status in [ModelStatus.TRAINED, ModelStatus.DEPLOYED]
+
+    @property
+    def trained_at(self) -> Optional[datetime]:
+        """
+        获取训练时间 (training_date 的别名)
+
+        Returns:
+            Optional[datetime]: 训练时间
+        """
+        return self.training_date
+
     def deploy(self) -> None:
         """
         部署模型
