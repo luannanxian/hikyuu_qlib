@@ -9,6 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from domain.entities.kline_data import KLineData
+from domain.value_objects.kline_type import KLineType
 from domain.value_objects.stock_code import StockCode
 
 
@@ -18,6 +19,7 @@ class TestKLineDataCreation:
     def test_create_kline_data_with_all_fields(self):
         """测试创建完整K线数据"""
         kline = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2, 9, 30),
             open=Decimal("11.50"),
@@ -42,6 +44,7 @@ class TestKLineDataCreation:
         # high 必须 >= low
         with pytest.raises(ValueError, match="high must be >= low"):
             KLineData(
+                kline_type=KLineType.DAY,
                 stock_code=StockCode("sh600000"),
                 timestamp=datetime(2020, 1, 2),
                 open=Decimal("11.50"),
@@ -55,6 +58,7 @@ class TestKLineDataCreation:
         # volume 必须 >= 0
         with pytest.raises(ValueError, match="volume must be >= 0"):
             KLineData(
+                kline_type=KLineType.DAY,
                 stock_code=StockCode("sh600000"),
                 timestamp=datetime(2020, 1, 2),
                 open=Decimal("11.50"),
@@ -72,6 +76,7 @@ class TestKLineDataIdentity:
     def test_kline_has_unique_id(self):
         """验证每条K线有唯一标识"""
         kline1 = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2),
             open=Decimal("11.50"),
@@ -82,6 +87,7 @@ class TestKLineDataIdentity:
             amount=Decimal("11700000"),
         )
         kline2 = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2),
             open=Decimal("11.50"),
@@ -100,6 +106,7 @@ class TestKLineDataIdentity:
     def test_kline_equality_based_on_stock_and_time(self):
         """验证K线相等性基于股票代码和时间戳"""
         kline1 = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2, 9, 30),
             open=Decimal("11.50"),
@@ -110,6 +117,7 @@ class TestKLineDataIdentity:
             amount=Decimal("11700000"),
         )
         kline2 = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2, 9, 30),
             open=Decimal("11.60"),  # 价格不同
@@ -120,6 +128,7 @@ class TestKLineDataIdentity:
             amount=Decimal("23400000"),
         )
         kline3 = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 3, 9, 30),  # 时间不同
             open=Decimal("11.50"),
@@ -143,6 +152,7 @@ class TestKLineDataCalculations:
     def test_price_change_rate(self):
         """测试涨跌幅计算"""
         kline = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2),
             open=Decimal("10.00"),
@@ -160,6 +170,7 @@ class TestKLineDataCalculations:
     def test_amplitude(self):
         """测试振幅计算"""
         kline = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2),
             open=Decimal("10.00"),
@@ -177,6 +188,7 @@ class TestKLineDataCalculations:
     def test_average_price(self):
         """测试均价计算"""
         kline = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2),
             open=Decimal("10.00"),
@@ -197,6 +209,7 @@ class TestKLineDataStringRepresentation:
     def test_kline_string_representation(self):
         """验证字符串表示"""
         kline = KLineData(
+            kline_type=KLineType.DAY,
             stock_code=StockCode("sh600000"),
             timestamp=datetime(2020, 1, 2, 9, 30),
             open=Decimal("11.50"),

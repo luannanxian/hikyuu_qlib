@@ -10,6 +10,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from domain.value_objects.stock_code import StockCode
+from domain.value_objects.kline_type import KLineType
 
 
 @dataclass
@@ -24,6 +25,7 @@ class KLineData:
     属性:
     - stock_code: 股票代码值对象
     - timestamp: 时间戳
+    - kline_type: K线类型
     - open: 开盘价
     - high: 最高价
     - low: 最低价
@@ -34,6 +36,7 @@ class KLineData:
 
     stock_code: StockCode
     timestamp: datetime
+    kline_type: KLineType
     open: Decimal
     high: Decimal
     low: Decimal
