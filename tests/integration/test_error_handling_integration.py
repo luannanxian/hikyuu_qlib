@@ -65,8 +65,9 @@ async def test_model_training_error_propagation(mock_model_trainer, mock_model_r
     with pytest.raises(ValueError, match="Invalid training data format"):
         await use_case.execute(model=model, training_data=[])
 
-    # 验证模型没有被保存
-    mock_model_repository.save.assert_not_called()
+    # 验证模型没有被保存（检查repository中没有模型）
+    saved_model = await mock_model_repository.find_by_id(model.id)
+    assert saved_model is None
 
 
 @pytest.mark.asyncio
@@ -90,7 +91,7 @@ async def test_backtest_engine_error_propagation(mock_backtest_engine, sample_si
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100"))  # 资金不足
+    config = BacktestConfig(initial_capital=Decimal("100"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))  # 资金不足
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act & Assert
@@ -115,7 +116,7 @@ async def test_validation_error_in_value_objects():
 
     # Test 3: 无效配置
     with pytest.raises(ValueError):
-        BacktestConfig(initial_capital=Decimal("-1000"))  # 负数资金
+        BacktestConfig(initial_capital=Decimal("-1000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))  # 负数资金
 
 
 @pytest.mark.asyncio
@@ -336,7 +337,8 @@ async def test_error_with_cleanup(mock_model_repository):
         pass
 
     # 验证失败的模型没有被保存（清理行为）
-    mock_model_repository.save.assert_not_called()
+    saved_model = await mock_model_repository.find_by_id(model.id)
+    assert saved_model is None
 
 
 @pytest.mark.asyncio

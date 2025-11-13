@@ -9,6 +9,7 @@ Tests:
 """
 
 import pytest
+from unittest.mock import patch, MagicMock
 
 from controllers.cli.di.container import Container
 from infrastructure.config.settings import Settings
@@ -71,9 +72,11 @@ class TestContainer:
 
         assert isinstance(use_case, TrainModelUseCase)
 
-    def test_container_provides_run_backtest_use_case(self):
+    @patch("adapters.hikyuu.hikyuu_backtest_adapter.hku")
+    def test_container_provides_run_backtest_use_case(self, mock_hku):
         """Test container provides RunBacktestUseCase."""
         # Arrange
+        mock_hku.return_value = MagicMock()
         container = Container()
 
         # Act

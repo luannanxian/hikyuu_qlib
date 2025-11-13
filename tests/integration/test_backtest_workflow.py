@@ -73,6 +73,7 @@ async def test_backtest_with_buy_and_sell_signals(
     config = BacktestConfig(
         initial_capital=Decimal("100000"),
         commission_rate=Decimal("0.001"),
+        slippage_rate=Decimal("0.001"),
     )
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
@@ -98,7 +99,7 @@ async def test_backtest_with_empty_signals(run_backtest_use_case):
     # Arrange
     signal_batch = SignalBatch(strategy_name="test_strategy", batch_date=datetime(2023, 1, 1))  # 空信号批次
 
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act
@@ -124,7 +125,7 @@ async def test_backtest_performance_metrics(run_backtest_use_case, sample_signal
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act
@@ -189,7 +190,7 @@ async def test_backtest_date_range_filtering(run_backtest_use_case, test_data_fa
         signal_batch.add_signal(signal)
 
     # 只回测1月份
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 1, 31))
 
     # Act
@@ -219,7 +220,7 @@ async def test_backtest_handles_engine_error(mock_backtest_engine, sample_signal
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act & Assert
@@ -254,7 +255,11 @@ async def test_backtest_with_different_initial_capitals(
 
     # Act
     for initial_capital in initial_capitals:
-        config = BacktestConfig(initial_capital=initial_capital)
+        config = BacktestConfig(
+            initial_capital=initial_capital,
+            commission_rate=Decimal("0.001"),
+            slippage_rate=Decimal("0.001"),
+        )
         result = await run_backtest_use_case.execute(
             signals=signal_batch, config=config, date_range=date_range
         )
@@ -282,11 +287,11 @@ async def test_backtest_signal_conversion_integration(
     """
     # Arrange - 转换预测为信号
     signal_batch = await convert_predictions_to_signals_use_case.execute(
-        predictions=sample_predictions
+        predictions=sample_predictions, strategy_params={"strategy_type": "threshold", "threshold": 0.5}
     )
 
     # Act - 运行回测
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     result = await run_backtest_use_case.execute(
@@ -311,7 +316,7 @@ async def test_backtest_result_serialization(run_backtest_use_case, sample_signa
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act

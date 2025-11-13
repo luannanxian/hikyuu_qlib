@@ -49,7 +49,7 @@ class TestModelConfig:
 
     def test_invalid_model_type(self):
         """测试无效的模型类型"""
-        with pytest.raises(ValueError, match="Invalid model_type"):
+        with pytest.raises(ValueError, match="Invalid model type"):
             ModelConfig(model_type="INVALID", hyperparameters={})
 
 

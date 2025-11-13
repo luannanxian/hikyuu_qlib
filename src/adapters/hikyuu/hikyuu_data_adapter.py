@@ -1,30 +1,30 @@
 """
-HikyuuDataAdapter - Hikyuu 数据源适配器
+HikyuuDataAdapter - Hikyuu 数据适配器
 
 适配 Hikyuu 框架实现 IStockDataProvider 接口
 """
 
-from typing import List
 from datetime import datetime
 from decimal import Decimal
+from typing import List
 
-# 为了便于测试，将 hikyuu 作为模块级变量
+# 条件导入 Hikyuu - 便于测试和开发
 try:
-    import hikyuu
+    import hikyuu as hku
 except ImportError:
     # 开发环境下 Mock hikyuu
-    hikyuu = None
+    hku = None
 
 from domain.ports.stock_data_provider import IStockDataProvider
-from domain.entities.kline_data import KLineData
 from domain.value_objects.stock_code import StockCode
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
+from domain.entities.kline_data import KLineData
 
 
 class HikyuuDataAdapter(IStockDataProvider):
     """
-    Hikyuu 数据源适配器
+    Hikyuu 数据适配器
 
     实现 IStockDataProvider 接口,适配 Hikyuu 框架
     """
@@ -36,54 +36,81 @@ class HikyuuDataAdapter(IStockDataProvider):
         Args:
             hikyuu_module: Hikyuu 模块实例（用于测试注入）
         """
-        self.hikyuu = hikyuu_module if hikyuu_module is not None else hikyuu
+        self.hku = hikyuu_module if hikyuu_module is not None else hku
 
-    def _map_kline_type(self, kline_type: str):
+    def _map_kline_type_to_hikyuu(self, kline_type: KLineType) -> int:
         """
-        映射 K线类型到 Hikyuu Query 类型
+        映射领域层 KLineType 到 Hikyuu K线类型
 
         Args:
             kline_type: 领域层 K线类型
 
         Returns:
-            Hikyuu Query 类型
+            Hikyuu K线类型常量
         """
-        if self.hikyuu is None:
-            return None
-
         mapping = {
-            KLineType.MIN_1.value: self.hikyuu.Query.MIN,
-            KLineType.MIN_5.value: self.hikyuu.Query.MIN5,
-            KLineType.DAY.value: self.hikyuu.Query.DAY,
-            KLineType.WEEK.value: self.hikyuu.Query.WEEK,
-            KLineType.MONTH.value: self.hikyuu.Query.MONTH,
+            KLineType.MIN_1: self.hku.Query.MIN,
+            KLineType.MIN_5: self.hku.Query.MIN5,
+            KLineType.DAY: self.hku.Query.DAY,
+            KLineType.WEEK: self.hku.Query.WEEK,
+            KLineType.MONTH: self.hku.Query.MONTH,
         }
-        return mapping.get(kline_type, self.hikyuu.Query.DAY)
+        return mapping.get(kline_type, self.hku.Query.DAY)
 
-    def _convert_to_kline_data(
-        self, hikyuu_record, stock_code: StockCode, kline_type: str
-    ) -> KLineData:
+    def _build_query(self, date_range: DateRange, kline_type: KLineType):
         """
-        转换 Hikyuu KRecord 到领域层 KLineData
+        构建 Hikyuu Query 对象
 
         Args:
-            hikyuu_record: Hikyuu KRecord 对象
+            date_range: 日期范围
+            kline_type: K线类型
+
+        Returns:
+            Hikyuu Query 对象
+        """
+        hikyuu_ktype = self._map_kline_type_to_hikyuu(kline_type)
+
+        # 构建 Query
+        query = self.hku.Query(
+            start=self.hku.Datetime(
+                date_range.start_date.year,
+                date_range.start_date.month,
+                date_range.start_date.day,
+            ),
+            end=self.hku.Datetime(
+                date_range.end_date.year,
+                date_range.end_date.month,
+                date_range.end_date.day,
+            ),
+            ktype=hikyuu_ktype,
+        )
+
+        return query
+
+    def _convert_krecord_to_domain(
+        self, krecord, stock_code: StockCode, kline_type: KLineType
+    ) -> KLineData:
+        """
+        将 Hikyuu KRecord 转换为 Domain KLineData
+
+        Args:
+            krecord: Hikyuu KRecord 对象
             stock_code: 股票代码
             kline_type: K线类型
 
         Returns:
-            KLineData: 领域层 K线数据
+            Domain KLineData 实体
         """
         return KLineData(
             stock_code=stock_code,
-            timestamp=hikyuu_record.datetime,
-            kline_type=KLineType(kline_type),
-            open=Decimal(str(hikyuu_record.open)),
-            high=Decimal(str(hikyuu_record.high)),
-            low=Decimal(str(hikyuu_record.low)),
-            close=Decimal(str(hikyuu_record.close)),
-            volume=int(hikyuu_record.volume),
-            amount=Decimal(str(hikyuu_record.amount)),
+            timestamp=krecord.datetime,
+            kline_type=kline_type,
+            open=Decimal(str(krecord.openPrice)),
+            high=Decimal(str(krecord.highPrice)),
+            low=Decimal(str(krecord.lowPrice)),
+            close=Decimal(str(krecord.closePrice)),
+            volume=int(krecord.volume),
+            amount=Decimal(str(krecord.amount)),
         )
 
     async def load_stock_data(
@@ -101,37 +128,27 @@ class HikyuuDataAdapter(IStockDataProvider):
             List[KLineData]: K线数据列表
 
         Raises:
-            Exception: 当 Hikyuu API 调用失败时
+            Exception: 当 Hikyuu 加载失败时
         """
         try:
-            # 获取 Hikyuu Stock 对象
-            # Hikyuu 使用大写市场代码和股票代码
-            market = stock_code.value[:2].upper()
-            code = stock_code.value[2:]
-            hikyuu_stock_code = f"{market}{code}"
+            # 1. Domain → Hikyuu 转换
+            stock = self.hku.Stock(stock_code.value)
+            query = self._build_query(date_range, kline_type)
 
-            stock = self.hikyuu.Stock(hikyuu_stock_code)
+            # 2. 调用 Hikyuu API
+            kdata = stock.getKData(query)
 
-            # 创建查询
-            query_type = self._map_kline_type(kline_type)
-            query = self.hikyuu.Query(query_type)
-
-            # 获取 K线数据
-            kdata = stock.get_kdata(query)
-
-            # 转换为领域层数据
+            # 3. Hikyuu → Domain 转换
             result = []
-            for record in kdata:
-                # 过滤日期范围
-                record_date = record.datetime.date()
-                if date_range.contains(record_date):
-                    kline = self._convert_to_kline_data(record, stock_code, kline_type)
-                    result.append(kline)
+            for krecord in kdata:
+                domain_kline = self._convert_krecord_to_domain(
+                    krecord, stock_code, kline_type
+                )
+                result.append(domain_kline)
 
             return result
 
         except Exception as e:
-            # 将 Hikyuu 异常映射为领域层异常
             raise Exception(
                 f"Failed to load stock data from Hikyuu: {stock_code.value}, {e}"
             ) from e
@@ -141,35 +158,29 @@ class HikyuuDataAdapter(IStockDataProvider):
         获取股票列表
 
         Args:
-            market: 市场代码 (SH/SZ/BJ)
+            market: 市场代码 (如 "SH", "SZ")
 
         Returns:
             List[StockCode]: 股票代码列表
 
         Raises:
-            Exception: 当 Hikyuu API 调用失败时
+            Exception: 当 Hikyuu 加载失败时
         """
         try:
-            # 获取股票管理器
-            sm = self.hikyuu.StockManager.instance()
+            # 1. 获取 StockManager
+            sm = self.hku.StockManager.instance()
 
-            # 获取所有股票
-            stocks = sm.get_stock_list()
-
-            # 过滤并转换
+            # 2. 遍历所有股票,过滤指定市场
             result = []
-            for stock in stocks:
-                if stock.market_code.upper() == market.upper():
-                    # 转换为领域层 StockCode
-                    code = f"{stock.market_code.lower()}{stock.code}"
-                    try:
-                        stock_code = StockCode(code)
-                        result.append(stock_code)
-                    except ValueError:
-                        # 跳过无效股票代码
-                        continue
+            for stock in sm:
+                if stock.market_code == market.upper():
+                    # 构建 StockCode (market_code + code)
+                    code_value = f"{market.lower()}{stock.code}"
+                    result.append(StockCode(code_value))
 
             return result
 
         except Exception as e:
-            raise Exception(f"Failed to get stock list from Hikyuu: {market}, {e}") from e
+            raise Exception(
+                f"Failed to get stock list from Hikyuu: {market}, {e}"
+            ) from e

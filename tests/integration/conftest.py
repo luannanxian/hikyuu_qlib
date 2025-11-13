@@ -194,6 +194,7 @@ def temp_config_file():
             "backtest": {
                 "initial_capital": 100000.0,
                 "commission_rate": 0.001,
+                "slippage_rate": 0.001,
             },
         }
         yaml.dump(config, f)
@@ -240,14 +241,14 @@ def mock_model_trainer():
 
 
 @pytest.fixture
-def mock_model_repository(in_memory_db):
-    """Mock 模型仓库（使用真实数据库）"""
+async def mock_model_repository():
+    """Mock 模型仓库（使用真实内存数据库）"""
     from adapters.repositories.sqlite_model_repository import SQLiteModelRepository
 
     repo = SQLiteModelRepository(db_path=":memory:")
-    # 替换数据库连接
-    repo._db = in_memory_db
-    return repo
+    await repo.initialize()
+    yield repo
+    await repo.close()
 
 
 @pytest.fixture
@@ -263,10 +264,16 @@ def mock_backtest_engine():
             strategy_name="test_strategy",
             start_date=datetime.combine(date_range.start_date, datetime.min.time()),
             end_date=datetime.combine(date_range.end_date, datetime.min.time()),
-            initial_capital=Decimal("100000"),
+            initial_capital=config.initial_capital,
             final_capital=Decimal("120000"),
             trades=[],
             equity_curve=[Decimal("100000"), Decimal("110000"), Decimal("120000")],
+            metrics={
+                "total_return": 0.2,
+                "sharpe_ratio": 1.5,
+                "max_drawdown": 0.05,
+                "win_rate": 0.6
+            }
         )
 
     engine.run_backtest.side_effect = run_backtest_side_effect
@@ -306,19 +313,20 @@ def train_model_use_case(mock_model_trainer, mock_model_repository):
 
 
 @pytest.fixture
-def generate_predictions_use_case():
+def generate_predictions_use_case(mock_model_trainer, mock_model_repository):
     """GeneratePredictionsUseCase 实例"""
     from use_cases.model.generate_predictions import GeneratePredictionsUseCase
 
-    predictor = AsyncMock()
-
+    # Mock trainer to return predictions
     async def predict_side_effect(model, input_data):
         """预测副作用：返回模拟预测"""
         return TestDataFactory.create_predictions(len(input_data))
 
-    predictor.predict.side_effect = predict_side_effect
+    mock_model_trainer.predict.side_effect = predict_side_effect
 
-    return GeneratePredictionsUseCase(predictor=predictor)
+    return GeneratePredictionsUseCase(
+        repository=mock_model_repository, trainer=mock_model_trainer
+    )
 
 
 @pytest.fixture
@@ -395,7 +403,14 @@ def sample_trained_model():
 @pytest.fixture
 def sample_predictions():
     """示例预测数据"""
-    return TestDataFactory.create_predictions(count=30)
+    from domain.entities.prediction import PredictionBatch
+    from datetime import datetime
+
+    predictions_list = TestDataFactory.create_predictions(count=30)
+    batch = PredictionBatch(model_id="test_model", batch_date=datetime(2023, 1, 1))
+    for pred in predictions_list:
+        batch.add_prediction(pred)
+    return batch
 
 
 @pytest.fixture

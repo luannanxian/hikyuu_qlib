@@ -53,16 +53,16 @@ async def test_complete_trading_workflow(integration_container):
     assert trained_model.is_trained(), "模型状态不正确"
 
     # Step 3: 生成预测
-    predictions = await integration_container.generate_predictions_use_case.execute(
-        model=trained_model, input_data=kline_data[-30:]  # 最近30天
+    prediction_batch = await integration_container.generate_predictions_use_case.execute(
+        model_id=trained_model.id, input_data=kline_data[-30:]  # 最近30天
     )
 
-    assert len(predictions) > 0, "预测生成失败"
+    assert len(prediction_batch.predictions) > 0, "预测生成失败"
 
     # Step 4: 转换为交易信号
     signals = await integration_container.convert_predictions_to_signals_use_case.execute(
-        predictions=predictions
-    )
+        predictions=prediction_batch
+    , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
     assert signals.size() > 0, "信号转换失败"
 
@@ -70,6 +70,7 @@ async def test_complete_trading_workflow(integration_container):
     backtest_config = BacktestConfig(
         initial_capital=Decimal("100000"),
         commission_rate=Decimal("0.001"),
+        slippage_rate=Decimal("0.001"),
     )
 
     backtest_result = await integration_container.run_backtest_use_case.execute(
@@ -115,21 +116,31 @@ async def test_multi_stock_trading_workflow(integration_container, test_data_fac
         assert trained_model.is_trained()
 
         # 3. 生成预测
-        predictions = await integration_container.generate_predictions_use_case.execute(
-            model=trained_model, input_data=kline_data[-30:]
+        prediction_batch = await integration_container.generate_predictions_use_case.execute(
+        model_id=trained_model.id, input_data=kline_data[-30:]
         )
 
-        all_predictions.extend(predictions)
+        all_predictions.extend(prediction_batch.predictions)
 
     # 4. 合并所有预测并转换为信号
     assert len(all_predictions) > 0
 
+    # 创建预测批次(去重)
+    from domain.entities.prediction import PredictionBatch
+    merged_batch = PredictionBatch(model_id="multi_stock", batch_date=datetime(2023, 1, 1))
+    seen = set()
+    for pred in all_predictions:
+        key = (pred.stock_code, pred.prediction_date)
+        if key not in seen:
+            merged_batch.add_prediction(pred)
+            seen.add(key)
+
     signals = await integration_container.convert_predictions_to_signals_use_case.execute(
-        predictions=all_predictions
-    )
+        predictions=merged_batch
+    , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
     # 5. 运行回测
-    backtest_config = BacktestConfig(initial_capital=Decimal("300000"))
+    backtest_config = BacktestConfig(initial_capital=Decimal("300000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
 
     backtest_result = await integration_container.run_backtest_use_case.execute(
         signals=signals, config=backtest_config, date_range=date_range
@@ -190,17 +201,17 @@ async def test_strategy_comparison_workflow(integration_container, sample_kline_
         )
 
         # 2. 生成预测
-        predictions = await integration_container.generate_predictions_use_case.execute(
-            model=trained_model, input_data=sample_kline_data[-30:]
+        prediction_batch = await integration_container.generate_predictions_use_case.execute(
+        model_id=trained_model.id, input_data=sample_kline_data[-30:]
         )
 
         # 3. 转换信号
         signals = await integration_container.convert_predictions_to_signals_use_case.execute(
-            predictions=predictions
-        )
+            predictions=prediction_batch
+        , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
         # 4. 回测
-        config = BacktestConfig(initial_capital=Decimal("100000"))
+        config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
 
         result = await integration_container.run_backtest_use_case.execute(
             signals=signals, config=config, date_range=date_range
@@ -224,8 +235,9 @@ async def test_incremental_prediction_workflow(
 
     场景: 使用已训练模型进行增量预测（模拟实时交易）
     """
-    # 使用已训练的模型
+    # 使用已训练的模型并保存到repository
     model = sample_trained_model
+    await integration_container.generate_predictions_use_case.repository.save(model)
 
     # 模拟滑动窗口预测
     window_size = 10
@@ -235,19 +247,29 @@ async def test_incremental_prediction_workflow(
         # 使用滑动窗口数据进行预测
         window_data = sample_kline_data[i : i + window_size]
 
-        predictions = await integration_container.generate_predictions_use_case.execute(
-            model=model, input_data=window_data
+        prediction_batch = await integration_container.generate_predictions_use_case.execute(
+        model_id=model.id, input_data=window_data
         )
 
-        all_predictions.extend(predictions)
+        all_predictions.extend(prediction_batch.predictions)
 
     # 转换所有预测为信号
+    # 创建预测批次(去重)
+    from domain.entities.prediction import PredictionBatch
+    incremental_batch = PredictionBatch(model_id=model.id, batch_date=datetime.now())
+    seen = set()
+    for pred in all_predictions:
+        key = (pred.stock_code, pred.prediction_date)
+        if key not in seen:
+            incremental_batch.add_prediction(pred)
+            seen.add(key)
+
     signals = await integration_container.convert_predictions_to_signals_use_case.execute(
-        predictions=all_predictions
-    )
+        predictions=incremental_batch
+    , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
     # 回测
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     result = await integration_container.run_backtest_use_case.execute(
@@ -339,18 +361,18 @@ async def test_full_workflow_with_validation(integration_container, sample_kline
     assert len(trained_model.metrics) > 0
 
     # 3. 生成并验证预测
-    predictions = await integration_container.generate_predictions_use_case.execute(
-        model=trained_model, input_data=kline_data[-30:]
+    prediction_batch = await integration_container.generate_predictions_use_case.execute(
+        model_id=trained_model.id, input_data=kline_data[-30:]
     )
 
     # 验证预测
-    assert len(predictions) > 0
-    assert all(p.predicted_value is not None for p in predictions)
+    assert len(prediction_batch.predictions) > 0
+    assert all(p.predicted_value is not None for p in prediction_batch.predictions)
 
     # 4. 转换并验证信号
     signals = await integration_container.convert_predictions_to_signals_use_case.execute(
-        predictions=predictions
-    )
+        predictions=prediction_batch
+    , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
     # 验证信号
     assert signals.size() > 0
@@ -358,7 +380,7 @@ async def test_full_workflow_with_validation(integration_container, sample_kline
     assert len(all_signals) > 0
 
     # 5. 回测并验证结果
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
 
     result = await integration_container.run_backtest_use_case.execute(
         signals=signals, config=config, date_range=date_range
@@ -402,21 +424,21 @@ async def test_workflow_with_performance_tracking(integration_container, sample_
 
     # 3. 预测生成
     start = time.time()
-    predictions = await integration_container.generate_predictions_use_case.execute(
-        model=trained_model, input_data=kline_data[-30:]
+    prediction_batch = await integration_container.generate_predictions_use_case.execute(
+        model_id=trained_model.id, input_data=kline_data[-30:]
     )
     timings["prediction"] = time.time() - start
 
     # 4. 信号转换
     start = time.time()
     signals = await integration_container.convert_predictions_to_signals_use_case.execute(
-        predictions=predictions
-    )
+        predictions=prediction_batch
+    , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
     timings["signal_conversion"] = time.time() - start
 
     # 5. 回测
     start = time.time()
-    config = BacktestConfig(initial_capital=Decimal("100000"))
+    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     result = await integration_container.run_backtest_use_case.execute(
         signals=signals, config=config, date_range=date_range
     )

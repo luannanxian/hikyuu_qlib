@@ -45,8 +45,10 @@ async def test_train_model_integration(
     assert "accuracy" in trained_model.metrics
     assert trained_model.training_date is not None
 
-    # 验证模型被保存
-    mock_model_repository.save.assert_called_once_with(trained_model)
+    # 验证模型被保存到repository
+    saved_model = await mock_model_repository.find_by_id(trained_model.id)
+    assert saved_model is not None
+    assert saved_model.status == trained_model.status
 
 
 @pytest.mark.asyncio
@@ -134,7 +136,8 @@ async def test_train_model_handles_trainer_error(
         await use_case.execute(model=model, training_data=sample_kline_data)
 
     # 验证模型没有被保存
-    mock_model_repository.save.assert_not_called()
+    saved_model = await mock_model_repository.find_by_id(model.id)
+    assert saved_model is None
 
 
 @pytest.mark.asyncio
@@ -160,14 +163,13 @@ async def test_train_model_repository_persistence(
     # Act
     trained_model = await use_case.execute(model=model, training_data=sample_kline_data)
 
-    # Assert - 验证保存
-    mock_model_repository.save.assert_called_once_with(trained_model)
-
-    # Arrange - 设置检索
-    mock_model_repository.get_by_id.return_value = trained_model
+    # Assert - 验证保存和检索
+    saved_model = await mock_model_repository.find_by_id(trained_model.id)
+    assert saved_model is not None
+    assert saved_model.id == trained_model.id
 
     # Act - 检索模型
-    retrieved_model = await mock_model_repository.get_by_id(trained_model.id)
+    retrieved_model = await mock_model_repository.find_by_id(trained_model.id)
 
     # Assert
     assert retrieved_model is not None

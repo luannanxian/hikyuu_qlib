@@ -7,23 +7,30 @@ Configuration Value Objects
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 @dataclass(frozen=True)
 class DataSourceConfig:
     """数据源配置值对象"""
 
-    provider: str  # "hikyuu" or "qlib"
-    data_path: str
+    hikyuu_path: Optional[str] = None
+    qlib_path: Optional[str] = None
+    provider: Optional[str] = None  # "hikyuu" or "qlib" (legacy)
+    data_path: Optional[str] = None  # (legacy)
 
     def __post_init__(self):
         """验证配置有效性"""
-        if self.provider not in ("hikyuu", "qlib"):
+        # 新格式验证
+        if self.hikyuu_path or self.qlib_path:
+            return  # 新格式不需要额外验证
+
+        # 旧格式验证
+        if self.provider and self.provider not in ("hikyuu", "qlib"):
             raise ValueError(f"Invalid provider: {self.provider}")
 
         # 验证路径存在(如果是本地路径)
-        if not self.data_path.startswith("http"):
+        if self.data_path and not self.data_path.startswith("http"):
             path = Path(self.data_path)
             if not path.exists():
                 raise ValueError(f"Data path does not exist: {self.data_path}")
@@ -33,14 +40,18 @@ class DataSourceConfig:
 class ModelConfig:
     """模型配置值对象"""
 
-    model_type: str  # "LGBM", "MLP", "LSTM", etc.
     hyperparameters: Dict[str, Any]
+    default_type: Optional[str] = None
+    model_type: Optional[str] = None  # Legacy field
 
     def __post_init__(self):
         """验证配置有效性"""
         valid_types = ("LGBM", "MLP", "LSTM", "GRU", "TRANSFORMER")
-        if self.model_type not in valid_types:
-            raise ValueError(f"Invalid model_type: {self.model_type}")
+
+        # 使用default_type或model_type进行验证
+        type_to_check = self.default_type or self.model_type
+        if type_to_check and type_to_check not in valid_types:
+            raise ValueError(f"Invalid model type: {type_to_check}")
 
 
 @dataclass(frozen=True)
@@ -49,7 +60,7 @@ class BacktestConfig:
 
     initial_capital: Decimal
     commission_rate: Decimal
-    slippage_rate: Decimal
+    slippage_rate: Decimal = Decimal("0.001")
 
     def __post_init__(self):
         """验证配置有效性"""
@@ -61,3 +72,16 @@ class BacktestConfig:
 
         if not (Decimal("0") <= self.slippage_rate <= Decimal("0.1")):
             raise ValueError("slippage_rate must be between 0 and 0.1")
+
+
+@dataclass(frozen=True)
+class Configuration:
+    """
+    配置聚合根
+
+    整合所有配置值对象
+    """
+
+    data_source: DataSourceConfig
+    model: ModelConfig
+    backtest: BacktestConfig

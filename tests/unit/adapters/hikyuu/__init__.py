@@ -1,1 +1,1 @@
-"""Hikyuu 适配器单元测试包"""
+"""Hikyuu adapters unit tests"""

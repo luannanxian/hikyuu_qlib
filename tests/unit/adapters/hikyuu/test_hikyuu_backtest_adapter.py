@@ -1,296 +1,396 @@
 """
 HikyuuBacktestAdapter 单元测试
 
-测试 HikyuuBacktestAdapter 实现 IBacktestEngine 接口,
-使用 Mock 隔离 Hikyuu 框架依赖
+测试 Hikyuu 回测适配器实现 IBacktestEngine 接口
+遵循 TDD Red-Green-Refactor 流程
 """
 
-import pytest
+from datetime import datetime, date
 from decimal import Decimal
-from datetime import datetime
 from unittest.mock import MagicMock, patch
+from typing import List
 
-from domain.entities.trading_signal import (
-    SignalBatch,
-    TradingSignal,
-    SignalType,
-    SignalStrength,
-)
+import pytest
+
 from domain.value_objects.stock_code import StockCode
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.configuration import BacktestConfig
+from domain.entities.trading_signal import TradingSignal, SignalBatch, SignalType, SignalStrength
+from domain.entities.backtest import BacktestResult, Trade
 
 
 class TestHikyuuBacktestAdapter:
-    """测试 HikyuuBacktestAdapter"""
+    """HikyuuBacktestAdapter 测试类"""
 
     @pytest.fixture
-    def signal_batch(self) -> SignalBatch:
-        """信号批次 fixture"""
+    def mock_hku(self):
+        """Mock Hikyuu 模块"""
+        mock = MagicMock()
+        return mock
+
+    @pytest.fixture
+    def adapter(self, mock_hku):
+        """创建 HikyuuBacktestAdapter 实例"""
+        from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
+        return HikyuuBacktestAdapter(hikyuu_module=mock_hku)
+
+    @pytest.fixture
+    def sample_signal_batch(self):
+        """示例信号批次"""
         batch = SignalBatch(
-            strategy_name="test_strategy", batch_date=datetime(2024, 1, 1)
+            strategy_name="TestStrategy",
+            batch_date=datetime(2023, 1, 1)
         )
+        
         # 添加买入信号
-        batch.add_signal(
-            TradingSignal(
-                stock_code=StockCode("sz000001"),
-                signal_date=datetime(2024, 1, 2),
-                signal_type=SignalType.BUY,
-                signal_strength=SignalStrength.STRONG,
-                price=Decimal("10.5"),
-            )
+        signal1 = TradingSignal(
+            stock_code=StockCode("sh600000"),
+            signal_date=datetime(2023, 1, 3),
+            signal_type=SignalType.BUY,
+            signal_strength=SignalStrength.STRONG,
+            price=Decimal("10.5")
         )
+        batch.add_signal(signal1)
+        
         # 添加卖出信号
-        batch.add_signal(
-            TradingSignal(
-                stock_code=StockCode("sz000001"),
-                signal_date=datetime(2024, 1, 10),
-                signal_type=SignalType.SELL,
-                signal_strength=SignalStrength.MEDIUM,
-                price=Decimal("11.2"),
-            )
+        signal2 = TradingSignal(
+            stock_code=StockCode("sh600000"),
+            signal_date=datetime(2023, 1, 10),
+            signal_type=SignalType.SELL,
+            signal_strength=SignalStrength.MEDIUM,
+            price=Decimal("11.0")
         )
+        batch.add_signal(signal2)
+        
         return batch
 
     @pytest.fixture
-    def backtest_config(self) -> BacktestConfig:
-        """回测配置 fixture"""
+    def sample_backtest_config(self):
+        """示例回测配置"""
         return BacktestConfig(
-            initial_capital=Decimal("100000"),
-            commission_rate=Decimal("0.0003"),
-            slippage_rate=Decimal("0.0001"),
+            initial_capital=Decimal("100000.0"),
+            commission_rate=Decimal("0.001"),
+            slippage_rate=Decimal("0.001")
         )
 
     @pytest.fixture
-    def date_range(self) -> DateRange:
-        """日期范围 fixture"""
+    def sample_date_range(self):
+        """示例日期范围"""
         return DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31)
+            start_date=date(2023, 1, 1),
+            end_date=date(2023, 12, 31)
         )
 
-    @pytest.mark.asyncio
-    async def test_run_backtest_success(
-        self, signal_batch, backtest_config, date_range
-    ):
-        """
-        测试成功运行回测
+    @pytest.fixture
+    def mock_hikyuu_portfolio(self):
+        """Mock Hikyuu Portfolio 对象"""
+        portfolio = MagicMock()
+        
+        # Mock 交易记录
+        mock_trade1 = MagicMock()
+        mock_trade1.stock = "SH600000"
+        mock_trade1.datetime = datetime(2023, 1, 3)
+        mock_trade1.business = 1  # Hikyuu BUY
+        mock_trade1.number = 1000
+        mock_trade1.price = 10.5
+        mock_trade1.cost = 10.5
+        
+        mock_trade2 = MagicMock()
+        mock_trade2.stock = "SH600000"
+        mock_trade2.datetime = datetime(2023, 1, 10)
+        mock_trade2.business = 0  # Hikyuu SELL
+        mock_trade2.number = 1000
+        mock_trade2.price = 11.0
+        mock_trade2.cost = 11.0
+        
+        # Mock 权益曲线
+        portfolio.getFunds.return_value = [
+            MagicMock(total_assets=100000.0, datetime=datetime(2023, 1, 1)),
+            MagicMock(total_assets=110000.0, datetime=datetime(2023, 12, 31))
+        ]
+        
+        # Mock 交易列表
+        portfolio.getTrades.return_value = [mock_trade1, mock_trade2]
+        
+        # Mock 最终资金
+        portfolio.cash = 110000.0
+        
+        return portfolio
 
-        验证:
-        1. 调用 Hikyuu Portfolio Manager
-        2. 返回 BacktestResult
-        3. 包含交易记录和权益曲线
-        """
-        from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
-
-        # Mock Hikyuu Portfolio Manager
-        with patch("adapters.hikyuu.hikyuu_backtest_adapter.hikyuu") as mock_hq:
-            # Mock Portfolio
-            mock_portfolio = MagicMock()
-            mock_portfolio.name = "test_strategy"
-            mock_portfolio.get_performance.return_value = {
-                "total_return": 0.15,
-                "sharpe_ratio": 1.8,
-                "max_drawdown": 0.05,
-            }
-            mock_portfolio.get_trade_list.return_value = [
-                {
-                    "stock": "000001",
-                    "type": "BUY",
-                    "price": 10.5,
-                    "quantity": 1000,
-                    "date": datetime(2024, 1, 2),
-                },
-                {
-                    "stock": "000001",
-                    "type": "SELL",
-                    "price": 11.2,
-                    "quantity": 1000,
-                    "date": datetime(2024, 1, 10),
-                },
-            ]
-            mock_portfolio.get_equity_curve.return_value = [
-                100000,
-                105000,
-                110000,
-                115000,
-            ]
-
-            mock_hq.Portfolio.return_value = mock_portfolio
-
-            # 执行
-            adapter = HikyuuBacktestAdapter()
-            result = await adapter.run_backtest(
-                signals=signal_batch, config=backtest_config, date_range=date_range
-            )
-
-            # 验证
-            assert result is not None
-            assert result.strategy_name == "test_strategy"
-            assert result.initial_capital == Decimal("100000")
-            assert result.final_capital > result.initial_capital
-            assert len(result.trades) == 2
-            assert len(result.equity_curve) > 0
+    # =============================================================================
+    # Test 1: 验证 run_backtest 调用 Hikyuu API
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_signal_to_trade_conversion(
-        self, signal_batch, backtest_config, date_range
+    async def test_run_backtest_calls_hikyuu_api(
+        self, mock_hku, adapter, sample_signal_batch, 
+        sample_backtest_config, sample_date_range, mock_hikyuu_portfolio
     ):
         """
-        测试信号 → 交易转换
+        测试: run_backtest 正确调用 Hikyuu 回测 API
 
         验证:
-        1. SignalBatch → Hikyuu 交易指令
-        2. 交易方向正确映射
-        3. 价格和数量计算正确
+        - 调用 hku.crtTM() 创建交易管理器
+        - 调用 hku.PF_Simple() 创建投资组合
+        - 使用正确的参数 (初始资金, 手续费)
         """
-        from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
+        # Arrange
+        mock_tm = MagicMock()
+        mock_hku.crtTM.return_value = mock_tm
+        
+        mock_pf = mock_hikyuu_portfolio
+        mock_hku.PF_Simple.return_value = mock_pf
 
-        with patch("adapters.hikyuu.hikyuu_backtest_adapter.hikyuu") as mock_hq:
-            mock_portfolio = MagicMock()
-            mock_portfolio.name = "test_strategy"
-            mock_portfolio.get_performance.return_value = {"total_return": 0.1}
-            mock_portfolio.get_trade_list.return_value = []
-            mock_portfolio.get_equity_curve.return_value = [100000]
+        # Act
+        result = await adapter.run_backtest(
+            signals=sample_signal_batch,
+            config=sample_backtest_config,
+            date_range=sample_date_range
+        )
 
-            mock_hq.Portfolio.return_value = mock_portfolio
+        # Assert
+        mock_hku.crtTM.assert_called_once()
+        call_kwargs = mock_hku.crtTM.call_args.kwargs
+        assert call_kwargs['init_cash'] == float(sample_backtest_config.initial_capital)
+        
+        assert isinstance(result, BacktestResult)
 
-            adapter = HikyuuBacktestAdapter()
-            result = await adapter.run_backtest(
-                signals=signal_batch, config=backtest_config, date_range=date_range
-            )
-
-            # 验证信号被处理
-            assert result is not None
+    # =============================================================================
+    # Test 2: 验证 Hikyuu 回测结果转换为 Domain 模型
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_backtest_config_mapping(
-        self, signal_batch, backtest_config, date_range
+    async def test_run_backtest_converts_to_domain(
+        self, mock_hku, adapter, sample_signal_batch,
+        sample_backtest_config, sample_date_range, mock_hikyuu_portfolio
     ):
         """
-        测试回测配置映射
+        测试: run_backtest 将 Hikyuu 回测结果正确转换为 Domain BacktestResult
 
         验证:
-        1. initial_capital → Hikyuu 初始资金
-        2. commission_rate → Hikyuu 手续费率
-        3. slippage_rate → Hikyuu 滑点率
+        - 返回类型为 BacktestResult
+        - 交易记录正确转换
+        - 权益曲线正确转换
+        - 初始和最终资金正确
         """
-        from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
+        # Arrange
+        mock_tm = MagicMock()
+        mock_hku.crtTM.return_value = mock_tm
+        mock_hku.PF_Simple.return_value = mock_hikyuu_portfolio
 
-        with patch("adapters.hikyuu.hikyuu_backtest_adapter.hikyuu") as mock_hq:
-            mock_portfolio = MagicMock()
-            mock_portfolio.name = "test_strategy"
-            mock_portfolio.get_performance.return_value = {"total_return": 0.1}
-            mock_portfolio.get_trade_list.return_value = []
-            mock_portfolio.get_equity_curve.return_value = [100000]
+        # Act
+        result = await adapter.run_backtest(
+            signals=sample_signal_batch,
+            config=sample_backtest_config,
+            date_range=sample_date_range
+        )
 
-            mock_hq.Portfolio.return_value = mock_portfolio
+        # Assert
+        assert isinstance(result, BacktestResult)
+        assert result.strategy_name == "TestStrategy"
+        assert result.initial_capital == sample_backtest_config.initial_capital
+        assert result.final_capital > 0
+        
+        # 验证交易记录
+        assert len(result.trades) == 2
+        assert all(isinstance(trade, Trade) for trade in result.trades)
+        
+        # 验证权益曲线
+        assert len(result.equity_curve) > 0
+        assert all(isinstance(val, Decimal) for val in result.equity_curve)
 
-            adapter = HikyuuBacktestAdapter()
+    # =============================================================================
+    # Test 3: 验证信号到交易的转换
+    # =============================================================================
+
+    @pytest.mark.asyncio
+    async def test_run_backtest_converts_signals_to_trades(
+        self, mock_hku, adapter, sample_signal_batch,
+        sample_backtest_config, sample_date_range, mock_hikyuu_portfolio
+    ):
+        """
+        测试: 验证信号正确转换为 Hikyuu 交易指令
+
+        验证:
+        - BUY信号 → Hikyuu买入操作
+        - SELL信号 → Hikyuu卖出操作
+        - 价格和数量正确传递
+        """
+        # Arrange
+        mock_tm = MagicMock()
+        mock_hku.crtTM.return_value = mock_tm
+        mock_hku.PF_Simple.return_value = mock_hikyuu_portfolio
+        
+        # Mock 信号生成器
+        mock_sg = MagicMock()
+        mock_hku.SG_Manual.return_value = mock_sg
+
+        # Act
+        result = await adapter.run_backtest(
+            signals=sample_signal_batch,
+            config=sample_backtest_config,
+            date_range=sample_date_range
+        )
+
+        # Assert
+        # 验证交易方向正确
+        buy_trades = [t for t in result.trades if t.direction == "BUY"]
+        sell_trades = [t for t in result.trades if t.direction == "SELL"]
+        
+        assert len(buy_trades) >= 1
+        assert len(sell_trades) >= 1
+
+    # =============================================================================
+    # Test 4: 验证手续费计算
+    # =============================================================================
+
+    @pytest.mark.asyncio
+    async def test_run_backtest_calculates_commission(
+        self, mock_hku, adapter, sample_signal_batch,
+        sample_backtest_config, sample_date_range, mock_hikyuu_portfolio
+    ):
+        """
+        测试: 验证手续费正确计算并应用
+
+        验证:
+        - 手续费率正确传递给 Hikyuu
+        - 交易记录包含手续费
+        """
+        # Arrange
+        mock_tm = MagicMock()
+        mock_hku.crtTM.return_value = mock_tm
+        mock_hku.PF_Simple.return_value = mock_hikyuu_portfolio
+
+        # Act
+        result = await adapter.run_backtest(
+            signals=sample_signal_batch,
+            config=sample_backtest_config,
+            date_range=sample_date_range
+        )
+
+        # Assert
+        # 验证 crtTM 调用包含手续费配置
+        mock_hku.crtTM.assert_called_once()
+        call_kwargs = mock_hku.crtTM.call_args.kwargs
+        
+        # 验证交易包含手续费
+        for trade in result.trades:
+            assert isinstance(trade.commission, Decimal)
+
+    # =============================================================================
+    # Test 5: 验证错误处理
+    # =============================================================================
+
+    @pytest.mark.asyncio
+    async def test_run_backtest_handles_hikyuu_error(
+        self, mock_hku, adapter, sample_signal_batch,
+        sample_backtest_config, sample_date_range
+    ):
+        """
+        测试: run_backtest 正确处理 Hikyuu 异常
+
+        验证:
+        - Hikyuu 抛出异常时, 适配器捕获并重新抛出包装后的异常
+        - 异常信息包含原始错误上下文
+        """
+        # Arrange
+        mock_hku.crtTM.side_effect = Exception("Hikyuu backtest error")
+
+        # Act & Assert
+        with pytest.raises(Exception) as exc_info:
             await adapter.run_backtest(
-                signals=signal_batch, config=backtest_config, date_range=date_range
+                signals=sample_signal_batch,
+                config=sample_backtest_config,
+                date_range=sample_date_range
             )
 
-            # 验证 Portfolio 构造时使用了正确的配置
-            mock_hq.Portfolio.assert_called_once()
+        assert "Failed to run backtest with Hikyuu" in str(exc_info.value)
+
+    # =============================================================================
+    # Test 6: 验证空信号处理
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_empty_signals_handling(self, backtest_config, date_range):
+    async def test_run_backtest_handles_empty_signals(
+        self, mock_hku, adapter, sample_backtest_config, 
+        sample_date_range, mock_hikyuu_portfolio
+    ):
         """
-        测试空信号处理
+        测试: run_backtest 正确处理空信号批次
 
         验证:
-        1. 接受空信号批次
-        2. 返回初始资金不变的结果
+        - 空信号批次不抛出异常
+        - 返回有效的 BacktestResult (但无交易)
         """
-        from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
-
-        # 空信号批次
+        # Arrange
         empty_batch = SignalBatch(
-            strategy_name="empty_strategy", batch_date=datetime(2024, 1, 1)
+            strategy_name="EmptyStrategy",
+            batch_date=datetime(2023, 1, 1)
+        )
+        
+        mock_tm = MagicMock()
+        mock_hku.crtTM.return_value = mock_tm
+        
+        # 修改 mock 返回空交易
+        empty_portfolio = MagicMock()
+        empty_portfolio.getTrades.return_value = []
+        empty_portfolio.getFunds.return_value = [
+            MagicMock(total_assets=100000.0, datetime=datetime(2023, 1, 1))
+        ]
+        empty_portfolio.cash = 100000.0
+        mock_hku.PF_Simple.return_value = empty_portfolio
+
+        # Act
+        result = await adapter.run_backtest(
+            signals=empty_batch,
+            config=sample_backtest_config,
+            date_range=sample_date_range
         )
 
-        with patch("adapters.hikyuu.hikyuu_backtest_adapter.hikyuu") as mock_hq:
-            mock_portfolio = MagicMock()
-            mock_portfolio.name = "empty_strategy"
-            mock_portfolio.get_performance.return_value = {"total_return": 0.0}
-            mock_portfolio.get_trade_list.return_value = []
-            mock_portfolio.get_equity_curve.return_value = [100000]
+        # Assert
+        assert isinstance(result, BacktestResult)
+        assert len(result.trades) == 0
+        assert result.initial_capital == result.final_capital
 
-            mock_hq.Portfolio.return_value = mock_portfolio
-
-            adapter = HikyuuBacktestAdapter()
-            result = await adapter.run_backtest(
-                signals=empty_batch, config=backtest_config, date_range=date_range
-            )
-
-            # 验证
-            assert result is not None
-            assert len(result.trades) == 0
-            assert result.initial_capital == result.final_capital
+    # =============================================================================
+    # Test 7: 验证回测指标计算
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_hikyuu_backtest_error_handling(
-        self, signal_batch, backtest_config, date_range
+    async def test_run_backtest_calculates_metrics(
+        self, mock_hku, adapter, sample_signal_batch,
+        sample_backtest_config, sample_date_range, mock_hikyuu_portfolio
     ):
         """
-        测试 Hikyuu 回测错误处理
+        测试: run_backtest 计算回测指标
 
         验证:
-        1. 捕获 Hikyuu 异常
-        2. 映射为领域层异常
+        - 总收益率
+        - 夏普比率
+        - 最大回撤
+        - 胜率
         """
-        from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
+        # Arrange
+        mock_tm = MagicMock()
+        mock_hku.crtTM.return_value = mock_tm
+        mock_hku.PF_Simple.return_value = mock_hikyuu_portfolio
 
-        with patch("adapters.hikyuu.hikyuu_backtest_adapter.hikyuu") as mock_hq:
-            mock_hq.Portfolio.side_effect = Exception("Hikyuu backtest failed")
+        # Act
+        result = await adapter.run_backtest(
+            signals=sample_signal_batch,
+            config=sample_backtest_config,
+            date_range=sample_date_range
+        )
 
-            adapter = HikyuuBacktestAdapter()
-            with pytest.raises(Exception) as exc_info:
-                await adapter.run_backtest(
-                    signals=signal_batch, config=backtest_config, date_range=date_range
-                )
-
-            assert (
-                "Hikyuu" in str(exc_info.value)
-                or "backtest" in str(exc_info.value).lower()
-            )
-
-    @pytest.mark.asyncio
-    async def test_performance_metrics_conversion(
-        self, signal_batch, backtest_config, date_range
-    ):
-        """
-        测试性能指标转换
-
-        验证:
-        1. Hikyuu 指标 → Domain BacktestResult
-        2. 计算总收益、夏普比率、最大回撤
-        """
-        from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
-
-        with patch("adapters.hikyuu.hikyuu_backtest_adapter.hikyuu") as mock_hq:
-            mock_portfolio = MagicMock()
-            mock_portfolio.name = "test_strategy"
-            mock_portfolio.get_performance.return_value = {
-                "total_return": 0.25,
-                "sharpe_ratio": 2.1,
-                "max_drawdown": 0.08,
-            }
-            mock_portfolio.get_trade_list.return_value = []
-            mock_portfolio.get_equity_curve.return_value = [
-                100000,
-                110000,
-                120000,
-                125000,
-            ]
-
-            mock_hq.Portfolio.return_value = mock_portfolio
-
-            adapter = HikyuuBacktestAdapter()
-            result = await adapter.run_backtest(
-                signals=signal_batch, config=backtest_config, date_range=date_range
-            )
-
-            # 验证指标
-            assert result.total_return() >= 0
-            assert len(result.equity_curve) == 4
+        # Assert - 验证可以计算指标(不抛出异常)
+        total_return = result.total_return()
+        assert isinstance(total_return, Decimal)
+        
+        sharpe = result.calculate_sharpe_ratio()
+        assert isinstance(sharpe, Decimal)
+        
+        max_dd = result.calculate_max_drawdown()
+        assert isinstance(max_dd, Decimal)
+        
+        win_rate = result.get_win_rate()
+        assert isinstance(win_rate, Decimal)

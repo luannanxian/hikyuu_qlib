@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
 from domain.value_objects.stock_code import StockCode
 
@@ -67,6 +67,8 @@ class BacktestResult:
     - final_capital: 最终资金
     - trades: 交易列表
     - equity_curve: 权益曲线
+    - metrics: 回测指标字典 (可选)
+    - date_range: 日期范围 (可选,派生自start_date和end_date)
     """
 
     strategy_name: str
@@ -76,8 +78,18 @@ class BacktestResult:
     final_capital: Decimal
     trades: List[Trade] = field(default_factory=list)
     equity_curve: List[Decimal] = field(default_factory=list)
+    metrics: Optional[dict] = field(default_factory=dict)
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
+
+    @property
+    def date_range(self):
+        """返回DateRange对象"""
+        from domain.value_objects.date_range import DateRange
+        return DateRange(
+            start_date=self.start_date.date(),
+            end_date=self.end_date.date()
+        )
 
     def add_trade(self, trade: Trade) -> None:
         """添加交易"""

@@ -95,20 +95,28 @@ class YAMLConfigRepository(IConfigRepository):
                 raise ValueError("data_source section not found in config")
 
             data_source = config["data_source"]
-            return DataSourceConfig(
-                provider=data_source["provider"],
-                data_path=data_source["data_path"],
-            )
+
+            # 支持新格式 (hikyuu_path/qlib_path) 和旧格式 (provider/data_path)
+            if "hikyuu_path" in data_source or "qlib_path" in data_source:
+                return DataSourceConfig(
+                    hikyuu_path=data_source.get("hikyuu_path"),
+                    qlib_path=data_source.get("qlib_path"),
+                )
+            else:
+                return DataSourceConfig(
+                    provider=data_source["provider"],
+                    data_path=data_source["data_path"],
+                )
 
         except Exception as e:
             raise Exception(f"Failed to get data source config: {e}") from e
 
-    async def get_model_config(self, model_name: str) -> ModelConfig:
+    async def get_model_config(self, model_name: str = "default") -> ModelConfig:
         """
         获取模型配置
 
         Args:
-            model_name: 模型名称
+            model_name: 模型名称 (默认 "default")
 
         Returns:
             ModelConfig: 模型配置值对象
@@ -119,8 +127,17 @@ class YAMLConfigRepository(IConfigRepository):
         try:
             config = self._load_config()
 
+            # 尝试新格式: 顶层 "model" section
+            if "model" in config:
+                model_config = config["model"]
+                return ModelConfig(
+                    default_type=model_config.get("default_type"),
+                    hyperparameters=model_config.get("hyperparameters", {}),
+                )
+
+            # 旧格式: "models" dict
             if "models" not in config:
-                raise ValueError("models section not found in config")
+                raise ValueError("model or models section not found in config")
 
             if model_name not in config["models"]:
                 raise ValueError(f"Model config not found: {model_name}")
@@ -153,8 +170,8 @@ class YAMLConfigRepository(IConfigRepository):
             backtest = config["backtest"]
             return BacktestConfig(
                 initial_capital=Decimal(str(backtest["initial_capital"])),
-                commission_rate=Decimal(str(backtest["commission_rate"])),
-                slippage_rate=Decimal(str(backtest["slippage_rate"])),
+                commission_rate=Decimal(str(backtest.get("commission_rate", 0.001))),
+                slippage_rate=Decimal(str(backtest.get("slippage_rate", 0.001))),
             )
 
         except Exception as e:
@@ -181,10 +198,17 @@ class YAMLConfigRepository(IConfigRepository):
             # 转换配置对象为字典
             if config_type == "data_source":
                 if isinstance(config, DataSourceConfig):
-                    full_config["data_source"] = {
-                        "provider": config.provider,
-                        "data_path": config.data_path,
-                    }
+                    # 支持新格式和旧格式
+                    if config.hikyuu_path or config.qlib_path:
+                        full_config["data_source"] = {
+                            "hikyuu_path": config.hikyuu_path,
+                            "qlib_path": config.qlib_path,
+                        }
+                    else:
+                        full_config["data_source"] = {
+                            "provider": config.provider,
+                            "data_path": config.data_path,
+                        }
             elif config_type == "backtest":
                 if isinstance(config, BacktestConfig):
                     full_config["backtest"] = {
@@ -193,15 +217,23 @@ class YAMLConfigRepository(IConfigRepository):
                         "slippage_rate": float(config.slippage_rate),
                     }
             elif config_type.startswith("model:"):
-                # 格式: "model:LGBM"
+                # 格式: "model:default" -> 保存为顶层 "model" section
                 model_name = config_type.split(":")[1]
-                if "models" not in full_config:
-                    full_config["models"] = {}
                 if isinstance(config, ModelConfig):
-                    full_config["models"][model_name] = {
-                        "model_type": config.model_type,
-                        "hyperparameters": config.hyperparameters,
-                    }
+                    if model_name == "default":
+                        # 新格式: 顶层 "model"
+                        full_config["model"] = {
+                            "default_type": config.default_type or config.model_type,
+                            "hyperparameters": config.hyperparameters,
+                        }
+                    else:
+                        # 旧格式: "models" dict
+                        if "models" not in full_config:
+                            full_config["models"] = {}
+                        full_config["models"][model_name] = {
+                            "model_type": config.model_type,
+                            "hyperparameters": config.hyperparameters,
+                        }
 
             # 保存配置
             self._save_config(full_config)

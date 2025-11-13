@@ -1,15 +1,16 @@
 """
 HikyuuDataAdapter 单元测试
 
-测试 HikyuuDataAdapter 实现 IStockDataProvider 接口,
-使用 Mock 隔离 Hikyuu 框架依赖
+测试 Hikyuu 数据适配器实现 IStockDataProvider 接口
+遵循 TDD Red-Green-Refactor 流程
 """
 
-import pytest
 from datetime import date, datetime
 from decimal import Decimal
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch, PropertyMock
 from typing import List
+
+import pytest
 
 from domain.value_objects.stock_code import StockCode
 from domain.value_objects.date_range import DateRange
@@ -18,229 +19,239 @@ from domain.entities.kline_data import KLineData
 
 
 class TestHikyuuDataAdapter:
-    """测试 HikyuuDataAdapter"""
+    """HikyuuDataAdapter 测试类"""
 
     @pytest.fixture
-    def stock_code(self) -> StockCode:
-        """股票代码 fixture"""
+    def mock_hku(self):
+        """Mock Hikyuu 模块"""
+        mock = MagicMock()
+        # Mock Query 常量
+        mock.Query.DAY = 0
+        mock.Query.WEEK = 1
+        mock.Query.MONTH = 2
+        mock.Query.MIN = 3
+        mock.Query.MIN5 = 4
+        return mock
+
+    @pytest.fixture
+    def adapter(self, mock_hku):
+        """创建 HikyuuDataAdapter 实例"""
+        from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
+        return HikyuuDataAdapter(hikyuu_module=mock_hku)
+
+    @pytest.fixture
+    def sample_stock_code(self):
+        """示例股票代码"""
         return StockCode("sh600000")
 
     @pytest.fixture
-    def date_range(self) -> DateRange:
-        """日期范围 fixture"""
-        return DateRange(date(2023, 1, 1), date(2023, 12, 31))
+    def sample_date_range(self):
+        """示例日期范围"""
+        return DateRange(start_date=date(2023, 1, 1), end_date=date(2023, 1, 10))
 
     @pytest.fixture
     def mock_hikyuu_krecord(self):
         """Mock Hikyuu KRecord 对象"""
         record = MagicMock()
-        record.datetime = datetime(2023, 1, 3, 9, 30)
-        record.open = 10.5
-        record.high = 11.2
-        record.low = 10.3
-        record.close = 11.0
+        record.datetime = datetime(2023, 1, 3, 0, 0, 0)
+        record.openPrice = 10.5
+        record.highPrice = 11.0
+        record.lowPrice = 10.0
+        record.closePrice = 10.8
         record.volume = 1000000
-        record.amount = 10800000
+        record.amount = 10800000.0
         return record
 
     @pytest.fixture
-    def mock_hikyuu_kdata(self, mock_hikyuu_krecord):
-        """Mock Hikyuu KData 对象"""
+    def mock_hikyuu_stock(self, mock_hikyuu_krecord):
+        """Mock Hikyuu Stock 对象"""
+        stock = MagicMock()
+
+        # Mock getKData 返回 KData 列表
         kdata = MagicMock()
-        kdata.__len__ = MagicMock(return_value=1)
-        kdata.__iter__ = MagicMock(return_value=iter([mock_hikyuu_krecord]))
+        kdata.__len__ = MagicMock(return_value=10)
         kdata.__getitem__ = MagicMock(return_value=mock_hikyuu_krecord)
-        return kdata
+        kdata.__iter__ = MagicMock(return_value=iter([mock_hikyuu_krecord] * 10))
+
+        stock.getKData.return_value = kdata
+        return stock
+
+    # =============================================================================
+    # Test 1: 验证 load_stock_data 调用 Hikyuu API
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_load_stock_data_success(
-        self, stock_code, date_range, mock_hikyuu_kdata
+    async def test_load_stock_data_calls_hikyuu_api(
+        self, mock_hku, adapter, sample_stock_code, sample_date_range, mock_hikyuu_stock
     ):
         """
-        测试成功加载股票数据
+        测试: load_stock_data 正确调用 Hikyuu API
 
         验证:
-        1. 调用 Hikyuu API 获取数据
-        2. 返回 KLineData 列表
-        3. 数据转换正确
+        - 调用 hku.Stock() 创建股票对象
+        - 调用 stock.getKData() 获取 K线数据
+        - 使用正确的参数 (股票代码, Query对象)
         """
-        from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
+        # Arrange
+        mock_hku.Stock.return_value = mock_hikyuu_stock
+        mock_query = MagicMock()
+        mock_hku.Query.return_value = mock_query
+        mock_hku.Datetime.return_value = MagicMock()
 
-        # Mock Hikyuu API
-        mock_hikyuu = MagicMock()
-        mock_stock = MagicMock()
-        mock_stock.get_kdata.return_value = mock_hikyuu_kdata
-        mock_hikyuu.Stock.return_value = mock_stock
-        mock_hikyuu.Query = MagicMock()
-        mock_hikyuu.Query.DAY = MagicMock()
+        # Act
+        result = await adapter.load_stock_data(
+            stock_code=sample_stock_code,
+            date_range=sample_date_range,
+            kline_type=KLineType.DAY
+        )
 
-        # 执行
-        adapter = HikyuuDataAdapter(hikyuu_module=mock_hikyuu)
-        result = await adapter.load_stock_data(stock_code, date_range, KLineType.DAY.value)
+        # Assert
+        mock_hku.Stock.assert_called_once_with(sample_stock_code.value)
+        mock_hikyuu_stock.getKData.assert_called_once()
+        assert isinstance(result, list)
 
-        # 验证
-        assert len(result) == 1
-        assert isinstance(result[0], KLineData)
-        assert result[0].stock_code == stock_code
-        assert result[0].open == Decimal("10.5")
-        assert result[0].close == Decimal("11.0")
-        assert result[0].volume == 1000000
+    # =============================================================================
+    # Test 2: 验证 Hikyuu 数据转换为 Domain 模型
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_hikyuu_to_domain_conversion(
-        self, stock_code, date_range, mock_hikyuu_kdata
+    async def test_load_stock_data_converts_to_domain(
+        self, mock_hku, adapter, sample_stock_code, sample_date_range, mock_hikyuu_stock
     ):
         """
-        测试 Hikyuu → Domain 数据转换
+        测试: load_stock_data 将 Hikyuu 数据正确转换为 Domain KLineData
 
         验证:
-        1. 日期时间转换正确
-        2. 价格数据类型转换为 Decimal
-        3. K线类型映射正确
+        - 返回类型为 List[KLineData]
+        - KLineData 属性正确映射
+        - 价格使用 Decimal 类型
+        - 时间戳正确转换
         """
-        from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
+        # Arrange
+        mock_hku.Stock.return_value = mock_hikyuu_stock
+        mock_query = MagicMock()
+        mock_hku.Query.return_value = mock_query
+        mock_hku.Datetime.return_value = MagicMock()
 
-        # Mock Hikyuu API
-        mock_hikyuu = MagicMock()
-        mock_stock = MagicMock()
-        mock_stock.get_kdata.return_value = mock_hikyuu_kdata
-        mock_hikyuu.Stock.return_value = mock_stock
-        mock_hikyuu.Query = MagicMock()
-        mock_hikyuu.Query.DAY = MagicMock()
+        # Act
+        result = await adapter.load_stock_data(
+            stock_code=sample_stock_code,
+            date_range=sample_date_range,
+            kline_type=KLineType.DAY
+        )
 
-        # 执行
-        adapter = HikyuuDataAdapter(hikyuu_module=mock_hikyuu)
-        result = await adapter.load_stock_data(stock_code, date_range, KLineType.DAY.value)
+        # Assert
+        assert len(result) == 10
+        assert all(isinstance(kline, KLineData) for kline in result)
 
-        # 验证数据转换
-        kline = result[0]
-        assert isinstance(kline.timestamp, datetime)
-        assert isinstance(kline.open, Decimal)
-        assert isinstance(kline.high, Decimal)
-        assert isinstance(kline.low, Decimal)
-        assert isinstance(kline.close, Decimal)
-        assert isinstance(kline.volume, int)
-        assert isinstance(kline.amount, Decimal)
-        assert kline.kline_type == KLineType.DAY
+        # 验证第一条数据
+        first_kline = result[0]
+        assert first_kline.stock_code == sample_stock_code
+        assert first_kline.kline_type == KLineType.DAY
+        assert isinstance(first_kline.open, Decimal)
+        assert isinstance(first_kline.high, Decimal)
+        assert isinstance(first_kline.low, Decimal)
+        assert isinstance(first_kline.close, Decimal)
+        assert isinstance(first_kline.timestamp, datetime)
+
+    # =============================================================================
+    # Test 3: 验证 Hikyuu 错误处理
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_hikyuu_api_error_handling(
-        self, stock_code, date_range
+    async def test_load_stock_data_handles_hikyuu_error(
+        self, mock_hku, adapter, sample_stock_code, sample_date_range
     ):
         """
-        测试 Hikyuu API 错误处理
+        测试: load_stock_data 正确处理 Hikyuu 异常
 
         验证:
-        1. 捕获 Hikyuu 异常
-        2. 映射为领域层异常
-        3. 错误信息包含上下文
+        - Hikyuu 抛出异常时, 适配器捕获并重新抛出包装后的异常
+        - 异常信息包含原始错误上下文
         """
-        from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
+        # Arrange
+        mock_hku.Stock.side_effect = Exception("Hikyuu connection error")
 
-        # Mock Hikyuu API 抛出异常
-        mock_hikyuu = MagicMock()
-        mock_hikyuu.Stock.side_effect = Exception("Hikyuu connection error")
-
-        # 执行 & 验证
-        adapter = HikyuuDataAdapter(hikyuu_module=mock_hikyuu)
+        # Act & Assert
         with pytest.raises(Exception) as exc_info:
-            await adapter.load_stock_data(stock_code, date_range, KLineType.DAY.value)
+            await adapter.load_stock_data(
+                stock_code=sample_stock_code,
+                date_range=sample_date_range,
+                kline_type=KLineType.DAY
+            )
 
-        assert "Hikyuu" in str(exc_info.value) or "error" in str(exc_info.value).lower()
+        assert "Failed to load stock data from Hikyuu" in str(exc_info.value)
+
+    # =============================================================================
+    # Test 4: 验证空数据处理
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_empty_result_handling(self, stock_code, date_range):
+    async def test_load_stock_data_handles_empty_data(
+        self, mock_hku, adapter, sample_stock_code, sample_date_range
+    ):
         """
-        测试空结果处理
+        测试: load_stock_data 正确处理空数据
 
         验证:
-        1. Hikyuu 返回空数据时不抛出异常
-        2. 返回空列表
+        - Hikyuu 返回空数据时, 返回空列表
+        - 不抛出异常
         """
-        from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
-
-        # Mock Hikyuu API 返回空数据
-        mock_hikyuu = MagicMock()
-        mock_kdata = MagicMock()
-        mock_kdata.__len__ = MagicMock(return_value=0)
-        mock_kdata.__iter__ = MagicMock(return_value=iter([]))
-
+        # Arrange
         mock_stock = MagicMock()
-        mock_stock.get_kdata.return_value = mock_kdata
-        mock_hikyuu.Stock.return_value = mock_stock
-        mock_hikyuu.Query = MagicMock()
-        mock_hikyuu.Query.DAY = MagicMock()
+        empty_kdata = MagicMock()
+        empty_kdata.__len__ = MagicMock(return_value=0)
+        empty_kdata.__iter__ = MagicMock(return_value=iter([]))
+        mock_stock.getKData.return_value = empty_kdata
 
-        # 执行
-        adapter = HikyuuDataAdapter(hikyuu_module=mock_hikyuu)
-        result = await adapter.load_stock_data(stock_code, date_range, KLineType.DAY.value)
+        mock_hku.Stock.return_value = mock_stock
+        mock_query = MagicMock()
+        mock_hku.Query.return_value = mock_query
+        mock_hku.Datetime.return_value = MagicMock()
 
-        # 验证
+        # Act
+        result = await adapter.load_stock_data(
+            stock_code=sample_stock_code,
+            date_range=sample_date_range,
+            kline_type=KLineType.DAY
+        )
+
+        # Assert
         assert result == []
 
-    @pytest.mark.asyncio
-    async def test_date_range_conversion(self, stock_code, date_range):
-        """
-        测试日期范围转换
-
-        验证:
-        1. DateRange → Hikyuu Query 转换
-        2. start_date 和 end_date 正确传递
-        """
-        from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
-
-        # Mock Hikyuu API
-        mock_hikyuu = MagicMock()
-        mock_kdata = MagicMock()
-        mock_kdata.__len__ = MagicMock(return_value=0)
-        mock_kdata.__iter__ = MagicMock(return_value=iter([]))
-
-        mock_stock = MagicMock()
-        mock_stock.get_kdata.return_value = mock_kdata
-        mock_hikyuu.Stock.return_value = mock_stock
-
-        # Mock Query class
-        mock_query_instance = MagicMock()
-        mock_hikyuu.Query.return_value = mock_query_instance
-        mock_hikyuu.Query.DAY = MagicMock()
-
-        # 执行
-        adapter = HikyuuDataAdapter(hikyuu_module=mock_hikyuu)
-        await adapter.load_stock_data(stock_code, date_range, KLineType.DAY.value)
-
-        # 验证 Stock 被正确创建
-        mock_hikyuu.Stock.assert_called_once()
+    # =============================================================================
+    # Test 5: 验证 get_stock_list 调用 Hikyuu StockManager
+    # =============================================================================
 
     @pytest.mark.asyncio
-    async def test_get_stock_list_success(self):
+    async def test_get_stock_list_calls_stock_manager(self, mock_hku, adapter):
         """
-        测试获取股票列表成功
+        测试: get_stock_list 正确调用 Hikyuu StockManager
 
         验证:
-        1. 调用 Hikyuu API 获取股票列表
-        2. 返回 StockCode 列表
+        - 调用 hku.StockManager.instance() 获取管理器
+        - 调用相关方法获取股票列表
+        - 根据市场代码过滤股票
         """
-        from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
+        # Arrange
+        mock_sm = MagicMock()
+        mock_hku.StockManager.instance.return_value = mock_sm
 
-        # Mock Hikyuu API
-        mock_hikyuu = MagicMock()
+        # Mock 股票列表
         mock_stock1 = MagicMock()
         mock_stock1.market_code = "SH"
         mock_stock1.code = "600000"
 
         mock_stock2 = MagicMock()
-        mock_stock2.market_code = "SZ"
-        mock_stock2.code = "000001"
+        mock_stock2.market_code = "SH"
+        mock_stock2.code = "600001"
 
-        mock_stock_manager = MagicMock()
-        mock_stock_manager.get_stock_list.return_value = [mock_stock1, mock_stock2]
-        mock_hikyuu.StockManager.instance.return_value = mock_stock_manager
+        mock_sm.__iter__ = MagicMock(return_value=iter([mock_stock1, mock_stock2]))
 
-        # 执行
-        adapter = HikyuuDataAdapter(hikyuu_module=mock_hikyuu)
-        result = await adapter.get_stock_list("SH")
+        # Act
+        result = await adapter.get_stock_list(market="SH")
 
-        # 验证
-        assert len(result) >= 0  # 可能被过滤
-        for stock_code in result:
-            assert isinstance(stock_code, StockCode)
+        # Assert
+        mock_hku.StockManager.instance.assert_called_once()
+        assert isinstance(result, list)
+        assert all(isinstance(code, StockCode) for code in result)
