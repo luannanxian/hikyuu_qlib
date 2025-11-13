@@ -132,11 +132,25 @@ class HikyuuDataAdapter(IStockDataProvider):
         """
         try:
             # 1. Domain → Hikyuu 转换
-            stock = self.hku.Stock(stock_code.value)
+            # 解析股票代码: "sh600000" -> market="sh", code="600000"
+            code_value = stock_code.value.lower()
+            if code_value.startswith("sh"):
+                market = "sh"
+                code = code_value[2:]
+            elif code_value.startswith("sz"):
+                market = "sz"
+                code = code_value[2:]
+            else:
+                raise ValueError(f"Invalid stock code format: {code_value}")
+
+            # 使用 StockManager 获取股票对象
+            sm = self.hku.StockManager.instance()
+            stock = sm.get_stock(f"{market}{code}")
+
             query = self._build_query(date_range, kline_type)
 
             # 2. 调用 Hikyuu API
-            kdata = stock.getKData(query)
+            kdata = stock.get_kdata(query)
 
             # 3. Hikyuu → Domain 转换
             result = []

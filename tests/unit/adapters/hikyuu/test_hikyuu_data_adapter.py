@@ -67,13 +67,13 @@ class TestHikyuuDataAdapter:
         """Mock Hikyuu Stock 对象"""
         stock = MagicMock()
 
-        # Mock getKData 返回 KData 列表
+        # Mock get_kdata 返回 KData 列表
         kdata = MagicMock()
         kdata.__len__ = MagicMock(return_value=10)
         kdata.__getitem__ = MagicMock(return_value=mock_hikyuu_krecord)
         kdata.__iter__ = MagicMock(return_value=iter([mock_hikyuu_krecord] * 10))
 
-        stock.getKData.return_value = kdata
+        stock.get_kdata.return_value = kdata
         return stock
 
     # =============================================================================
@@ -88,12 +88,15 @@ class TestHikyuuDataAdapter:
         测试: load_stock_data 正确调用 Hikyuu API
 
         验证:
-        - 调用 hku.Stock() 创建股票对象
-        - 调用 stock.getKData() 获取 K线数据
+        - 调用 StockManager.get_stock() 获取股票对象
+        - 调用 stock.get_kdata() 获取 K线数据
         - 使用正确的参数 (股票代码, Query对象)
         """
         # Arrange
-        mock_hku.Stock.return_value = mock_hikyuu_stock
+        mock_stock_manager = MagicMock()
+        mock_stock_manager.get_stock.return_value = mock_hikyuu_stock
+        mock_hku.StockManager.instance.return_value = mock_stock_manager
+
         mock_query = MagicMock()
         mock_hku.Query.return_value = mock_query
         mock_hku.Datetime.return_value = MagicMock()
@@ -106,8 +109,8 @@ class TestHikyuuDataAdapter:
         )
 
         # Assert
-        mock_hku.Stock.assert_called_once_with(sample_stock_code.value)
-        mock_hikyuu_stock.getKData.assert_called_once()
+        mock_stock_manager.get_stock.assert_called_once_with("sh600000")
+        mock_hikyuu_stock.get_kdata.assert_called_once()
         assert isinstance(result, list)
 
     # =============================================================================
@@ -128,7 +131,10 @@ class TestHikyuuDataAdapter:
         - 时间戳正确转换
         """
         # Arrange
-        mock_hku.Stock.return_value = mock_hikyuu_stock
+        mock_stock_manager = MagicMock()
+        mock_stock_manager.get_stock.return_value = mock_hikyuu_stock
+        mock_hku.StockManager.instance.return_value = mock_stock_manager
+
         mock_query = MagicMock()
         mock_hku.Query.return_value = mock_query
         mock_hku.Datetime.return_value = MagicMock()
@@ -170,7 +176,9 @@ class TestHikyuuDataAdapter:
         - 异常信息包含原始错误上下文
         """
         # Arrange
-        mock_hku.Stock.side_effect = Exception("Hikyuu connection error")
+        mock_stock_manager = MagicMock()
+        mock_stock_manager.get_stock.side_effect = Exception("Hikyuu connection error")
+        mock_hku.StockManager.instance.return_value = mock_stock_manager
 
         # Act & Assert
         with pytest.raises(Exception) as exc_info:
@@ -202,9 +210,12 @@ class TestHikyuuDataAdapter:
         empty_kdata = MagicMock()
         empty_kdata.__len__ = MagicMock(return_value=0)
         empty_kdata.__iter__ = MagicMock(return_value=iter([]))
-        mock_stock.getKData.return_value = empty_kdata
+        mock_stock.get_kdata.return_value = empty_kdata
 
-        mock_hku.Stock.return_value = mock_stock
+        mock_stock_manager = MagicMock()
+        mock_stock_manager.get_stock.return_value = mock_stock
+        mock_hku.StockManager.instance.return_value = mock_stock_manager
+
         mock_query = MagicMock()
         mock_hku.Query.return_value = mock_query
         mock_hku.Datetime.return_value = MagicMock()
