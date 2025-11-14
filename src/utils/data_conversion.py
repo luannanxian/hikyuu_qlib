@@ -43,8 +43,19 @@ def convert_kline_to_training_data(
     if add_labels:
         df = add_training_labels(df, horizon=label_horizon)
 
-    # 4. 删除包含NaN的行（技术指标计算初期会有NaN）
-    df = df.dropna()
+    # 4. 智能处理NaN：优先保留数据，而不是删除
+    if add_labels:
+        # 对于标签，只删除最后 horizon 行（它们的标签必然是 NaN，无法训练）
+        df = df.iloc[:-label_horizon] if len(df) > label_horizon else df
+
+        # 如果还有标签为NaN的（不应该发生，但防御性编程），删除它们
+        label_cols = ["label_return", "label_direction", "label_multiclass"]
+        existing_label_cols = [col for col in label_cols if col in df.columns]
+        if existing_label_cols:
+            df = df.dropna(subset=existing_label_cols)
+
+    # 对于特征列的NaN，先前向填充，再后向填充，最后填充0
+    df = df.ffill().bfill().fillna(0)
 
     return df
 

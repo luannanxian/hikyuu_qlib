@@ -5,7 +5,6 @@ QlibModelTrainerAdapter - Qlib 模型训练适配器
 """
 
 from typing import Any, Dict, List
-from decimal import Decimal
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -126,24 +125,6 @@ class QlibModelTrainerAdapter(IModelTrainer):
 
         return model, metrics
 
-    def _convert_metrics_to_domain(
-        self, metrics: Dict[str, float]
-    ) -> Dict[str, Decimal]:
-        """
-        转换指标到领域层格式
-
-        Args:
-            metrics: 训练指标
-
-        Returns:
-            领域层指标字典 (Decimal 类型)
-        """
-        domain_metrics = {}
-        for key, value in metrics.items():
-            domain_metrics[key] = Decimal(str(value))
-
-        return domain_metrics
-
     async def train(self, model: Model, training_data: Any) -> Model:
         """
         训练模型
@@ -175,14 +156,14 @@ class QlibModelTrainerAdapter(IModelTrainer):
             else:
                 raise ValueError(f"Unsupported model type: {model.model_type}")
 
-            # 转换指标
-            domain_metrics = self._convert_metrics_to_domain(metrics)
+            # Metrics 保持为 float 类型，不需要转换为 Decimal
+            # 直接使用 metrics (Dict[str, float])
 
             # 先设置metrics（这样即使mark_as_trained失败，metrics也已保存）
-            model.update_metrics(domain_metrics)
+            model.update_metrics(metrics)
 
             # 更新模型状态（可能因阈值失败）
-            model.mark_as_trained(domain_metrics)
+            model.mark_as_trained(metrics)
 
             return model
 
@@ -370,7 +351,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
 
         return confidences
 
-    async def evaluate(self, model: Model, validation_data: Any) -> Dict[str, Decimal]:
+    async def evaluate(self, model: Model, validation_data: Any) -> Dict[str, float]:
         """
         评估模型
 
@@ -379,7 +360,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
             validation_data: 验证数据
 
         Returns:
-            评估指标字典
+            评估指标字典 (Dict[str, float])
 
         Raises:
             Exception: 当评估失败时
@@ -398,17 +379,14 @@ class QlibModelTrainerAdapter(IModelTrainer):
             # 预测
             y_pred = self.trained_model.predict(X)
 
-            # 计算指标
+            # 计算并返回指标 (float 类型)
             metrics = {
                 'rmse': float(np.sqrt(mean_squared_error(y, y_pred))),
                 'mae': float(mean_absolute_error(y, y_pred)),
                 'r2': float(r2_score(y, y_pred)),
             }
 
-            # 转换指标
-            domain_metrics = self._convert_metrics_to_domain(metrics)
-
-            return domain_metrics
+            return metrics
 
         except Exception as e:
             raise Exception(
