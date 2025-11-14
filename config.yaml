@@ -1,0 +1,321 @@
+# Hikyuu × Qlib 个人量化工作站配置文件
+#
+# 这是项目的统一配置文件，涵盖数据源、训练、回测等所有参数
+# 修改此文件后，可以通过 CLI 命令直接使用，无需重复输入参数
+
+##############################################################################
+# 数据源配置
+##############################################################################
+data:
+  # 数据源类型: hikyuu | qlib
+  source: hikyuu
+
+  # Hikyuu 配置文件路径
+  hikyuu_config: config/hikyuu.ini
+
+  # 默认K线类型: DAY | WEEK | MONTH | MIN5 | MIN15 | MIN30 | MIN60
+  default_kline_type: DAY
+
+  # 数据缓存设置
+  cache:
+    enabled: true
+    directory: data/cache
+    max_size_gb: 10
+
+##############################################################################
+# 模型训练配置
+##############################################################################
+training:
+  # 模型类型: LGBM | XGBOOST | LINEAR
+  model_type: LGBM
+
+  # 默认模型超参数
+  hyperparameters:
+    # LightGBM 参数
+    lgbm:
+      num_leaves: 31
+      learning_rate: 0.05
+      n_estimators: 100
+      max_depth: -1
+      min_child_samples: 20
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+      n_jobs: -1
+
+    # XGBoost 参数 (备用)
+    xgboost:
+      max_depth: 6
+      learning_rate: 0.05
+      n_estimators: 100
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+
+  # 数据配置
+  data:
+    # 训练/测试集划分比例
+    test_size: 0.2
+
+    # 是否使用时间序列划分（推荐）
+    time_series_split: true
+
+    # 标签预测周期（天）
+    label_horizon: 1
+
+  # 特征工程配置
+  features:
+    # 是否自动添加技术指标
+    add_technical_indicators: true
+
+    # 技术指标配置
+    technical_indicators:
+      ma_windows: [5, 10, 20, 60]
+      return_periods: [1, 5, 10]
+      volatility_window: 20
+      volume_ma_window: 5
+      price_position_window: 20
+
+    # 特征模板（未来支持）
+    # template: null  # momentum | trend | volatility | custom
+    # custom_config: null  # features.yaml
+
+  # 验证配置
+  validation:
+    # 评估指标阈值
+    metrics_threshold:
+      # 单股票训练的最低R²要求
+      single_stock_r2: 0.3
+      # 多股票混合训练的最低R²要求
+      multi_stock_r2: 0.1
+      # 最大训练时间（秒）
+      max_training_time: 3600
+
+    # 是否在训练失败时尝试降低阈值
+    adaptive_threshold: true
+
+##############################################################################
+# 预测配置
+##############################################################################
+prediction:
+  # 预测输出目录
+  output_dir: predictions
+
+  # 预测文件格式: pkl | csv | parquet
+  output_format: pkl
+
+  # 是否保存预测详情（置信度、特征重要度等）
+  save_details: true
+
+  # Top-K选股数量
+  top_k: 50
+
+##############################################################################
+# 信号转换配置
+##############################################################################
+signals:
+  # 信号输出目录
+  output_dir: signals
+
+  # 信号格式: csv | json
+  output_format: csv
+
+  # 选股策略
+  strategy:
+    # 选股方式: top_k | threshold | percentile
+    method: top_k
+
+    # Top-K选股参数
+    top_k: 30
+
+    # 阈值选股参数（method=threshold时使用）
+    threshold: 0.05
+
+    # 百分位选股参数（method=percentile时使用）
+    percentile: 0.2
+
+  # 信号强度映射
+  strength_mapping:
+    # 预测值到信号强度的映射方式: linear | sigmoid | quantile
+    method: linear
+
+    # 是否归一化信号强度到[0,1]
+    normalize: true
+
+##############################################################################
+# 回测配置
+##############################################################################
+backtest:
+  # 回测引擎: hikyuu
+  engine: hikyuu
+
+  # 初始资金
+  initial_cash: 1000000
+
+  # 交易成本
+  commission:
+    # 佣金费率
+    rate: 0.0003
+    # 最低佣金
+    min_commission: 5
+
+  # 滑点
+  slippage: 0.001
+
+  # 仓位管理
+  position:
+    # 最大持仓股票数
+    max_stocks: 30
+    # 单只股票最大仓位比例
+    max_position_per_stock: 0.1
+    # 总仓位比例
+    total_position_ratio: 0.95
+
+  # 风控配置
+  risk_control:
+    # 止损比例
+    stop_loss: 0.1
+    # 止盈比例
+    stop_profit: 0.3
+    # 最大回撤限制
+    max_drawdown: 0.2
+
+  # 输出配置
+  output:
+    # 结果输出目录
+    directory: backtest_results
+    # 是否生成图表
+    generate_charts: true
+    # 图表格式: png | svg | html
+    chart_format: png
+
+##############################################################################
+# 实验记录配置
+##############################################################################
+experiment:
+  # 是否启用实验记录
+  enabled: true
+
+  # 实验记录目录
+  directory: experiments
+
+  # 实验名称模板（支持变量：{model_type}, {timestamp}, {stock_code}）
+  name_template: "{model_type}_{timestamp}"
+
+  # 自动记录的内容
+  auto_log:
+    - hyperparameters
+    - metrics
+    - predictions
+    - feature_importance
+    - training_data_stats
+
+##############################################################################
+# 日志配置
+##############################################################################
+logging:
+  # 日志级别: DEBUG | INFO | WARNING | ERROR
+  level: INFO
+
+  # 日志输出目录
+  directory: logs
+
+  # 日志格式
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # 是否输出到控制台
+  console: true
+
+  # 是否保存到文件
+  file: true
+
+  # 日志文件滚动设置
+  rotation:
+    max_bytes: 10485760  # 10MB
+    backup_count: 5
+
+##############################################################################
+# 快速配置预设
+##############################################################################
+# 使用预设可以快速切换不同的配置场景
+# 使用方式: --preset development | production | testing
+
+presets:
+  # 开发环境预设
+  development:
+    training:
+      data:
+        test_size: 0.3
+      validation:
+        metrics_threshold:
+          single_stock_r2: 0.2
+          multi_stock_r2: 0.05
+    logging:
+      level: DEBUG
+
+  # 生产环境预设
+  production:
+    training:
+      validation:
+        metrics_threshold:
+          single_stock_r2: 0.4
+          multi_stock_r2: 0.15
+    logging:
+      level: WARNING
+      console: false
+    experiment:
+      enabled: true
+
+  # 测试环境预设
+  testing:
+    data:
+      cache:
+        enabled: false
+    training:
+      hyperparameters:
+        lgbm:
+          n_estimators: 10
+    logging:
+      level: DEBUG
+
+##############################################################################
+# 常用场景示例配置
+##############################################################################
+
+# 场景1: 单股票训练
+# hikyuu-qlib run --config config.yaml --scenario single_stock
+scenarios:
+  single_stock:
+    stock_code: sh600036
+    date_range:
+      start: "2023-01-01"
+      end: "2023-12-31"
+    model_name: "single_stock_model"
+
+  # 场景2: 指数批量训练
+  index_training:
+    index_name: "沪深300"
+    date_range:
+      start: "2023-01-01"
+      end: "2023-12-31"
+    max_stocks: 50
+    model_name: "hs300_model"
+
+  # 场景3: 快速测试
+  quick_test:
+    stock_code: sh600036
+    date_range:
+      start: "2023-10-01"
+      end: "2023-12-31"
+    model_name: "quick_test"
+    training:
+      hyperparameters:
+        lgbm:
+          n_estimators: 20
+
+##############################################################################
+# 版本信息
+##############################################################################
+version: "1.0.0"
+created_at: "2025-11-14"
+description: "Hikyuu × Qlib 个人量化工作站统一配置文件"

@@ -104,17 +104,48 @@ class BacktestResult:
     def calculate_sharpe_ratio(
         self, risk_free_rate: Decimal = Decimal("0.03")
     ) -> Decimal:
-        """计算夏普比率(简化版)"""
-        total_ret = self.total_return()
-        # 简化计算:假设波动率为收益率的20%
-        volatility = (
-            abs(total_ret) * Decimal("0.2") if total_ret != 0 else Decimal("0.01")
-        )
-        return (
-            (total_ret - risk_free_rate) / volatility
-            if volatility != 0
-            else Decimal("0")
-        )
+        """
+        计算年化夏普比率
+
+        使用权益曲线计算日收益率序列,然后年化
+
+        Args:
+            risk_free_rate: 无风险利率(年化),默认3%
+
+        Returns:
+            年化夏普比率
+        """
+        if not self.equity_curve or len(self.equity_curve) < 2:
+            return Decimal("0")
+
+        import numpy as np
+
+        # 计算日收益率序列
+        returns = []
+        for i in range(1, len(self.equity_curve)):
+            if self.equity_curve[i - 1] > 0:
+                daily_return = float(
+                    (self.equity_curve[i] - self.equity_curve[i - 1])
+                    / self.equity_curve[i - 1]
+                )
+                returns.append(daily_return)
+
+        if len(returns) < 2:
+            return Decimal("0")
+
+        # 年化收益率 (假设252个交易日)
+        annual_return = np.mean(returns) * 252
+
+        # 年化波动率
+        annual_volatility = np.std(returns, ddof=1) * np.sqrt(252)
+
+        if annual_volatility == 0:
+            return Decimal("0")
+
+        # 夏普比率 = (年化收益 - 无风险利率) / 年化波动率
+        sharpe_ratio = (annual_return - float(risk_free_rate)) / annual_volatility
+
+        return Decimal(str(round(sharpe_ratio, 4)))
 
     def calculate_max_drawdown(self) -> Decimal:
         """计算最大回撤"""

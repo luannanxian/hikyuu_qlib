@@ -72,7 +72,7 @@ class Container:
     @cached_property
     def data_provider(self) -> HikyuuDataAdapter:
         """Get Hikyuu data adapter instance."""
-        return HikyuuDataAdapter()
+        return HikyuuDataAdapter(config_file=self.settings.HIKYUU_CONFIG_FILE)
 
     @cached_property
     def model_trainer(self) -> QlibModelTrainerAdapter:

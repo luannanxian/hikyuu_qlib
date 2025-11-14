@@ -10,9 +10,11 @@ import re
 # 为了便于测试，使用条件导入
 try:
     import hikyuu
+    HIKYUU_AVAILABLE = True
 except ImportError:
-    # 开发环境下 Mock hikyuu
+    # Hikyuu 未安装
     hikyuu = None
+    HIKYUU_AVAILABLE = False
 
 from domain.ports.indicator_calculator import IIndicatorCalculator
 from domain.entities.kline_data import KLineData
@@ -31,8 +33,32 @@ class IndicatorCalculatorAdapter(IIndicatorCalculator):
 
         Args:
             hikyuu_module: Hikyuu 模块实例（用于测试注入）
+
+        Raises:
+            ImportError: 当 Hikyuu 未安装且未提供测试模块时
         """
-        self.hikyuu = hikyuu_module if hikyuu_module is not None else hikyuu
+        # 测试注入优先
+        if hikyuu_module is not None:
+            self.hikyuu = hikyuu_module
+        else:
+            # 生产环境必须有 Hikyuu
+            if not HIKYUU_AVAILABLE:
+                raise ImportError(
+                    "Hikyuu library is required but not installed.\n"
+                    "Please install it using one of the following methods:\n"
+                    "  • pip install hikyuu\n"
+                    "  • conda install -c conda-forge hikyuu\n"
+                    "\n"
+                    "For more information, visit: https://hikyuu.org"
+                )
+
+            if hikyuu is None:
+                raise RuntimeError(
+                    "Hikyuu import succeeded but module is None. "
+                    "This may indicate a broken installation."
+                )
+
+            self.hikyuu = hikyuu
 
     def _parse_indicator_name(self, indicator_name: str) -> tuple[str, list]:
         """

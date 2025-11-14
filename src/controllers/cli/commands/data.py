@@ -17,6 +17,10 @@ from controllers.cli.utils.validators import validate_date, validate_stock_code
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
 from domain.value_objects.stock_code import StockCode
+from utils.data_conversion import (
+    convert_kline_to_training_data,
+    save_to_file,
+)
 
 
 @click.group(name="data")
@@ -50,25 +54,71 @@ def data_group():
     type=click.Choice(["DAY", "WEEK", "MONTH", "MIN5", "MIN15", "MIN30", "MIN60"], case_sensitive=False),
     help="K-line type (default: DAY)",
 )
-def load_command(code: str, start, end, kline_type: str):
+@click.option(
+    "--output",
+    "-o",
+    "output_file",
+    help="Output file path (supports .csv or .parquet)",
+)
+@click.option(
+    "--add-features",
+    is_flag=True,
+    default=False,
+    help="Add technical indicator features",
+)
+@click.option(
+    "--add-labels",
+    is_flag=True,
+    default=False,
+    help="Add training labels",
+)
+def load_command(
+    code: str,
+    start,
+    end,
+    kline_type: str,
+    output_file: Optional[str],
+    add_features: bool,
+    add_labels: bool,
+):
     """
     Load stock data.
 
-    Example:
+    Examples:
+
+    1. Basic usage (display only):
         hikyuu-qlib data load --code sh600000 --start 2023-01-01 --end 2023-12-31
+
+    2. Save to CSV file:
+        hikyuu-qlib data load --code sh600000 --start 2023-01-01 --end 2023-12-31 --output train.csv
+
+    3. Save with features and labels (ready for training):
+        hikyuu-qlib data load --code sh600000 --start 2023-01-01 --end 2023-12-31 \\
+            --output train.csv --add-features --add-labels
     """
     output = CLIOutput()
 
     try:
         # Run async function in event loop
-        asyncio.run(_load_stock_data(code, start, end, kline_type, output))
+        asyncio.run(
+            _load_stock_data(
+                code, start, end, kline_type, output_file, add_features, add_labels, output
+            )
+        )
     except Exception as e:
         output.error(f"Failed to load data: {str(e)}")
         raise click.Abort()
 
 
 async def _load_stock_data(
-    code_str: str, start_date, end_date, kline_type_str: str, output: CLIOutput
+    code_str: str,
+    start_date,
+    end_date,
+    kline_type_str: str,
+    output_file: Optional[str],
+    add_features: bool,
+    add_labels: bool,
+    output: CLIOutput,
 ):
     """
     Load stock data (async implementation).
@@ -78,6 +128,9 @@ async def _load_stock_data(
         start_date: Start date
         end_date: End date
         kline_type_str: K-line type string
+        output_file: Output file path (optional)
+        add_features: Whether to add technical indicators
+        add_labels: Whether to add training labels
         output: CLI output instance
     """
     try:
@@ -100,9 +153,38 @@ async def _load_stock_data(
         # Display results
         if kline_data_list:
             output.success(
-                f"Successfully loaded {len(kline_data_list)} records for {code_str}"
+                f"Successfully loaded {len(kline_data_list)} K-line records for {code_str}"
             )
-            output.info(f"Date range: {kline_data_list[0].date} to {kline_data_list[-1].date}")
+            output.info(
+                f"Date range: {kline_data_list[0].timestamp.date()} to {kline_data_list[-1].timestamp.date()}"
+            )
+
+            # Save to file if requested
+            if output_file:
+                output.info(f"Converting data to training format...")
+
+                # Convert to training data
+                training_data = convert_kline_to_training_data(
+                    kline_data_list,
+                    add_features=add_features,
+                    add_labels=add_labels,
+                    label_horizon=1,
+                )
+
+                output.info(f"Saving to file: {output_file}")
+                save_to_file(training_data, output_file)
+
+                output.success(
+                    f"Data saved to {output_file} ({len(training_data)} records)"
+                )
+
+                # Show column info
+                output.info(f"Columns: {list(training_data.columns)}")
+                if add_features:
+                    output.info("✓ Technical indicators added")
+                if add_labels:
+                    output.info("✓ Training labels added")
+
         else:
             output.warning(f"No data found for {code_str} in the specified date range")
 

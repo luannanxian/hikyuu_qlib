@@ -26,7 +26,12 @@ class SQLiteModelRepository(IModelRepository):
 
         Args:
             db_path: SQLite 数据库路径,默认使用内存数据库
+                    支持格式: "path/to/db.db" 或 "sqlite:///path/to/db.db"
         """
+        # 解析 SQLite URL 格式
+        if db_path.startswith("sqlite:///"):
+            db_path = db_path.replace("sqlite:///", "")
+
         self.db_path = db_path
         self._connection: Optional[aiosqlite.Connection] = None
 
@@ -70,14 +75,36 @@ class SQLiteModelRepository(IModelRepository):
         Returns:
             dict: 序列化后的字典
         """
+        from decimal import Decimal
+
+        # Convert Decimal to float for JSON serialization
+        def convert_decimals(obj):
+            """递归转换Decimal为float"""
+            if isinstance(obj, Decimal):
+                return float(obj)
+            elif isinstance(obj, dict):
+                return {k: convert_decimals(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_decimals(item) for item in obj]
+            else:
+                return obj
+
+        # 转换metrics中的Decimal
+        metrics_dict = {}
+        for key, value in model.metrics.items():
+            metrics_dict[key] = float(value) if isinstance(value, Decimal) else value
+
+        # 转换hyperparameters中的Decimal
+        hyperparams_clean = convert_decimals(model.hyperparameters)
+
         return {
             "id": model.id,
             "model_type": model.model_type.value,
-            "hyperparameters": json.dumps(model.hyperparameters),
+            "hyperparameters": json.dumps(hyperparams_clean),
             "training_date": (
                 model.training_date.isoformat() if model.training_date else None
             ),
-            "metrics": json.dumps(model.metrics),
+            "metrics": json.dumps(metrics_dict),
             "status": model.status.value,
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),

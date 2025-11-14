@@ -6,14 +6,19 @@ HikyuuDataAdapter - Hikyuu 数据适配器
 
 from datetime import datetime
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
+from pathlib import Path
 
 # 条件导入 Hikyuu - 便于测试和开发
 try:
     import hikyuu as hku
+    from hikyuu import hikyuu_init
+    HIKYUU_AVAILABLE = True
 except ImportError:
-    # 开发环境下 Mock hikyuu
+    # Hikyuu 未安装
     hku = None
+    hikyuu_init = None
+    HIKYUU_AVAILABLE = False
 
 from domain.ports.stock_data_provider import IStockDataProvider
 from domain.value_objects.stock_code import StockCode
@@ -29,14 +34,48 @@ class HikyuuDataAdapter(IStockDataProvider):
     实现 IStockDataProvider 接口,适配 Hikyuu 框架
     """
 
-    def __init__(self, hikyuu_module=None):
+    def __init__(self, hikyuu_module=None, config_file: Optional[str] = None):
         """
         初始化适配器
 
         Args:
             hikyuu_module: Hikyuu 模块实例（用于测试注入）
+            config_file: Hikyuu 配置文件路径（如果不指定，使用默认配置）
+
+        Raises:
+            ImportError: 当 Hikyuu 未安装且未提供测试模块时
+            FileNotFoundError: 当配置文件不存在时
         """
-        self.hku = hikyuu_module if hikyuu_module is not None else hku
+        # 测试注入优先
+        if hikyuu_module is not None:
+            self.hku = hikyuu_module
+        else:
+            # 生产环境必须有 Hikyuu
+            if not HIKYUU_AVAILABLE:
+                raise ImportError(
+                    "Hikyuu library is required but not installed.\n"
+                    "Please install it using one of the following methods:\n"
+                    "  • pip install hikyuu\n"
+                    "  • conda install -c conda-forge hikyuu\n"
+                    "\n"
+                    "For more information, visit: https://hikyuu.org"
+                )
+
+            if hku is None:
+                raise RuntimeError(
+                    "Hikyuu import succeeded but module is None. "
+                    "This may indicate a broken installation."
+                )
+
+            self.hku = hku
+
+        # 如果指定了配置文件且 Hikyuu 可用，初始化 Hikyuu
+        if config_file and self.hku is not None and hikyuu_init is not None:
+            config_path = Path(config_file)
+            if config_path.exists():
+                hikyuu_init(str(config_path))
+            else:
+                raise FileNotFoundError(f"Hikyuu config file not found: {config_file}")
 
     def _map_kline_type_to_hikyuu(self, kline_type: KLineType) -> int:
         """
@@ -105,10 +144,10 @@ class HikyuuDataAdapter(IStockDataProvider):
             stock_code=stock_code,
             timestamp=krecord.datetime,
             kline_type=kline_type,
-            open=Decimal(str(krecord.openPrice)),
-            high=Decimal(str(krecord.highPrice)),
-            low=Decimal(str(krecord.lowPrice)),
-            close=Decimal(str(krecord.closePrice)),
+            open=Decimal(str(krecord.open)),
+            high=Decimal(str(krecord.high)),
+            low=Decimal(str(krecord.low)),
+            close=Decimal(str(krecord.close)),
             volume=int(krecord.volume),
             amount=Decimal(str(krecord.amount)),
         )

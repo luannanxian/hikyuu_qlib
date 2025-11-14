@@ -54,10 +54,10 @@ class TestHikyuuDataAdapter:
         """Mock Hikyuu KRecord 对象"""
         record = MagicMock()
         record.datetime = datetime(2023, 1, 3, 0, 0, 0)
-        record.openPrice = 10.5
-        record.highPrice = 11.0
-        record.lowPrice = 10.0
-        record.closePrice = 10.8
+        record.open = 10.5
+        record.high = 11.0
+        record.low = 10.0
+        record.close = 10.8
         record.volume = 1000000
         record.amount = 10800000.0
         return record

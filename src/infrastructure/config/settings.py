@@ -132,6 +132,9 @@ class Settings(PydanticBaseSettings):
     HIKYUU_DATA_PATH: str = Field(
         default="./data/hikyuu", description="Hikyuu data path"
     )
+    HIKYUU_CONFIG_FILE: str = Field(
+        default="./config/hikyuu.ini", description="Hikyuu configuration file path"
+    )
     QLIB_DATA_PATH: str = Field(default="./data/qlib", description="Qlib data path")
 
     # Model settings
