@@ -1,4 +1,4 @@
-"""á÷lbMh!W"""
+"""Converter adapters module"""
 
 from .signal_converter_adapter import SignalConverterAdapter, QlibToHikyuuSignalConverter
 

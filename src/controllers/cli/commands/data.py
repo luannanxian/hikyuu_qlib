@@ -195,36 +195,190 @@ async def _load_stock_data(
 
 @data_group.command(name="list")
 @click.option(
-    "--market",
-    type=click.Choice(["sh", "sz"], case_sensitive=False),
-    help="Filter by market (sh or sz)",
+    "--directory",
+    default="data",
+    help="Directory to scan for data files (default: data)",
 )
 @click.option(
-    "--verbose",
-    is_flag=True,
-    help="Show detailed information",
+    "--format",
+    "output_format",
+    type=click.Choice(["table", "json", "csv"], case_sensitive=False),
+    default="table",
+    help="Output format (default: table)",
 )
-def list_command(market: Optional[str], verbose: bool):
+def list_command(directory: str, output_format: str):
     """
-    List available stock data.
+    List available data files.
 
-    Example:
-        hikyuu-qlib data list --market sh
-        hikyuu-qlib data list --verbose
+    Scans the specified directory for CSV, Parquet, and PKL files,
+    and displays information about each file including name, size,
+    modification time, and data dimensions.
+
+    Examples:
+        hikyuu-qlib data list
+        hikyuu-qlib data list --directory custom_data
+        hikyuu-qlib data list --format json
+        hikyuu-qlib data list --format csv
     """
     output = CLIOutput()
 
     try:
-        # TODO: Implement listing logic when data storage is available
-        output.warning("Data list command not yet implemented")
-        output.info("This command will list all available stock data in the system")
+        from pathlib import Path
+        import os
+        from datetime import datetime
+        import pandas as pd
 
-        if market:
-            output.info(f"Filter: Market = {market.upper()}")
+        # Validate directory
+        data_dir = Path(directory)
+        if not data_dir.exists():
+            output.error(f"Directory not found: {directory}")
+            raise click.Abort()
 
-        if verbose:
-            output.info("Verbose mode enabled")
+        if not data_dir.is_dir():
+            output.error(f"Path is not a directory: {directory}")
+            raise click.Abort()
 
+        # Scan for data files
+        file_patterns = ["*.csv", "*.parquet", "*.pkl"]
+        data_files = []
+
+        for pattern in file_patterns:
+            for file_path in data_dir.glob(pattern):
+                if file_path.is_file():
+                    data_files.append(file_path)
+
+        # Check if directory is empty
+        if not data_files:
+            output.info(f"No data files found in directory: {directory}")
+            return
+
+        # Extract file information
+        file_infos = []
+        for file_path in sorted(data_files, key=lambda p: p.stat().st_mtime, reverse=True):
+            try:
+                # Get basic file info
+                stat = file_path.stat()
+                file_size = stat.st_size
+                modified_time = datetime.fromtimestamp(stat.st_mtime)
+
+                # Try to read file to get dimensions
+                rows = None
+                cols = None
+                try:
+                    suffix = file_path.suffix.lower()
+                    if suffix == ".csv":
+                        # Read only first few rows to infer structure
+                        df = pd.read_csv(file_path, nrows=0)
+                        cols = len(df.columns)
+                        # Get row count efficiently
+                        with open(file_path, 'r') as f:
+                            rows = sum(1 for _ in f) - 1  # Subtract header
+                    elif suffix == ".parquet":
+                        df = pd.read_parquet(file_path)
+                        rows = len(df)
+                        cols = len(df.columns)
+                    elif suffix == ".pkl":
+                        df = pd.read_pickle(file_path)
+                        if isinstance(df, pd.DataFrame):
+                            rows = len(df)
+                            cols = len(df.columns)
+                except Exception:
+                    # If we can't read the file, just skip dimensions
+                    pass
+
+                file_infos.append({
+                    "name": file_path.name,
+                    "path": str(file_path),
+                    "type": file_path.suffix[1:].upper(),  # Remove dot and uppercase
+                    "size": file_size,
+                    "size_mb": file_size / (1024 * 1024),
+                    "rows": rows if rows is not None else "N/A",
+                    "cols": cols if cols is not None else "N/A",
+                    "modified": modified_time,
+                })
+
+            except Exception as e:
+                # Log error but continue with other files
+                output.warning(f"Error reading {file_path.name}: {str(e)}")
+
+        # Output results
+        if output_format == "json":
+            _output_data_list_json(file_infos, output)
+        elif output_format == "csv":
+            _output_data_list_csv(file_infos, output)
+        else:  # table (default)
+            _output_data_list_table(file_infos, output)
+
+    except click.Abort:
+        raise
     except Exception as e:
         output.error(f"Failed to list data: {str(e)}")
         raise click.Abort()
+
+
+def _output_data_list_table(file_infos: list, output: CLIOutput):
+    """Output data file list in table format."""
+    import pandas as pd
+
+    # Prepare data for table
+    data = []
+    for info in file_infos:
+        data.append({
+            "File": info["name"],
+            "Type": info["type"],
+            "Size (MB)": f"{info['size_mb']:.2f}",
+            "Rows": info["rows"],
+            "Cols": info["cols"],
+            "Modified": info["modified"].strftime("%Y-%m-%d %H:%M"),
+        })
+
+    # Create DataFrame and output
+    df = pd.DataFrame(data)
+    output.info(f"\nFound {len(file_infos)} data file(s) in directory:\n")
+    click.echo(df.to_string(index=False))
+
+
+def _output_data_list_json(file_infos: list, output: CLIOutput):
+    """Output data file list in JSON format."""
+    import json
+
+    # Prepare data for JSON
+    data = []
+    for info in file_infos:
+        data.append({
+            "name": info["name"],
+            "path": info["path"],
+            "type": info["type"],
+            "size_bytes": info["size"],
+            "size_mb": round(info["size_mb"], 2),
+            "rows": info["rows"] if isinstance(info["rows"], int) else None,
+            "cols": info["cols"] if isinstance(info["cols"], int) else None,
+            "modified": info["modified"].isoformat(),
+        })
+
+    output.info(f"Found {len(file_infos)} data file(s):")
+    click.echo(json.dumps(data, indent=2))
+
+
+def _output_data_list_csv(file_infos: list, output: CLIOutput):
+    """Output data file list in CSV format."""
+    import pandas as pd
+
+    # Prepare data for CSV
+    data = []
+    for info in file_infos:
+        data.append({
+            "name": info["name"],
+            "path": info["path"],
+            "type": info["type"],
+            "size_bytes": info["size"],
+            "size_mb": round(info["size_mb"], 2),
+            "rows": info["rows"] if isinstance(info["rows"], int) else "",
+            "cols": info["cols"] if isinstance(info["cols"], int) else "",
+            "modified": info["modified"].isoformat(),
+        })
+
+    # Create DataFrame and output as CSV
+    df = pd.DataFrame(data)
+    output.info(f"Found {len(file_infos)} data file(s):")
+    click.echo(df.to_csv(index=False))

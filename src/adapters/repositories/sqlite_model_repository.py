@@ -240,23 +240,91 @@ class SQLiteModelRepository(IModelRepository):
         查找所有模型
 
         Returns:
-            List[Model]: 所有模型列表
+            List[Model]: 所有模型列表,按创建时间倒序排列
+
+        Note:
+            这是 list_models() 的便捷方法,返回所有模型
+        """
+        return await self.list_models()
+
+    async def list_models(
+        self,
+        status: Optional[ModelStatus] = None,
+        model_type: Optional[ModelType] = None,
+        limit: Optional[int] = None,
+    ) -> List[Model]:
+        """
+        列出模型,支持筛选和限制数量
+
+        Args:
+            status: 按模型状态筛选 (可选)
+            model_type: 按模型类型筛选 (可选)
+            limit: 限制返回数量 (可选)
+
+        Returns:
+            List[Model]: 符合条件的模型列表,按创建时间倒序排列
+
+        Raises:
+            Exception: 当查询失败时
+
+        Examples:
+            # 获取所有模型
+            models = await repo.list_models()
+
+            # 获取所有已训练的模型
+            trained = await repo.list_models(status=ModelStatus.TRAINED)
+
+            # 获取所有LGBM类型的模型
+            lgbm_models = await repo.list_models(model_type=ModelType.LGBM)
+
+            # 组合筛选
+            recent_trained_lgbm = await repo.list_models(
+                status=ModelStatus.TRAINED,
+                model_type=ModelType.LGBM,
+                limit=10
+            )
         """
         try:
-            cursor = await self._connection.execute(
-                """
+            # 构建SQL查询
+            query = """
                 SELECT id, model_type, hyperparameters, training_date,
                        metrics, status, created_at, updated_at
                 FROM models
-                ORDER BY created_at DESC
-                """
-            )
+            """
 
+            # 构建WHERE条件
+            conditions = []
+            params = []
+
+            if status is not None:
+                conditions.append("status = ?")
+                params.append(status.value)
+
+            if model_type is not None:
+                conditions.append("model_type = ?")
+                params.append(model_type.value)
+
+            # 添加WHERE子句
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            # 添加排序
+            query += " ORDER BY created_at DESC"
+
+            # 添加LIMIT
+            if limit is not None:
+                query += " LIMIT ?"
+                params.append(limit)
+
+            # 执行查询
+            cursor = await self._connection.execute(query, params)
             rows = await cursor.fetchall()
+
+            # 反序列化结果
             return [self._deserialize_model(row) for row in rows]
 
         except Exception as e:
-            raise Exception(f"Failed to find all models: {e}") from e
+            raise Exception(f"Failed to list models: {e}") from e
 
     async def delete(self, model_id: str) -> None:
         """
@@ -266,13 +334,23 @@ class SQLiteModelRepository(IModelRepository):
             model_id: 模型ID
 
         Raises:
+            ValueError: 当模型不存在时
             Exception: 当删除失败时
         """
         try:
+            # 检查模型是否存在
+            existing = await self.find_by_id(model_id)
+            if existing is None:
+                raise ValueError(f"Model with id '{model_id}' not found")
+
+            # 删除模型
             await self._connection.execute(
                 "DELETE FROM models WHERE id = ?", (model_id,)
             )
             await self._connection.commit()
 
+        except ValueError:
+            # 重新抛出 ValueError
+            raise
         except Exception as e:
             raise Exception(f"Failed to delete model: {e}") from e

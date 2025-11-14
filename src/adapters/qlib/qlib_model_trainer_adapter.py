@@ -6,6 +6,7 @@ QlibModelTrainerAdapter - Qlib 模型训练适配器
 
 from typing import Any, Dict, List
 from decimal import Decimal
+from datetime import datetime
 import pandas as pd
 import numpy as np
 
@@ -24,6 +25,7 @@ except ImportError:
 from domain.ports.model_trainer import IModelTrainer
 from domain.entities.model import Model, ModelType
 from domain.entities.prediction import Prediction
+from domain.value_objects.stock_code import StockCode
 
 
 class QlibModelTrainerAdapter(IModelTrainer):
@@ -189,45 +191,184 @@ class QlibModelTrainerAdapter(IModelTrainer):
                 f"Failed to train model: {model.model_type.name}, {e}"
             ) from e
 
-    async def predict(self, model: Model, input_data: Any) -> List[Prediction]:
+    async def predict(self, model: Model, input_data: pd.DataFrame) -> List[Prediction]:
         """
         生成预测
 
         Args:
             model: 模型实体
-            input_data: 输入数据
+            input_data: 输入数据 (pandas DataFrame)
 
         Returns:
             预测结果列表
 
         Raises:
-            Exception: 当预测失败时
+            ValueError: 当模型未训练或输入数据无效时
+            Exception: 当预测过程失败时
         """
         try:
-            if self.trained_model is None:
-                raise ValueError("Model not trained yet")
+            # 验证模型已训练
+            self._validate_model_trained()
 
-            # 准备特征
-            exclude_cols = ['stock_code', 'label_return', 'label_direction', 'label_multiclass']
-            feature_cols = [col for col in input_data.columns if col not in exclude_cols]
-            X = input_data[feature_cols]
+            # 处理空DataFrame
+            if input_data.empty:
+                return []
 
-            # 预测
+            # 提取特征并预测
+            X = self._extract_features(input_data)
             predictions_array = self.trained_model.predict(X)
 
+            # 计算置信度
+            confidences = self._calculate_confidence(predictions_array)
+
             # 转换为领域层 Prediction 列表
-            predictions = []
-            for i, pred_value in enumerate(predictions_array):
-                # 这里简化处理，实际应该创建完整的 Prediction 对象
-                # predictions.append(Prediction(...))
-                pass
+            predictions = self._create_predictions(
+                input_data, predictions_array, confidences, model.id
+            )
 
             return predictions
 
+        except ValueError as e:
+            # 重新抛出验证错误
+            raise
         except Exception as e:
             raise Exception(
                 f"Failed to predict: {model.model_type.name}, {e}"
             ) from e
+
+    def _validate_model_trained(self) -> None:
+        """
+        验证模型已训练
+
+        Raises:
+            ValueError: 当模型未训练时
+        """
+        if self.trained_model is None:
+            raise ValueError("Model not trained yet")
+
+    def _extract_features(self, input_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        从输入数据中提取特征
+
+        Args:
+            input_data: 输入DataFrame
+
+        Returns:
+            特征DataFrame
+
+        Raises:
+            ValueError: 当没有找到特征列时
+        """
+        exclude_cols = [
+            'stock_code',
+            'date',
+            'label_return',
+            'label_direction',
+            'label_multiclass'
+        ]
+        feature_cols = [col for col in input_data.columns if col not in exclude_cols]
+
+        if not feature_cols:
+            raise ValueError("No feature columns found in input data")
+
+        return input_data[feature_cols]
+
+    def _create_predictions(
+        self,
+        input_data: pd.DataFrame,
+        predictions_array: np.ndarray,
+        confidences: np.ndarray,
+        model_id: str
+    ) -> List[Prediction]:
+        """
+        创建Prediction实体列表
+
+        Args:
+            input_data: 原始输入数据
+            predictions_array: 预测值数组
+            confidences: 置信度数组
+            model_id: 模型ID
+
+        Returns:
+            Prediction实体列表
+        """
+        predictions = []
+
+        for i, pred_value in enumerate(predictions_array):
+            stock_code = self._extract_stock_code(input_data, i)
+            timestamp = self._extract_timestamp(input_data, i)
+
+            prediction = Prediction(
+                stock_code=stock_code,
+                timestamp=timestamp,
+                predicted_value=float(pred_value),
+                confidence=float(confidences[i]),
+                model_id=model_id
+            )
+            predictions.append(prediction)
+
+        return predictions
+
+    def _extract_stock_code(self, input_data: pd.DataFrame, index: int) -> StockCode:
+        """
+        从输入数据中提取股票代码
+
+        Args:
+            input_data: 输入DataFrame
+            index: 行索引
+
+        Returns:
+            StockCode值对象
+        """
+        stock_code_str = input_data.iloc[index]['stock_code']
+        return StockCode(stock_code_str)
+
+    def _extract_timestamp(self, input_data: pd.DataFrame, index: int) -> datetime:
+        """
+        从输入数据中提取时间戳
+
+        如果输入数据包含'date'列，使用该列的值；
+        否则使用当前时间
+
+        Args:
+            input_data: 输入DataFrame
+            index: 行索引
+
+        Returns:
+            时间戳
+        """
+        if 'date' in input_data.columns:
+            return input_data.iloc[index]['date']
+        else:
+            return datetime.now()
+
+    def _calculate_confidence(self, predictions_array: np.ndarray) -> np.ndarray:
+        """
+        计算预测置信度
+
+        置信度计算策略：
+        - 使用预测值的绝对值，通过sigmoid函数映射到[0, 1]区间
+        - 预测值越极端（离0越远），置信度越高
+        - 标准化因子设为5倍标准差，使大部分值在合理范围内
+
+        Args:
+            predictions_array: 预测值数组
+
+        Returns:
+            置信度数组（范围[0, 1]）
+        """
+        # 计算预测值的标准差
+        std = np.std(predictions_array)
+        if std == 0:
+            std = 1.0  # 避免除零
+
+        # 使用sigmoid函数：confidence = 1 / (1 + exp(-k * |pred|))
+        # k = 5/std 使得在±std范围内的值有合理的置信度分布
+        k = 5.0 / std
+        abs_predictions = np.abs(predictions_array)
+        confidences = 1.0 / (1.0 + np.exp(-k * abs_predictions))
+
+        return confidences
 
     async def evaluate(self, model: Model, validation_data: Any) -> Dict[str, Decimal]:
         """

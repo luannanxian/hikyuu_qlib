@@ -8,6 +8,7 @@ Commands:
 """
 
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
 
@@ -24,6 +25,26 @@ from utils.data_conversion import (
     convert_kline_to_training_data,
     load_from_file,
 )
+
+
+@asynccontextmanager
+async def get_repository(ctx):
+    """
+    Async context manager for repository lifecycle management.
+
+    Args:
+        ctx: Click context
+
+    Yields:
+        Repository instance
+    """
+    container = ctx.obj if ctx.obj else Container()
+    repository = container.model_repository
+    await repository.initialize()
+    try:
+        yield repository
+    finally:
+        await repository.close()
 
 
 @click.group(name="model")
@@ -75,7 +96,12 @@ def model_group():
 @click.option(
     "--config",
     "config_file",
-    help="Path to model configuration file",
+    help="Path to model configuration file (JSON or YAML)",
+)
+@click.option(
+    "--hyperparameters",
+    "hyperparameters_json",
+    help="Hyperparameters as JSON string (overrides config file)",
 )
 def train_command(
     model_type: str,
@@ -86,6 +112,7 @@ def train_command(
     end_date: Optional[str],
     kline_type: str,
     config_file: Optional[str],
+    hyperparameters_json: Optional[str],
 ):
     """
     Train a new model.
@@ -137,6 +164,7 @@ def train_command(
                 end_date,
                 kline_type,
                 config_file,
+                hyperparameters_json,
                 output,
             )
         )
@@ -154,6 +182,7 @@ async def _train_model(
     end_date: Optional[str],
     kline_type: str,
     config_file: Optional[str],
+    hyperparameters_json: Optional[str],
     output: CLIOutput,
 ):
     """
@@ -168,6 +197,7 @@ async def _train_model(
         end_date: End date string (integrated approach)
         kline_type: K-line type
         config_file: Path to config file
+        hyperparameters_json: Hyperparameters as JSON string
         output: CLI output instance
     """
     try:
@@ -225,11 +255,27 @@ async def _train_model(
             output.error("No data source provided")
             raise click.Abort()
 
-        # Step 2: Create model entity
+        # Step 2: Load hyperparameters and create model entity
         model_type = ModelType[model_type_str.upper()]
+
+        # Load hyperparameters from various sources
+        from controllers.cli.utils.hyperparameters import load_hyperparameters
+        try:
+            hyperparameters = load_hyperparameters(
+                model_type=model_type,
+                cli_json=hyperparameters_json,
+                config_file=config_file
+            )
+        except ValueError as e:
+            output.error(f"Invalid hyperparameters: {str(e)}")
+            raise click.Abort()
+
+        # Display hyperparameters being used
+        output.info(f"Using hyperparameters: {hyperparameters}")
+
         model = Model(
             model_type=model_type,
-            hyperparameters={},  # TODO: Load from config file if provided
+            hyperparameters=hyperparameters,
         )
 
         # Step 3: Execute training
@@ -262,49 +308,168 @@ async def _train_model(
 
 @model_group.command(name="list")
 @click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["table", "json", "csv"], case_sensitive=False),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
     "--status",
-    type=click.Choice(["PENDING", "TRAINING", "TRAINED", "FAILED"], case_sensitive=False),
+    type=click.Choice(["TRAINED", "UNTRAINED", "DEPLOYED", "ARCHIVED"], case_sensitive=False),
     help="Filter by status",
 )
 @click.option(
-    "--verbose",
-    is_flag=True,
-    help="Show detailed information",
+    "--type",
+    "model_type",
+    type=click.Choice(["LGBM", "MLP", "LSTM", "GRU", "TRANSFORMER"], case_sensitive=False),
+    help="Filter by model type",
 )
-def list_command(status: Optional[str], verbose: bool):
+@click.option(
+    "--limit",
+    type=int,
+    help="Limit number of results",
+)
+@click.pass_context
+def list_command(ctx, output_format: str, status: Optional[str], model_type: Optional[str], limit: Optional[int]):
     """
     List all models.
 
     Example:
         hikyuu-qlib model list
         hikyuu-qlib model list --status TRAINED
-        hikyuu-qlib model list --verbose
+        hikyuu-qlib model list --format json
+        hikyuu-qlib model list --type LGBM --limit 10
+    """
+    asyncio.run(_list_models(ctx, output_format, status, model_type, limit))
+
+
+async def _list_models(ctx, output_format: str, status: Optional[str], model_type: Optional[str], limit: Optional[int]):
+    """
+    List models (async implementation).
+
+    Args:
+        ctx: Click context
+        output_format: Output format (table/json/csv)
+        status: Filter by status
+        model_type: Filter by model type
+        limit: Limit number of results
     """
     output = CLIOutput()
 
     try:
-        # TODO: Implement listing logic when repository is ready
-        output.warning("Model list command not yet fully implemented")
-        output.info("This command will list all models in the system")
+        async with get_repository(ctx) as repository:
+            # Convert string filters to enums
+            from domain.entities.model import ModelStatus, ModelType
 
-        if status:
-            output.info(f"Filter: Status = {status.upper()}")
+            status_filter = ModelStatus[status.upper()] if status else None
+            type_filter = ModelType[model_type.upper()] if model_type else None
 
-        if verbose:
-            output.info("Verbose mode enabled")
+            # Query models
+            models = await repository.list_models(
+                status=status_filter,
+                model_type=type_filter,
+                limit=limit
+            )
 
-        # Example table structure
-        table = create_table(
-            "Models",
-            ["ID", "Name", "Type", "Status", "Created"]
-        )
-        # table.add_row("1", "my_model", "LightGBM", "TRAINED", "2023-01-01")
+            # Handle empty results
+            if not models:
+                output.info("No models found")
+                return
 
-        output.print_table(table)
+            # Format output based on requested format
+            if output_format == "json":
+                _output_json(models, output)
+            elif output_format == "csv":
+                _output_csv(models, output)
+            else:  # table (default)
+                _output_table(models, output)
 
     except Exception as e:
         output.error(f"Failed to list models: {str(e)}")
         raise click.Abort()
+
+
+def _output_table(models, output: CLIOutput):
+    """Output models in table format."""
+    import pandas as pd
+
+    # Prepare data for table
+    data = []
+    for model in models:
+        # Format metrics
+        metrics_str = ""
+        if model.metrics:
+            key_metrics = ["train_r2", "test_r2", "train_rmse", "test_rmse"]
+            metric_parts = [
+                f"{k}={v:.4f}"
+                for k, v in model.metrics.items()
+                if k in key_metrics
+            ]
+            metrics_str = ", ".join(metric_parts[:2])  # Show first 2 metrics
+
+        # Format training date
+        date_str = model.training_date.strftime("%Y-%m-%d %H:%M") if model.training_date else "N/A"
+
+        data.append({
+            "ID": model.id[:8] + "...",  # Truncate ID for display
+            "Type": model.model_type.value,
+            "Status": model.status.value,
+            "Training Date": date_str,
+            "Metrics": metrics_str or "N/A"
+        })
+
+    # Create DataFrame and output
+    df = pd.DataFrame(data)
+    output.info(f"\nFound {len(models)} model(s):\n")
+    click.echo(df.to_string(index=False))
+
+
+def _output_json(models, output: CLIOutput):
+    """Output models in JSON format."""
+    import json
+
+    data = []
+    for model in models:
+        data.append({
+            "id": model.id,
+            "model_type": model.model_type.value,
+            "status": model.status.value,
+            "training_date": model.training_date.isoformat() if model.training_date else None,
+            "metrics": model.metrics,
+            "hyperparameters": model.hyperparameters
+        })
+
+    output.info(f"Found {len(models)} model(s):")
+    click.echo(json.dumps(data, indent=2))
+
+
+def _output_csv(models, output: CLIOutput):
+    """Output models in CSV format."""
+    import pandas as pd
+
+    # Prepare data for CSV
+    data = []
+    for model in models:
+        # Flatten metrics into separate columns
+        row = {
+            "id": model.id,
+            "model_type": model.model_type.value,
+            "status": model.status.value,
+            "training_date": model.training_date.isoformat() if model.training_date else "",
+        }
+
+        # Add metrics as separate columns
+        if model.metrics:
+            for key, value in model.metrics.items():
+                row[f"metric_{key}"] = value
+
+        data.append(row)
+
+    # Create DataFrame and output as CSV
+    df = pd.DataFrame(data)
+    output.info(f"Found {len(models)} model(s):")
+    click.echo(df.to_csv(index=False))
 
 
 @model_group.command(name="delete")
@@ -314,7 +479,8 @@ def list_command(status: Optional[str], verbose: bool):
     is_flag=True,
     help="Force deletion without confirmation",
 )
-def delete_command(model_id: str, force: bool):
+@click.pass_context
+def delete_command(ctx, model_id: str, force: bool):
     """
     Delete a model.
 
@@ -322,25 +488,53 @@ def delete_command(model_id: str, force: bool):
         hikyuu-qlib model delete <model-id>
         hikyuu-qlib model delete <model-id> --force
     """
+    asyncio.run(_delete_model(ctx, model_id, force))
+
+
+async def _delete_model(ctx, model_id: str, force: bool):
+    """
+    Delete a model (async implementation).
+
+    Args:
+        ctx: Click context
+        model_id: Model ID to delete
+        force: Skip confirmation if True
+    """
     output = CLIOutput()
 
     try:
-        # Confirm deletion if not forced
-        if not force:
-            confirm = click.confirm(f"Are you sure you want to delete model '{model_id}'?")
-            if not confirm:
-                output.info("Deletion cancelled")
-                return
+        async with get_repository(ctx) as repository:
+            # Check if model exists
+            model = await repository.find_by_id(model_id)
+            if model is None:
+                output.error(f"Model with id '{model_id}' not found")
+                raise click.exceptions.Exit(1)
 
-        # TODO: Implement deletion logic when repository is ready
-        output.warning("Model delete command not yet fully implemented")
-        output.info(f"Would delete model: {model_id}")
+            # Display model info
+            output.info(f"Model to delete:")
+            output.info(f"  ID: {model.id}")
+            output.info(f"  Type: {model.model_type.value}")
+            output.info(f"  Status: {model.status.value}")
+            if model.training_date:
+                output.info(f"  Trained: {model.training_date.strftime('%Y-%m-%d %H:%M')}")
 
-        # output.success(f"Model '{model_id}' deleted successfully")
+            # Confirm deletion if not forced
+            if not force:
+                confirm = click.confirm(f"\nAre you sure you want to delete this model?")
+                if not confirm:
+                    output.info("Deletion cancelled")
+                    return
 
+            # Delete model
+            await repository.delete(model_id)
+            output.success(f"Model '{model_id}' deleted successfully")
+
+    except click.exceptions.Exit:
+        # Re-raise Exit exception to preserve exit code
+        raise
     except Exception as e:
         output.error(f"Failed to delete model: {str(e)}")
-        raise click.Abort()
+        raise click.exceptions.Exit(1)
 
 
 @model_group.command(name="train-index")

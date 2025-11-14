@@ -19,15 +19,16 @@ class TestPredictionCreation:
         """测试创建完整预测结果"""
         prediction = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
-            confidence=Decimal("0.85"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-123",
+            confidence=0.85,
         )
 
         assert prediction.stock_code == StockCode("sh600000")
         assert prediction.prediction_date == datetime(2024, 1, 15)
-        assert prediction.predicted_value == Decimal("0.05")
-        assert prediction.confidence == Decimal("0.85")
+        assert prediction.predicted_value == 0.05
+        assert prediction.confidence == 0.85
 
     def test_prediction_confidence_validation(self):
         """测试预测置信度验证"""
@@ -35,17 +36,19 @@ class TestPredictionCreation:
         with pytest.raises(ValueError, match="confidence must be between 0 and 1"):
             Prediction(
                 stock_code=StockCode("sh600000"),
-                prediction_date=datetime(2024, 1, 15),
-                predicted_value=Decimal("0.05"),
-                confidence=Decimal("1.5"),  # > 1
+                timestamp=datetime(2024, 1, 15),
+                predicted_value=0.05,
+                model_id="model-test",
+                confidence=1.5,  # > 1
             )
 
         with pytest.raises(ValueError, match="confidence must be between 0 and 1"):
             Prediction(
                 stock_code=StockCode("sh600000"),
-                prediction_date=datetime(2024, 1, 15),
-                predicted_value=Decimal("0.05"),
-                confidence=Decimal("-0.1"),  # < 0
+                timestamp=datetime(2024, 1, 15),
+                predicted_value=0.05,
+                model_id="model-test",
+                confidence=-0.1,  # < 0
             )
 
 
@@ -56,13 +59,15 @@ class TestPredictionIdentity:
         """验证每个预测有唯一标识"""
         pred1 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
         pred2 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
 
         # 每个实体有唯一 ID
@@ -74,18 +79,21 @@ class TestPredictionIdentity:
         """验证预测相等性基于股票代码和预测日期"""
         pred1 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
         pred2 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.08"),  # 不同的预测值
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.08,  # 不同的预测值
+            model_id="model-test",
         )
         pred3 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 16),  # 不同的日期
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 16),  # 不同的日期
+            predicted_value=0.05,
+            model_id="model-test",
         )
 
         # 相同股票相同日期视为相等(业务相等性)
@@ -102,7 +110,7 @@ class TestPredictionBatchCreation:
         """测试创建预测批次"""
         batch = PredictionBatch(
             model_id="model-123",
-            batch_date=datetime(2024, 1, 15),
+            generated_at=datetime(2024, 1, 15),
         )
 
         assert batch.model_id == "model-123"
@@ -111,8 +119,8 @@ class TestPredictionBatchCreation:
 
     def test_prediction_batch_has_unique_id(self):
         """验证每个批次有唯一标识"""
-        batch1 = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
-        batch2 = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch1 = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
+        batch2 = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         assert hasattr(batch1, "id")
         assert hasattr(batch2, "id")
@@ -124,12 +132,13 @@ class TestPredictionBatchAggregation:
 
     def test_add_prediction_to_batch(self):
         """测试向批次添加预测"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         pred = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
 
         batch.add_prediction(pred)
@@ -139,17 +148,19 @@ class TestPredictionBatchAggregation:
 
     def test_add_multiple_predictions(self):
         """测试添加多个预测"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         pred1 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
         pred2 = Prediction(
             stock_code=StockCode("sz000001"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.03"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.03,
+            model_id="model-test",
         )
 
         batch.add_prediction(pred1)
@@ -159,17 +170,19 @@ class TestPredictionBatchAggregation:
 
     def test_cannot_add_duplicate_prediction(self):
         """测试不能添加重复预测(相同股票相同日期)"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         pred1 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
         pred2 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.08"),  # 不同值,但相同股票+日期
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.08,  # 不同值,但相同股票+日期
+            model_id="model-test",
         )
 
         batch.add_prediction(pred1)
@@ -179,12 +192,13 @@ class TestPredictionBatchAggregation:
 
     def test_remove_prediction_from_batch(self):
         """测试从批次移除预测"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         pred = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
 
         batch.add_prediction(pred)
@@ -195,17 +209,19 @@ class TestPredictionBatchAggregation:
 
     def test_get_prediction_by_stock(self):
         """测试根据股票代码获取预测"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         pred1 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
         pred2 = Prediction(
             stock_code=StockCode("sz000001"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.03"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.03,
+            model_id="model-test",
         )
 
         batch.add_prediction(pred1)
@@ -216,7 +232,7 @@ class TestPredictionBatchAggregation:
 
     def test_get_nonexistent_prediction_returns_none(self):
         """测试获取不存在的预测返回 None"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         found = batch.get_prediction(StockCode("sh600000"), datetime(2024, 1, 15))
         assert found is None
@@ -227,19 +243,21 @@ class TestPredictionBatchStatistics:
 
     def test_batch_size(self):
         """测试批次大小"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         assert batch.size() == 0
 
         pred1 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
         )
         pred2 = Prediction(
             stock_code=StockCode("sz000001"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.03"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.03,
+            model_id="model-test",
         )
 
         batch.add_prediction(pred1)
@@ -249,32 +267,34 @@ class TestPredictionBatchStatistics:
 
     def test_average_confidence(self):
         """测试平均置信度"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
         pred1 = Prediction(
             stock_code=StockCode("sh600000"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.05"),
-            confidence=Decimal("0.8"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.05,
+            model_id="model-test",
+            confidence=0.8,
         )
         pred2 = Prediction(
             stock_code=StockCode("sz000001"),
-            prediction_date=datetime(2024, 1, 15),
-            predicted_value=Decimal("0.03"),
-            confidence=Decimal("0.6"),
+            timestamp=datetime(2024, 1, 15),
+            predicted_value=0.03,
+            model_id="model-test",
+            confidence=0.6,
         )
 
         batch.add_prediction(pred1)
         batch.add_prediction(pred2)
 
         # 平均置信度 = (0.8 + 0.6) / 2 = 0.7
-        assert batch.average_confidence() == Decimal("0.7")
+        assert batch.average_confidence() == 0.7
 
     def test_average_confidence_empty_batch(self):
         """测试空批次的平均置信度"""
-        batch = PredictionBatch(model_id="model-123", batch_date=datetime(2024, 1, 15))
+        batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
-        assert batch.average_confidence() == Decimal("0")
+        assert batch.average_confidence() == None
 
 
 class TestPredictionBatchStringRepresentation:
@@ -283,7 +303,7 @@ class TestPredictionBatchStringRepresentation:
     def test_batch_string_representation(self):
         """验证字符串表示"""
         batch = PredictionBatch(
-            model_id="model-123", batch_date=datetime(2024, 1, 15, 10, 30)
+            model_id="model-123", generated_at=datetime(2024, 1, 15, 10, 30)
         )
 
         batch_str = str(batch)

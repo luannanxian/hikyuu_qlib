@@ -110,25 +110,228 @@ class TestDataLoadCommand:
 class TestDataListCommand:
     """Test data list command."""
 
-    def test_data_list_success(self):
-        """Test listing data successfully."""
+    def test_data_list_empty_directory(self):
+        """Test listing data when directory is empty."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create empty directory
+            import os
+            os.makedirs("empty_dir", exist_ok=True)
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "empty_dir"])
+
+            # Assert
+            assert result.exit_code == 0
+            assert "no data" in result.output.lower() or "found 0" in result.output.lower()
+
+    def test_data_list_table_format_default(self):
+        """Test listing data in table format (default)."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create test files
+            import pandas as pd
+            df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+            df.to_csv("test1.csv", index=False)
+            df.to_parquet("test2.parquet")
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "."])
+
+            # Assert
+            assert result.exit_code == 0
+            assert "test1.csv" in result.output
+            assert "test2.parquet" in result.output
+            # Table format should show headers
+            assert "File" in result.output or "Name" in result.output
+
+    def test_data_list_json_format(self):
+        """Test listing data in JSON format."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create test file
+            import pandas as pd
+            df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+            df.to_csv("test.csv", index=False)
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", ".", "--format", "json"])
+
+            # Assert
+            assert result.exit_code == 0
+            import json
+            # Extract JSON from output
+            json_start = result.output.find("[")
+            json_end = result.output.rfind("]") + 1
+            if json_start >= 0 and json_end > json_start:
+                json_content = result.output[json_start:json_end]
+                data = json.loads(json_content)
+                assert isinstance(data, list)
+                assert any("test.csv" in str(item) for item in data)
+
+    def test_data_list_csv_format(self):
+        """Test listing data in CSV format."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create test file
+            import pandas as pd
+            df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+            df.to_csv("test.csv", index=False)
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", ".", "--format", "csv"])
+
+            # Assert
+            assert result.exit_code == 0
+            # CSV format should have comma-separated values
+            assert "," in result.output
+            assert "test.csv" in result.output
+
+    def test_data_list_file_information(self):
+        """Test that file information is extracted correctly."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create test file
+            import pandas as pd
+            df = pd.DataFrame({"col1": [1, 2, 3], "col2": [4, 5, 6]})
+            df.to_csv("test.csv", index=False)
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "."])
+
+            # Assert
+            assert result.exit_code == 0
+            assert "test.csv" in result.output
+            # Should show file size or row count
+            assert any(x in result.output.lower() for x in ["size", "rows", "records", "3"])
+
+    def test_data_list_directory_not_exist(self):
+        """Test listing data when directory does not exist."""
         # Arrange
         runner = CliRunner()
 
         # Act
-        result = runner.invoke(data_group, ["list"])
+        result = runner.invoke(data_group, ["list", "--directory", "/nonexistent/path"])
 
         # Assert
-        # Should not error, even if no implementation yet
-        assert result.exit_code == 0 or "not implemented" in result.output.lower()
+        assert result.exit_code != 0
+        assert "not found" in result.output.lower() or "not exist" in result.output.lower()
 
-    def test_data_list_with_market_filter(self):
-        """Test listing data with market filter."""
+    def test_data_list_multiple_file_types(self):
+        """Test listing different file types (CSV, Parquet, PKL)."""
         # Arrange
         runner = CliRunner()
 
-        # Act
-        result = runner.invoke(data_group, ["list", "--market", "sh"])
+        with runner.isolated_filesystem():
+            # Create different types of files
+            import pandas as pd
+            df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
 
-        # Assert
-        assert result.exit_code == 0 or "not implemented" in result.output.lower()
+            df.to_csv("data.csv", index=False)
+            df.to_parquet("data.parquet")
+            df.to_pickle("data.pkl")
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "."])
+
+            # Assert
+            assert result.exit_code == 0
+            assert "data.csv" in result.output
+            assert "data.parquet" in result.output
+            assert "data.pkl" in result.output
+
+    def test_data_list_with_custom_directory(self):
+        """Test listing data with custom directory option."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create subdirectory with files
+            import os
+            import pandas as pd
+
+            os.makedirs("data", exist_ok=True)
+            df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+            df.to_csv("data/test.csv", index=False)
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "data"])
+
+            # Assert
+            assert result.exit_code == 0
+            assert "test.csv" in result.output
+
+    def test_data_list_corrupted_file_handling(self):
+        """Test handling of corrupted or unreadable files."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create a corrupted CSV file
+            with open("corrupted.csv", "w") as f:
+                f.write("invalid,data\nthis is not valid csv\x00\x01\x02")
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "."])
+
+            # Assert
+            assert result.exit_code == 0
+            # Should still list the file even if it's corrupted
+            assert "corrupted.csv" in result.output
+
+    def test_data_list_shows_column_count(self):
+        """Test that list shows column count for each file."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create test file with 5 columns
+            import pandas as pd
+            df = pd.DataFrame({
+                "col1": [1, 2],
+                "col2": [3, 4],
+                "col3": [5, 6],
+                "col4": [7, 8],
+                "col5": [9, 10]
+            })
+            df.to_csv("test.csv", index=False)
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "."])
+
+            # Assert
+            assert result.exit_code == 0
+            # Should show column count (5 columns)
+            assert "5" in result.output or "columns" in result.output.lower()
+
+    def test_data_list_shows_modified_time(self):
+        """Test that list shows file modification time."""
+        # Arrange
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create test file
+            import pandas as pd
+            df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
+            df.to_csv("test.csv", index=False)
+
+            # Act
+            result = runner.invoke(data_group, ["list", "--directory", "."])
+
+            # Assert
+            assert result.exit_code == 0
+            # Should show modification time (contains date patterns)
+            import re
+            # Check for date-like patterns (YYYY-MM-DD or similar)
+            has_date = bool(re.search(r'\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4}', result.output))
+            assert has_date or "modified" in result.output.lower()

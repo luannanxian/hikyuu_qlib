@@ -57,7 +57,7 @@ class TestGeneratePredictionsSuccess:
 
         # 创建 Use Case
         use_case = GeneratePredictionsUseCase(
-            repository=repository_mock, trainer=trainer_mock
+            repository=repository_mock, data_provider=trainer_mock
         )
 
         # Mock input data
@@ -103,7 +103,7 @@ class TestGeneratePredictionsSuccess:
         trainer_mock.predict.return_value = mock_predictions
 
         use_case = GeneratePredictionsUseCase(
-            repository=repository_mock, trainer=trainer_mock
+            repository=repository_mock, data_provider=trainer_mock
         )
 
         # Act
@@ -128,7 +128,7 @@ class TestGeneratePredictionsValidation:
         trainer_mock = AsyncMock(spec=IModelTrainer)
 
         use_case = GeneratePredictionsUseCase(
-            repository=repository_mock, trainer=trainer_mock
+            repository=repository_mock, data_provider=trainer_mock
         )
 
         # Act & Assert: 模型未找到应该抛出异常
@@ -150,7 +150,7 @@ class TestGeneratePredictionsValidation:
         repository_mock.find_by_id.return_value = model
 
         use_case = GeneratePredictionsUseCase(
-            repository=repository_mock, trainer=trainer_mock
+            repository=repository_mock, data_provider=trainer_mock
         )
 
         # Act & Assert: 未训练模型不应该用于预测
@@ -177,7 +177,7 @@ class TestGeneratePredictionsErrorHandling:
         trainer_mock.predict.side_effect = Exception("预测失败")
 
         use_case = GeneratePredictionsUseCase(
-            repository=repository_mock, trainer=trainer_mock
+            repository=repository_mock, data_provider=trainer_mock
         )
 
         # Act & Assert: 应该传播异常
@@ -200,7 +200,7 @@ class TestGeneratePredictionsErrorHandling:
         trainer_mock.predict.return_value = []  # 空预测列表
 
         use_case = GeneratePredictionsUseCase(
-            repository=repository_mock, trainer=trainer_mock
+            repository=repository_mock, data_provider=trainer_mock
         )
 
         # Act
