@@ -6,9 +6,12 @@ QlibModelTrainerAdapter 单元测试
 """
 
 import pytest
+import tempfile
+import os
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, mock_open
 from typing import Any
+from datetime import datetime
 
 from domain.entities.model import Model, ModelStatus, ModelType
 
@@ -381,3 +384,506 @@ class TestQlibModelTrainerAdapterPredict:
         assert predictions[0].timestamp is not None
         # 时间应该接近当前时间
         assert (datetime.now() - predictions[0].timestamp).total_seconds() < 10
+
+
+class TestQlibModelTrainerAdapterSaveLoad:
+    """测试 QlibModelTrainerAdapter 模型保存和加载功能"""
+
+    @pytest.fixture
+    def adapter_with_trained_model(self):
+        """带有已训练模型的适配器 fixture"""
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
+        import numpy as np
+
+        adapter = QlibModelTrainerAdapter()
+
+        # 创建 mock 模型
+        mock_model = MagicMock()
+        mock_model.predict = lambda X: np.random.randn(len(X)) * 0.02
+        adapter.trained_model = mock_model
+
+        return adapter
+
+    @pytest.fixture
+    def model_entity(self) -> Model:
+        """模型实体 fixture"""
+        return Model(
+            model_type=ModelType.LGBM,
+            hyperparameters={"learning_rate": 0.01}
+        )
+
+    def test_save_model_success(self, adapter_with_trained_model, model_entity):
+        """
+        测试成功保存模型
+
+        验证:
+        1. 模型文件被创建
+        2. model.file_path 被更新
+        """
+        adapter = adapter_with_trained_model
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, "model.pkl")
+
+            # Mock pickle.dump 以避免序列化 MagicMock
+            with patch('pickle.dump') as mock_dump:
+                # 执行
+                adapter.save_model(model_entity, file_path)
+
+                # 验证 pickle.dump 被调用
+                assert mock_dump.called
+                # 验证 model.file_path 被更新
+                assert model_entity.file_path == file_path
+
+    def test_save_model_creates_directory(self, adapter_with_trained_model, model_entity):
+        """
+        测试保存模型时自动创建目录
+
+        验证:
+        1. 不存在的目录被创建
+        2. 模型文件被保存
+        """
+        adapter = adapter_with_trained_model
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, "models", "subfolder", "model.pkl")
+
+            # Mock pickle.dump 以避免序列化 MagicMock
+            with patch('pickle.dump') as mock_dump:
+                # 执行
+                adapter.save_model(model_entity, file_path)
+
+                # 验证目录被创建
+                assert os.path.exists(os.path.dirname(file_path))
+
+    def test_save_model_without_trained_model_should_fail(self, model_entity):
+        """
+        测试没有训练模型时保存应失败
+
+        验证:
+        1. 抛出 ValueError
+        2. 错误消息包含 "No trained model"
+        """
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
+
+        adapter = QlibModelTrainerAdapter()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, "model.pkl")
+
+            # 验证
+            with pytest.raises(ValueError) as exc_info:
+                adapter.save_model(model_entity, file_path)
+
+            assert "No trained model" in str(exc_info.value)
+
+    def test_load_model_success(self, adapter_with_trained_model):
+        """
+        测试成功加载模型
+
+        验证:
+        1. 模型被成功加载
+        2. 加载的模型可以使用
+        """
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
+
+        adapter = QlibModelTrainerAdapter()
+
+        # 创建一个简单的可序列化对象作为模型
+        simple_model = {"type": "test", "params": {"a": 1, "b": 2}}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = os.path.join(tmpdir, "model.pkl")
+
+            # 先保存模型
+            import pickle
+            with open(file_path, 'wb') as f:
+                pickle.dump(simple_model, f)
+
+            # 执行加载
+            loaded_model = adapter.load_model(file_path)
+
+            # 验证
+            assert loaded_model is not None
+            assert loaded_model == simple_model
+
+    def test_load_model_file_not_found(self):
+        """
+        测试加载不存在的模型文件应失败
+
+        验证:
+        1. 抛出 FileNotFoundError
+        2. 错误消息包含文件路径
+        """
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
+
+        adapter = QlibModelTrainerAdapter()
+        non_existent_path = "/path/to/non/existent/model.pkl"
+
+        # 验证
+        with pytest.raises(FileNotFoundError) as exc_info:
+            adapter.load_model(non_existent_path)
+
+        assert non_existent_path in str(exc_info.value)
+
+
+class TestQlibModelTrainerAdapterPredictBatch:
+    """测试 QlibModelTrainerAdapter.predict_batch() 方法"""
+
+    @pytest.fixture
+    def adapter_with_trained_model(self):
+        """带有已训练模型的适配器 fixture"""
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
+        import numpy as np
+
+        adapter = QlibModelTrainerAdapter()
+
+        # 创建 mock 模型
+        mock_model = MagicMock()
+
+        def mock_predict(X):
+            """根据输入数据长度返回相应数量的预测值"""
+            n_samples = len(X)
+            return np.random.randn(n_samples) * 0.02
+
+        mock_model.predict = mock_predict
+        adapter.trained_model = mock_model
+
+        return adapter
+
+    @pytest.fixture
+    def model_entity(self) -> Model:
+        """模型实体 fixture"""
+        return Model(
+            model_type=ModelType.LGBM,
+            hyperparameters={"learning_rate": 0.01},
+            status=ModelStatus.TRAINED
+        )
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_with_memory_model(
+        self, adapter_with_trained_model, model_entity
+    ):
+        """
+        测试使用内存中的模型进行批量预测
+
+        验证:
+        1. 返回 PredictionBatch 对象
+        2. PredictionBatch 包含正确数量的预测
+        3. 预测包含正确的 model_id
+        """
+        import pandas as pd
+        from domain.entities.prediction import PredictionBatch
+
+        adapter = adapter_with_trained_model
+
+        # 准备输入数据
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000', 'sz000001', 'sh600519'],
+            'date': [datetime(2024, 1, 15)] * 3,
+            'feature1': [0.5, 0.3, -0.1],
+            'feature2': [0.3, -0.2, 0.4],
+            'feature3': [-0.2, 0.1, 0.2],
+        })
+
+        # 执行
+        batch = await adapter.predict_batch(
+            model=model_entity,
+            input_data=input_data
+        )
+
+        # 验证
+        assert isinstance(batch, PredictionBatch)
+        assert batch.model_id == model_entity.id
+        assert batch.size() == 3
+        assert len(batch.predictions) == 3
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_with_file_path(
+        self, adapter_with_trained_model, model_entity
+    ):
+        """
+        测试从文件路径加载模型进行预测
+
+        验证:
+        1. 从文件加载模型
+        2. 返回正确的 PredictionBatch
+        """
+        import pandas as pd
+        from domain.entities.prediction import PredictionBatch
+
+        adapter = adapter_with_trained_model
+
+        # 设置模型文件路径（不需要真实文件）
+        model_entity.file_path = "/fake/path/model.pkl"
+
+        # 准备输入数据
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000'],
+            'date': [datetime(2024, 1, 15)],
+            'feature1': [0.5],
+            'feature2': [0.3],
+            'feature3': [-0.2],
+        })
+
+        # Mock load_model 来返回训练好的模型
+        with patch.object(adapter, 'load_model', return_value=adapter.trained_model):
+            # 执行
+            batch = await adapter.predict_batch(
+                model=model_entity,
+                input_data=input_data
+            )
+
+            # 验证
+            assert isinstance(batch, PredictionBatch)
+            assert batch.size() == 1
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_with_prediction_date(
+        self, adapter_with_trained_model, model_entity
+    ):
+        """
+        测试使用指定的 prediction_date
+
+        验证:
+        1. batch.generated_at 使用指定的日期
+        """
+        import pandas as pd
+
+        adapter = adapter_with_trained_model
+
+        # 准备输入数据
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000'],
+            'date': [datetime(2024, 1, 15)],
+            'feature1': [0.5],
+            'feature2': [0.3],
+            'feature3': [-0.2],
+        })
+
+        # 指定预测日期
+        prediction_date = datetime(2024, 6, 15, 10, 30, 0)
+
+        # 执行
+        batch = await adapter.predict_batch(
+            model=model_entity,
+            input_data=input_data,
+            prediction_date=prediction_date
+        )
+
+        # 验证
+        assert batch.generated_at == prediction_date
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_with_empty_dataframe(
+        self, adapter_with_trained_model, model_entity
+    ):
+        """
+        测试空 DataFrame 输入
+
+        验证:
+        1. 返回空的 PredictionBatch
+        2. 不抛出异常
+        """
+        import pandas as pd
+        from domain.entities.prediction import PredictionBatch
+
+        adapter = adapter_with_trained_model
+
+        # 准备空输入数据
+        input_data = pd.DataFrame(columns=['stock_code', 'feature1', 'feature2', 'feature3'])
+
+        # 执行
+        batch = await adapter.predict_batch(
+            model=model_entity,
+            input_data=input_data
+        )
+
+        # 验证
+        assert isinstance(batch, PredictionBatch)
+        assert batch.size() == 0
+        assert len(batch.predictions) == 0
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_without_model_should_fail(self, model_entity):
+        """
+        测试没有训练模型且没有文件路径时应失败
+
+        验证:
+        1. 抛出 ValueError
+        2. 错误消息包含相关信息
+        """
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
+        import pandas as pd
+
+        adapter = QlibModelTrainerAdapter()
+
+        # 准备输入数据
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000'],
+            'feature1': [0.5],
+            'feature2': [0.3],
+            'feature3': [-0.2],
+        })
+
+        # 验证
+        with pytest.raises(Exception) as exc_info:
+            await adapter.predict_batch(
+                model=model_entity,
+                input_data=input_data
+            )
+
+        assert "not trained" in str(exc_info.value).lower() or "no file path" in str(exc_info.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_with_nonexistent_file_should_fail(self, model_entity):
+        """
+        测试加载不存在的模型文件应失败
+
+        验证:
+        1. 抛出 FileNotFoundError
+        """
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
+        import pandas as pd
+
+        adapter = QlibModelTrainerAdapter()
+
+        # 设置不存在的文件路径
+        model_entity.file_path = "/path/to/non/existent/model.pkl"
+
+        # 准备输入数据
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000'],
+            'feature1': [0.5],
+            'feature2': [0.3],
+            'feature3': [-0.2],
+        })
+
+        # 验证
+        with pytest.raises(Exception):
+            await adapter.predict_batch(
+                model=model_entity,
+                input_data=input_data
+            )
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_average_confidence(
+        self, adapter_with_trained_model, model_entity
+    ):
+        """
+        测试 PredictionBatch 的平均置信度计算
+
+        验证:
+        1. batch.average_confidence() 返回有效值
+        2. 平均置信度在 [0, 1] 范围内
+        """
+        import pandas as pd
+
+        adapter = adapter_with_trained_model
+
+        # 准备输入数据
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000', 'sz000001', 'sh600519'],
+            'date': [datetime(2024, 1, 15)] * 3,
+            'feature1': [0.5, 0.3, -0.1],
+            'feature2': [0.3, -0.2, 0.4],
+            'feature3': [-0.2, 0.1, 0.2],
+        })
+
+        # 执行
+        batch = await adapter.predict_batch(
+            model=model_entity,
+            input_data=input_data
+        )
+
+        # 验证
+        avg_confidence = batch.average_confidence()
+        assert avg_confidence is not None
+        assert 0 <= avg_confidence <= 1
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_to_dataframe(
+        self, adapter_with_trained_model, model_entity
+    ):
+        """
+        测试 PredictionBatch 转换为 DataFrame
+
+        验证:
+        1. batch.to_dataframe() 返回有效的 DataFrame
+        2. DataFrame 包含所有必要的列
+        """
+        import pandas as pd
+
+        adapter = adapter_with_trained_model
+
+        # 准备输入数据
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000', 'sz000001'],
+            'date': [datetime(2024, 1, 15)] * 2,
+            'feature1': [0.5, 0.3],
+            'feature2': [0.3, -0.2],
+            'feature3': [-0.2, 0.1],
+        })
+
+        # 执行
+        batch = await adapter.predict_batch(
+            model=model_entity,
+            input_data=input_data
+        )
+
+        # 转换为 DataFrame
+        df = batch.to_dataframe()
+
+        # 验证
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 2
+        assert 'stock_code' in df.columns
+        assert 'timestamp' in df.columns
+        assert 'predicted_value' in df.columns
+        assert 'confidence' in df.columns
+        assert 'model_id' in df.columns
+
+    @pytest.mark.asyncio
+    async def test_predict_batch_predictions_have_correct_attributes(
+        self, adapter_with_trained_model, model_entity
+    ):
+        """
+        测试预测结果包含正确的属性
+
+        验证:
+        1. 每个预测包含 stock_code
+        2. 每个预测包含 timestamp
+        3. 每个预测包含 predicted_value
+        4. 每个预测包含 confidence
+        5. 每个预测包含 model_id
+        """
+        import pandas as pd
+        from domain.value_objects.stock_code import StockCode
+
+        adapter = adapter_with_trained_model
+
+        # 准备输入数据
+        test_date = datetime(2024, 1, 15)
+        input_data = pd.DataFrame({
+            'stock_code': ['sh600000'],
+            'date': [test_date],
+            'feature1': [0.5],
+            'feature2': [0.3],
+            'feature3': [-0.2],
+        })
+
+        # 执行
+        batch = await adapter.predict_batch(
+            model=model_entity,
+            input_data=input_data
+        )
+
+        # 验证
+        prediction = batch.predictions[0]
+        assert isinstance(prediction.stock_code, StockCode)
+        assert prediction.stock_code.value == 'sh600000'
+        assert prediction.timestamp == test_date
+        assert isinstance(prediction.predicted_value, float)
+        assert prediction.confidence is not None
+        assert 0 <= prediction.confidence <= 1
+        assert prediction.model_id == model_entity.id

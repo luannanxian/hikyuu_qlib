@@ -156,20 +156,23 @@ def merge_hyperparameters(
 def load_hyperparameters(
     model_type: ModelType,
     cli_json: Optional[str] = None,
-    config_file: Optional[str] = None
+    config_file: Optional[str] = None,
+    param_list: Optional[tuple] = None
 ) -> Dict[str, Any]:
     """
     Load hyperparameters from multiple sources with proper precedence.
 
     Precedence order (highest to lowest):
-    1. CLI JSON string (--hyperparameters)
-    2. Configuration file (--config)
-    3. Default hyperparameters for model type
+    1. CLI params (--param key=value)
+    2. CLI JSON string (--hyperparameters)
+    3. Configuration file (--config)
+    4. Default hyperparameters for model type
 
     Args:
         model_type: The type of model
         cli_json: Optional JSON string from CLI
         config_file: Optional configuration file path
+        param_list: Optional list of key=value parameter strings
 
     Returns:
         Dictionary of hyperparameters
@@ -190,7 +193,7 @@ def load_hyperparameters(
         except Exception as e:
             raise ValueError(f"Error loading configuration file: {str(e)}")
 
-    # Override with CLI JSON if provided (highest precedence)
+    # Override with CLI JSON if provided
     if cli_json:
         try:
             cli_hyperparams = load_hyperparameters_from_json_string(cli_json)
@@ -198,4 +201,106 @@ def load_hyperparameters(
         except Exception as e:
             raise ValueError(f"Error loading CLI hyperparameters: {str(e)}")
 
+    # Override with individual params (highest precedence)
+    if param_list:
+        try:
+            param_hyperparams = parse_param_list(param_list)
+            hyperparams = merge_hyperparameters(hyperparams, param_hyperparams)
+        except Exception as e:
+            raise ValueError(f"Error parsing --param options: {str(e)}")
+
     return hyperparams
+
+
+def parse_param_list(param_list: tuple) -> Dict[str, Any]:
+    """
+    Parse a list of key=value strings into a dictionary.
+
+    Supports type inference for common types:
+    - Integers: "n_estimators=100"
+    - Floats: "learning_rate=0.05"
+    - Booleans: "verbose=true"
+    - Lists: "hidden_layers=[64,32]"
+    - Strings: "activation=relu"
+
+    Args:
+        param_list: Tuple of key=value strings
+
+    Returns:
+        Dictionary of parsed parameters
+
+    Raises:
+        ValueError: If any parameter has invalid format
+
+    Examples:
+        >>> parse_param_list(("n_estimators=100", "learning_rate=0.05"))
+        {'n_estimators': 100, 'learning_rate': 0.05}
+    """
+    params = {}
+
+    for param_str in param_list:
+        if "=" not in param_str:
+            raise ValueError(
+                f"Invalid parameter format: '{param_str}'. Expected 'key=value'"
+            )
+
+        key, value_str = param_str.split("=", 1)
+        key = key.strip()
+        value_str = value_str.strip()
+
+        if not key:
+            raise ValueError(f"Empty key in parameter: '{param_str}'")
+
+        # Try to infer type
+        value = _infer_value_type(value_str)
+        params[key] = value
+
+    return params
+
+
+def _infer_value_type(value_str: str) -> Any:
+    """
+    Infer the type of a value string and convert it.
+
+    Args:
+        value_str: String representation of a value
+
+    Returns:
+        Converted value with appropriate type
+    """
+    value_str = value_str.strip()
+
+    # Boolean
+    if value_str.lower() in ("true", "yes", "1"):
+        return True
+    if value_str.lower() in ("false", "no", "0"):
+        return False
+
+    # List (JSON-like)
+    if value_str.startswith("[") and value_str.endswith("]"):
+        try:
+            return json.loads(value_str)
+        except json.JSONDecodeError:
+            raise ValueError(f"Invalid list format: {value_str}")
+
+    # Dict (JSON-like)
+    if value_str.startswith("{") and value_str.endswith("}"):
+        try:
+            return json.loads(value_str)
+        except json.JSONDecodeError:
+            raise ValueError(f"Invalid dict format: {value_str}")
+
+    # Integer
+    try:
+        return int(value_str)
+    except ValueError:
+        pass
+
+    # Float
+    try:
+        return float(value_str)
+    except ValueError:
+        pass
+
+    # String (default)
+    return value_str

@@ -45,6 +45,7 @@ class Model:
     - training_date: 训练日期
     - metrics: 评估指标字典
     - status: 模型状态
+    - file_path: 模型文件路径（可选）
     """
 
     model_type: ModelType
@@ -52,6 +53,7 @@ class Model:
     training_date: Optional[datetime] = None
     metrics: Dict[str, float] = field(default_factory=dict)
     status: ModelStatus = ModelStatus.UNTRAINED
+    file_path: Optional[str] = None
 
     # 实体唯一标识
     id: str = field(default_factory=lambda: str(uuid.uuid4()))

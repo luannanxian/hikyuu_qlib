@@ -4,8 +4,10 @@ QlibModelTrainerAdapter - Qlib 模型训练适配器
 适配 Qlib 框架实现 IModelTrainer 接口
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from datetime import datetime
+from pathlib import Path
+import pickle
 import pandas as pd
 import numpy as np
 
@@ -23,7 +25,7 @@ except ImportError:
 
 from domain.ports.model_trainer import IModelTrainer
 from domain.entities.model import Model, ModelType
-from domain.entities.prediction import Prediction
+from domain.entities.prediction import Prediction, PredictionBatch
 from domain.value_objects.stock_code import StockCode
 
 
@@ -391,4 +393,137 @@ class QlibModelTrainerAdapter(IModelTrainer):
         except Exception as e:
             raise Exception(
                 f"Failed to evaluate model: {model.model_type.name}, {e}"
+            ) from e
+
+    def save_model(self, model: Model, file_path: str) -> None:
+        """
+        保存训练好的模型到文件
+
+        Args:
+            model: 模型实体
+            file_path: 保存路径
+
+        Raises:
+            ValueError: 当模型未训练时
+            Exception: 当保存失败时
+        """
+        if self.trained_model is None:
+            raise ValueError("No trained model to save")
+
+        try:
+            # 创建目录（如果不存在）
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+
+            # 保存模型
+            with open(file_path, 'wb') as f:
+                pickle.dump(self.trained_model, f)
+
+            # 更新模型实体的文件路径
+            model.file_path = file_path
+
+        except Exception as e:
+            raise Exception(f"Failed to save model to {file_path}: {e}") from e
+
+    def load_model(self, file_path: str) -> Any:
+        """
+        从文件加载模型
+
+        Args:
+            file_path: 模型文件路径
+
+        Returns:
+            加载的模型对象
+
+        Raises:
+            FileNotFoundError: 当文件不存在时
+            Exception: 当加载失败时
+        """
+        if not Path(file_path).exists():
+            raise FileNotFoundError(f"Model file not found: {file_path}")
+
+        try:
+            with open(file_path, 'rb') as f:
+                loaded_model = pickle.load(f)
+            return loaded_model
+        except Exception as e:
+            raise Exception(f"Failed to load model from {file_path}: {e}") from e
+
+    async def predict_batch(
+        self,
+        model: Model,
+        input_data: pd.DataFrame,
+        prediction_date: Optional[datetime] = None
+    ) -> PredictionBatch:
+        """
+        使用训练好的模型进行预测（返回 PredictionBatch）
+
+        Args:
+            model: 训练好的Domain模型实体
+            input_data: 输入特征数据 (DataFrame格式)
+            prediction_date: 预测日期（可选）
+
+        Returns:
+            PredictionBatch: 包含所有预测结果的批次
+
+        Implementation:
+        1. 从模型文件路径加载 Qlib 模型（如果提供）
+        2. 准备输入数据（特征标准化等）
+        3. 调用 Qlib 模型 predict() 方法
+        4. 将预测结果转换为 Prediction 实体
+        5. 创建 PredictionBatch 聚合根
+        6. 处理置信度（如果模型支持）
+
+        Raises:
+            ValueError: 当模型未训练或输入数据无效时
+            FileNotFoundError: 当模型文件不存在时
+            Exception: 当预测过程失败时
+        """
+        try:
+            # 1. 加载模型（如果提供了文件路径）
+            model_to_use = None
+            if model.file_path:
+                model_to_use = self.load_model(model.file_path)
+            elif self.trained_model is not None:
+                model_to_use = self.trained_model
+            else:
+                raise ValueError("Model not trained and no file path provided")
+
+            # 2. 处理空DataFrame
+            if input_data.empty:
+                return PredictionBatch(
+                    model_id=model.id,
+                    predictions=[],
+                    generated_at=prediction_date or datetime.now()
+                )
+
+            # 3. 提取特征并预测
+            X = self._extract_features(input_data)
+            predictions_array = model_to_use.predict(X)
+
+            # 4. 计算置信度
+            confidences = self._calculate_confidence(predictions_array)
+
+            # 5. 转换为领域层 Prediction 列表
+            predictions = self._create_predictions(
+                input_data, predictions_array, confidences, model.id
+            )
+
+            # 6. 创建 PredictionBatch 聚合根
+            batch = PredictionBatch(
+                model_id=model.id,
+                predictions=predictions,
+                generated_at=prediction_date or datetime.now()
+            )
+
+            return batch
+
+        except ValueError as e:
+            # 重新抛出验证错误
+            raise
+        except FileNotFoundError as e:
+            # 重新抛出文件不存在错误
+            raise
+        except Exception as e:
+            raise Exception(
+                f"Failed to predict batch: {model.model_type.name}, {e}"
             ) from e

@@ -103,6 +103,12 @@ def model_group():
     "hyperparameters_json",
     help="Hyperparameters as JSON string (overrides config file)",
 )
+@click.option(
+    "--param",
+    "param_list",
+    multiple=True,
+    help="Individual hyperparameter in key=value format (can be used multiple times, highest precedence)",
+)
 def train_command(
     model_type: str,
     name: str,
@@ -113,6 +119,7 @@ def train_command(
     kline_type: str,
     config_file: Optional[str],
     hyperparameters_json: Optional[str],
+    param_list: tuple,
 ):
     """
     Train a new model.
@@ -129,6 +136,14 @@ def train_command(
     3. With custom config:
         hikyuu-qlib model train --type LightGBM --name my_model \\
             --data train.csv --config config.yaml
+
+    4. With individual parameters:
+        hikyuu-qlib model train --type LightGBM --name my_model \\
+            --data train.csv --param n_estimators=200 --param learning_rate=0.1
+
+    5. With JSON hyperparameters:
+        hikyuu-qlib model train --type LightGBM --name my_model \\
+            --data train.csv --hyperparameters '{"n_estimators": 200, "learning_rate": 0.1}'
     """
     output = CLIOutput()
 
@@ -165,6 +180,7 @@ def train_command(
                 kline_type,
                 config_file,
                 hyperparameters_json,
+                param_list,
                 output,
             )
         )
@@ -183,6 +199,7 @@ async def _train_model(
     kline_type: str,
     config_file: Optional[str],
     hyperparameters_json: Optional[str],
+    param_list: tuple,
     output: CLIOutput,
 ):
     """
@@ -198,6 +215,7 @@ async def _train_model(
         kline_type: K-line type
         config_file: Path to config file
         hyperparameters_json: Hyperparameters as JSON string
+        param_list: List of key=value parameter strings
         output: CLI output instance
     """
     try:
@@ -264,7 +282,8 @@ async def _train_model(
             hyperparameters = load_hyperparameters(
                 model_type=model_type,
                 cli_json=hyperparameters_json,
-                config_file=config_file
+                config_file=config_file,
+                param_list=param_list
             )
         except ValueError as e:
             output.error(f"Invalid hyperparameters: {str(e)}")
