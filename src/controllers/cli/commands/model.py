@@ -13,6 +13,7 @@ from datetime import datetime
 
 import click
 
+from controllers.cli.config import TrainingConfig
 from controllers.cli.di.container import Container
 from controllers.cli.utils.output import CLIOutput
 from controllers.cli.utils.validators import validate_file_path, validate_model_type
@@ -146,74 +147,54 @@ def train_command(
     output = CLIOutput()
 
     try:
-        # Validate input: must provide either data file OR stock code parameters
-        has_file = training_data_path is not None
-        has_stock_params = all([stock_code, start_date, end_date])
-
-        if not has_file and not has_stock_params:
-            output.error("Must provide either:")
-            output.info("  1. --data <file> (load from file)")
-            output.info("  2. --code <code> --start <date> --end <date> (load from Hikyuu)")
-            raise click.Abort()
-
-        if has_file and has_stock_params:
-            output.warning("Both --data and --code provided, will use --data")
-
-        # Validate paths if provided
-        if training_data_path:
-            training_data_path = validate_file_path(training_data_path)
-
-        if config_file:
-            config_file = validate_file_path(config_file)
-
-        # Run async function
-        asyncio.run(
-            _train_model(
-                model_type,
-                name,
-                training_data_path,
-                stock_code,
-                start_date,
-                end_date,
-                kline_type,
-                config_file,
-                hyperparameters_json,
-                param_list,
-                output,
-            ),
+        # 创建配置对象
+        config = TrainingConfig(
+            model_type=model_type,
+            name=name,
+            training_data_path=training_data_path,
+            stock_code=stock_code,
+            start_date=start_date,
+            end_date=end_date,
+            kline_type=kline_type,
+            config_file=config_file,
+            hyperparameters_json=hyperparameters_json,
+            param_list=param_list,
         )
+
+        # 验证配置
+        config.validate()
+
+        # 验证文件路径
+        if config.training_data_path:
+            config.training_data_path = validate_file_path(config.training_data_path)
+
+        if config.config_file:
+            config.config_file = validate_file_path(config.config_file)
+
+        # 运行训练
+        asyncio.run(_train_model(config, output))
+
+    except ValueError as e:
+        output.error(str(e))
+        output.info("Usage:")
+        output.info("  1. --data <file> (load from file)")
+        output.info("  2. --code <code> --start <date> --end <date> (load from Hikyuu)")
+        raise click.Abort()
     except Exception as e:
         output.error(f"Failed to train model: {e!s}")
         raise click.Abort()
 
 
+
 async def _train_model(
-    model_type_str: str,
-    name: str,
-    training_data_path: str | None,
-    stock_code: str | None,
-    start_date: str | None,
-    end_date: str | None,
-    kline_type: str,
-    config_file: str | None,
-    hyperparameters_json: str | None,
-    param_list: tuple,
+    config: TrainingConfig,
     output: CLIOutput,
 ):
     """
     Train a model (async implementation).
 
     Args:
-        model_type_str: Model type string
-        name: Model name
-        training_data_path: Path to training data file (separated approach)
-        stock_code: Stock code (integrated approach)
-        start_date: Start date string (integrated approach)
-        end_date: End date string (integrated approach)
-        kline_type: K-line type
-        config_file: Path to config file
-        hyperparameters_json: Hyperparameters as JSON string
-        param_list: List of key=value parameter strings
+        config: Training configuration object
         output: CLI output instance
     """
     try:
@@ -223,33 +204,33 @@ async def _train_model(
         # Step 1: Load training data
         training_data = None
 
-        if training_data_path:
+        if config.training_data_path:
             # Separated approach: load from file
-            output.info(f"Loading training data from file: {training_data_path}")
-            training_data = load_from_file(training_data_path)
+            output.info(f"Loading training data from file: {config.training_data_path}")
+            training_data = load_from_file(config.training_data_path)
             output.success(f"Loaded {len(training_data)} records from file")
 
-        elif stock_code and start_date and end_date:
+        elif config.stock_code and config.start_date and config.end_date:
             # Integrated approach: load from Hikyuu
             output.info(
-                f"Loading data from Hikyuu: {stock_code} ({start_date} ~ {end_date})",
+                f"Loading data from Hikyuu: {config.stock_code} ({config.start_date} ~ {config.end_date})",
             )
 
             # Parse dates
-            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            start_dt = datetime.strptime(config.start_date, "%Y-%m-%d")
+            end_dt = datetime.strptime(config.end_date, "%Y-%m-%d")
 
             # Load K-line data
             load_data_use_case = container.load_stock_data_use_case
             kline_data = await load_data_use_case.execute(
-                stock_code=StockCode(stock_code),
+                stock_code=StockCode(config.stock_code),
                 date_range=DateRange(start_date=start_dt, end_date=end_dt),
-                kline_type=KLineType[kline_type.upper()],
+                kline_type=KLineType[config.kline_type.upper()],
             )
 
             if not kline_data:
                 output.error(
-                    f"No data found for {stock_code} in the specified date range",
+                    f"No data found for {config.stock_code} in the specified date range",
                 )
                 raise click.Abort()
 
@@ -272,16 +253,16 @@ async def _train_model(
             raise click.Abort()
 
         # Step 2: Load hyperparameters and create model entity
-        model_type = ModelType[model_type_str.upper()]
+        model_type = ModelType[config.model_type.upper()]
 
         # Load hyperparameters from various sources
         from controllers.cli.utils.hyperparameters import load_hyperparameters
         try:
             hyperparameters = load_hyperparameters(
                 model_type=model_type,
-                cli_json=hyperparameters_json,
-                config_file=config_file,
-                param_list=param_list,
+                cli_json=config.hyperparameters_json,
+                config_file=config.config_file,
+                param_list=config.param_list,
             )
         except ValueError as e:
             output.error(f"Invalid hyperparameters: {e!s}")
@@ -296,7 +277,7 @@ async def _train_model(
         )
 
         # Step 3: Execute training
-        output.info(f"Training {model_type_str} model '{name}'...")
+        output.info(f"Training {config.model_type} model '{config.name}'...")
 
         # Initialize repository before training
         repository = container.model_repository
@@ -311,7 +292,7 @@ async def _train_model(
         await repository.close()
 
         # Step 4: Display results
-        output.success(f"Model '{name}' trained successfully!")
+        output.success(f"Model '{config.name}' trained successfully!")
         output.info(f"Model ID: {trained_model.id}")
         output.info(f"Status: {trained_model.status.value}")
 
