@@ -11,34 +11,21 @@ import pandas as pd
 from domain.entities.model import Model, ModelType
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
+from utils.batch_config import IndexDataLoadConfig, IndexModelTrainingConfig
 from utils.data_conversion import convert_kline_to_training_data
 from utils.index_constituents import get_index_constituents
 
 
 async def load_index_training_data(
-    index_name: str,
-    date_range: DateRange,
-    kline_type: KLineType,
+    config: IndexDataLoadConfig,
     data_provider,
-    add_features: bool = True,
-    add_labels: bool = True,
-    label_horizon: int = 1,
-    max_stocks: int | None = None,
-    skip_errors: bool = True,
 ) -> pd.DataFrame:
     """
     加载指数成分股的训练数据（合并为一个大DataFrame）
 
     Args:
-        index_name: 指数名称，如 "沪深300"
-        date_range: 日期范围
-        kline_type: K线类型
+        config: 指数数据加载配置
         data_provider: 数据提供者（HikyuuDataAdapter）
-        add_features: 是否添加特征
-        add_labels: 是否添加标签
-        label_horizon: 标签预测周期
-        max_stocks: 最大股票数量（用于测试）
-        skip_errors: 是否跳过加载失败的股票
 
     Returns:
         pd.DataFrame: 合并后的训练数据
@@ -48,6 +35,7 @@ async def load_index_training_data(
         >>> from domain.value_objects.date_range import DateRange
         >>> from domain.value_objects.kline_type import KLineType
         >>> from datetime import datetime
+        >>> from utils.batch_config import IndexDataLoadConfig
         >>>
         >>> container = Container()
         >>> date_range = DateRange(
@@ -56,23 +44,26 @@ async def load_index_training_data(
         ... )
         >>>
         >>> # 加载沪深300的训练数据
-        >>> training_data = await load_index_training_data(
+        >>> config = IndexDataLoadConfig(
         ...     index_name="沪深300",
         ...     date_range=date_range,
-        ...     kline_type=KLineType.DAY,
+        ...     kline_type=KLineType.DAY
+        ... )
+        >>> training_data = await load_index_training_data(
+        ...     config=config,
         ...     data_provider=container.data_provider
         ... )
         >>> print(f"总训练数据: {len(training_data)} 条")
     """
     # 获取指数成分股
-    stocks = get_index_constituents(index_name)
+    stocks = get_index_constituents(config.index_name)
 
-    if max_stocks:
-        stocks = stocks[:max_stocks]
+    if config.max_stocks:
+        stocks = stocks[:config.max_stocks]
 
-    print(f"开始加载 {index_name} 成分股数据...")
+    print(f"开始加载 {config.index_name} 成分股数据...")
     print(f"  成分股数量: {len(stocks)}")
-    print(f"  日期范围: {date_range.start_date.date()} ~ {date_range.end_date.date()}")
+    print(f"  日期范围: {config.date_range.start_date.date()} ~ {config.date_range.end_date.date()}")
 
     all_data = []
     success_count = 0
@@ -83,23 +74,23 @@ async def load_index_training_data(
             # 加载K线数据
             kline_data = await data_provider.load_stock_data(
                 stock_code=stock_code,
-                date_range=date_range,
-                kline_type=kline_type,
+                date_range=config.date_range,
+                kline_type=config.kline_type,
             )
 
             if not kline_data:
                 print(f"  [{i}/{len(stocks)}] {stock_code.value}: 无数据")
                 error_count += 1
-                if not skip_errors:
+                if not config.skip_errors:
                     raise ValueError(f"No data for {stock_code.value}")
                 continue
 
             # 转换为训练数据
             training_data = convert_kline_to_training_data(
                 kline_data,
-                add_features=add_features,
-                add_labels=add_labels,
-                label_horizon=label_horizon,
+                add_features=config.add_features,
+                add_labels=config.add_labels,
+                label_horizon=config.label_horizon,
             )
 
             if training_data.empty:
@@ -116,13 +107,13 @@ async def load_index_training_data(
         except Exception as e:
             error_count += 1
             print(f"  [{i}/{len(stocks)}] {stock_code.value}: 加载失败 - {e}")
-            if not skip_errors:
+            if not config.skip_errors:
                 raise
 
     print(f"\n加载完成: {success_count} 成功, {error_count} 失败")
 
     if not all_data:
-        raise ValueError(f"No valid training data loaded for {index_name}")
+        raise ValueError(f"No valid training data loaded for {config.index_name}")
 
     # 合并所有数据
     combined_data = pd.concat(all_data, ignore_index=True)
@@ -132,43 +123,25 @@ async def load_index_training_data(
 
 
 async def load_index_training_data_by_stock(
-    index_name: str,
-    date_range: DateRange,
-    kline_type: KLineType,
+    config: IndexDataLoadConfig,
     data_provider,
-    add_features: bool = True,
-    add_labels: bool = True,
-    label_horizon: int = 1,
-    max_stocks: int | None = None,
-    skip_errors: bool = True,
 ) -> dict[str, pd.DataFrame]:
     """
     加载指数成分股的训练数据（按股票分别存储）
 
     Args:
-        同 load_index_training_data
+        config: 指数数据加载配置
+        data_provider: 数据提供者
 
     Returns:
         Dict[str, pd.DataFrame]: 股票代码 -> 训练数据的字典
-
-    Example:
-        >>> data_by_stock = await load_index_training_data_by_stock(
-        ...     index_name="沪深300",
-        ...     date_range=date_range,
-        ...     kline_type=KLineType.DAY,
-        ...     data_provider=container.data_provider
-        ... )
-        >>>
-        >>> # 访问单个股票的数据
-        >>> sh600000_data = data_by_stock["sh600000"]
-        >>> print(f"sh600000: {len(sh600000_data)} 条记录")
     """
-    stocks = get_index_constituents(index_name)
+    stocks = get_index_constituents(config.index_name)
 
-    if max_stocks:
-        stocks = stocks[:max_stocks]
+    if config.max_stocks:
+        stocks = stocks[:config.max_stocks]
 
-    print(f"开始加载 {index_name} 成分股数据...")
+    print(f"开始加载 {config.index_name} 成分股数据...")
     print(f"  成分股数量: {len(stocks)}")
 
     data_by_stock = {}
@@ -179,21 +152,21 @@ async def load_index_training_data_by_stock(
         try:
             kline_data = await data_provider.load_stock_data(
                 stock_code=stock_code,
-                date_range=date_range,
-                kline_type=kline_type,
+                date_range=config.date_range,
+                kline_type=config.kline_type,
             )
 
             if not kline_data:
                 error_count += 1
-                if not skip_errors:
+                if not config.skip_errors:
                     raise ValueError(f"No data for {stock_code.value}")
                 continue
 
             training_data = convert_kline_to_training_data(
                 kline_data,
-                add_features=add_features,
-                add_labels=add_labels,
-                label_horizon=label_horizon,
+                add_features=config.add_features,
+                add_labels=config.add_labels,
+                label_horizon=config.label_horizon,
             )
 
             if training_data.empty:
@@ -208,7 +181,7 @@ async def load_index_training_data_by_stock(
 
         except Exception:
             error_count += 1
-            if not skip_errors:
+            if not config.skip_errors:
                 raise
 
     print(f"\n加载完成: {success_count} 成功, {error_count} 失败")
@@ -217,59 +190,49 @@ async def load_index_training_data_by_stock(
 
 
 async def train_model_on_index(
-    index_name: str,
-    model_type: ModelType,
-    model_name: str,
-    date_range: DateRange,
-    kline_type: KLineType,
+    config: IndexModelTrainingConfig,
     data_provider,
     model_trainer,
     model_repository,
-    hyperparameters: dict[str, Any] | None = None,
-    max_stocks: int | None = None,
-    skip_errors: bool = True,
     metrics_threshold: float = 0.1,
 ) -> Model:
     """
     在指数成分股上训练模型
 
     Args:
-        index_name: 指数名称
-        model_type: 模型类型
-        model_name: 模型名称
-        date_range: 日期范围
-        kline_type: K线类型
+        config: 指数模型训练配置
         data_provider: 数据提供者
         model_trainer: 模型训练器
         model_repository: 模型仓储
-        hyperparameters: 超参数
-        max_stocks: 最大股票数量（用于测试）
-        skip_errors: 是否跳过加载失败的股票
-        metrics_threshold: 模型指标阈值，默认0.1（多股票混合场景使用较低阈值）
+        metrics_threshold: 模型指标阈值,默认0.1(多股票混合场景使用较低阈值)
 
     Returns:
         Model: 训练后的模型
 
     Note:
-        多股票混合训练时，由于不同股票价格范围和波动特征差异大，
-        R²值通常较低（0.1-0.2），这是正常现象。建议：
-        - 使用较低的threshold（如0.1）
+        多股票混合训练时,由于不同股票价格范围和波动特征差异大,
+        R²值通常较低(0.1-0.2),这是正常现象。建议:
+        - 使用较低的threshold(如0.1)
         - 或者为每只股票单独训练模型
         - 或者对数据进行归一化/标准化处理
 
     Example:
         >>> from controllers.cli.di.container import Container
         >>> from domain.entities.model import ModelType
+        >>> from utils.batch_config import IndexModelTrainingConfig
         >>>
         >>> container = Container()
         >>>
         >>> # 在沪深300上训练模型
-        >>> model = await train_model_on_index(
+        >>> config = IndexModelTrainingConfig(
         ...     index_name="沪深300",
         ...     model_type=ModelType.LGBM,
         ...     model_name="hs300_lgbm_model",
         ...     date_range=date_range,
-        ...     kline_type=KLineType.DAY,
+        ...     kline_type=KLineType.DAY
+        ... )
+        >>> model = await train_model_on_index(
+        ...     config=config,
         ...     data_provider=container.data_provider,
         ...     model_trainer=container.model_trainer,
         ...     model_repository=container.model_repository,
@@ -277,23 +240,26 @@ async def train_model_on_index(
         ... )
     """
     print("=" * 70)
-    print(f"在 {index_name} 成分股上训练 {model_type.value} 模型")
+    print(f"在 {config.index_name} 成分股上训练 {config.model_type.value} 模型")
     print("=" * 70)
 
     # 1. 加载训练数据
+    data_config = IndexDataLoadConfig(
+        index_name=config.index_name,
+        date_range=config.date_range,
+        kline_type=config.kline_type,
+        max_stocks=config.max_stocks,
+        skip_errors=config.skip_errors,
+    )
     training_data = await load_index_training_data(
-        index_name=index_name,
-        date_range=date_range,
-        kline_type=kline_type,
+        config=data_config,
         data_provider=data_provider,
-        max_stocks=max_stocks,
-        skip_errors=skip_errors,
     )
 
     # 2. 创建模型
     model = Model(
-        model_type=model_type,
-        hyperparameters=hyperparameters or {},
+        model_type=config.model_type,
+        hyperparameters=config.hyperparameters or {},
     )
 
     # 3. 训练模型
@@ -398,17 +364,21 @@ async def train_models_for_multiple_indices(
 
     for index_name in indices:
         try:
-            model = await train_model_on_index(
+            # 为每个指数构建配置
+            config = IndexModelTrainingConfig(
                 index_name=index_name,
                 model_type=model_type,
                 model_name=f"{index_name}_{model_type.value.lower()}_model",
                 date_range=date_range,
                 kline_type=kline_type,
+                hyperparameters=hyperparameters,
+                max_stocks=max_stocks_per_index,
+            )
+            model = await train_model_on_index(
+                config=config,
                 data_provider=data_provider,
                 model_trainer=model_trainer,
                 model_repository=model_repository,
-                hyperparameters=hyperparameters,
-                max_stocks=max_stocks_per_index,
             )
             models[index_name] = model
         except Exception as e:

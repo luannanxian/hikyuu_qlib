@@ -657,6 +657,7 @@ async def _train_model_on_index(
     """
     Train a model on index constituents (async implementation).
     """
+    from utils.batch_config import IndexModelTrainingConfig
     from utils.batch_training import train_model_on_index
 
     try:
@@ -677,17 +678,22 @@ async def _train_model_on_index(
         if max_stocks:
             output.info(f"  最大股票数: {max_stocks}")
 
-        # Train model
-        trained_model = await train_model_on_index(
+        # 创建配置对象
+        config = IndexModelTrainingConfig(
             index_name=index_name,
             model_type=model_type,
             model_name=model_name,
             date_range=date_range,
             kline_type=KLineType[kline_type.upper()],
+            max_stocks=max_stocks,
+        )
+
+        # Train model
+        trained_model = await train_model_on_index(
+            config=config,
             data_provider=container.data_provider,
             model_trainer=container.model_trainer,
             model_repository=container.model_repository,
-            max_stocks=max_stocks,
         )
 
         # Display results

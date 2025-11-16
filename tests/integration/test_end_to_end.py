@@ -130,7 +130,7 @@ async def test_multi_stock_trading_workflow(integration_container, test_data_fac
     merged_batch = PredictionBatch(model_id="multi_stock", batch_date=datetime(2023, 1, 1))
     seen = set()
     for pred in all_predictions:
-        key = (pred.stock_code, pred.prediction_date)
+        key = (pred.stock_code, pred.timestamp)
         if key not in seen:
             merged_batch.add_prediction(pred)
             seen.add(key)
@@ -259,7 +259,7 @@ async def test_incremental_prediction_workflow(
     incremental_batch = PredictionBatch(model_id=model.id, batch_date=datetime.now())
     seen = set()
     for pred in all_predictions:
-        key = (pred.stock_code, pred.prediction_date)
+        key = (pred.stock_code, pred.timestamp)
         if key not in seen:
             incremental_batch.add_prediction(pred)
             seen.add(key)

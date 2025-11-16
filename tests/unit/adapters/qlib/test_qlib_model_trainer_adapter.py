@@ -327,7 +327,7 @@ class TestQlibModelTrainerAdapterPredict:
         # 验证
         assert predictions[0].timestamp == test_date
         # 测试兼容性属性
-        assert predictions[0].prediction_date == test_date
+        assert predictions[0].timestamp == test_date
 
     @pytest.mark.asyncio
     async def test_predict_output_includes_model_id(
@@ -653,11 +653,11 @@ class TestQlibModelTrainerAdapterPredictBatch:
             assert batch.size() == 1
 
     @pytest.mark.asyncio
-    async def test_predict_batch_with_prediction_date(
+    async def test_predict_batch_with_timestamp(
         self, adapter_with_trained_model, model_entity,
     ):
         """
-        测试使用指定的 prediction_date
+        测试使用指定的 timestamp
 
         验证:
         1. batch.generated_at 使用指定的日期
@@ -676,17 +676,17 @@ class TestQlibModelTrainerAdapterPredictBatch:
         })
 
         # 指定预测日期
-        prediction_date = datetime(2024, 6, 15, 10, 30, 0)
+        timestamp = datetime(2024, 6, 15, 10, 30, 0)
 
         # 执行
         batch = await adapter.predict_batch(
             model=model_entity,
             input_data=input_data,
-            prediction_date=prediction_date,
+            timestamp=timestamp,
         )
 
         # 验证
-        assert batch.generated_at == prediction_date
+        assert batch.generated_at == timestamp
 
     @pytest.mark.asyncio
     async def test_predict_batch_with_empty_dataframe(

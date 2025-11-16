@@ -43,13 +43,15 @@ class TestGeneratePredictionsSuccess:
         mock_predictions = [
             Prediction(
                 stock_code=StockCode("sh600000"),
-                prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                timestamp=datetime(2024, 1, 10),
                 predicted_value=Decimal("0.05"),
                 confidence=Decimal("0.85"),
             ),
             Prediction(
                 stock_code=StockCode("sz000001"),
-                prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                timestamp=datetime(2024, 1, 10),
                 predicted_value=Decimal("-0.02"),
                 confidence=Decimal("0.78"),
             ),
@@ -96,7 +98,8 @@ class TestGeneratePredictionsSuccess:
         mock_predictions = [
             Prediction(
                 stock_code=StockCode("sh600000"),
-                prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                timestamp=datetime(2024, 1, 10),
                 predicted_value=Decimal("0.03"),
                 confidence=Decimal("0.90"),
             ),
