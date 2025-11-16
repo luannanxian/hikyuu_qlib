@@ -4,7 +4,6 @@ ConvertPredictionsToSignalsUseCase - 预测转信号用例
 UC-004: Convert Predictions to Signals (预测转信号)
 """
 
-from typing import Dict
 
 from domain.entities.prediction import PredictionBatch
 from domain.entities.trading_signal import SignalBatch
@@ -34,7 +33,7 @@ class ConvertPredictionsToSignalsUseCase:
         self.converter = converter
 
     async def execute(
-        self, predictions: PredictionBatch, strategy_params: Dict
+        self, predictions: PredictionBatch, strategy_params: dict,
     ) -> SignalBatch:
         """
         执行预测转信号
@@ -55,13 +54,13 @@ class ConvertPredictionsToSignalsUseCase:
 
         # 2. 调用转换器进行转换
         signal_batch = await self.converter.convert_to_signals(
-            predictions=predictions, strategy_params=strategy_params
+            predictions=predictions, strategy_params=strategy_params,
         )
 
         # 3. 返回信号批次
         return signal_batch
 
-    def _validate_strategy_params(self, strategy_params: Dict) -> None:
+    def _validate_strategy_params(self, strategy_params: dict) -> None:
         """
         验证策略参数
 
@@ -84,5 +83,5 @@ class ConvertPredictionsToSignalsUseCase:
         elif strategy_type == "threshold":
             if "threshold" not in strategy_params:
                 raise ValueError(
-                    "'threshold' parameter is required for threshold strategy"
+                    "'threshold' parameter is required for threshold strategy",
                 )

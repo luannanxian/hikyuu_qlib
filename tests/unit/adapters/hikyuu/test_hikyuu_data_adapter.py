@@ -7,15 +7,14 @@ HikyuuDataAdapter 单元测试
 
 from datetime import date, datetime
 from decimal import Decimal
-from unittest.mock import MagicMock, patch, PropertyMock
-from typing import List
+from unittest.mock import MagicMock
 
 import pytest
 
-from domain.value_objects.stock_code import StockCode
+from domain.entities.kline_data import KLineData
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
-from domain.entities.kline_data import KLineData
+from domain.value_objects.stock_code import StockCode
 
 
 class TestHikyuuDataAdapter:
@@ -82,7 +81,7 @@ class TestHikyuuDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_calls_hikyuu_api(
-        self, mock_hku, adapter, sample_stock_code, sample_date_range, mock_hikyuu_stock
+        self, mock_hku, adapter, sample_stock_code, sample_date_range, mock_hikyuu_stock,
     ):
         """
         测试: load_stock_data 正确调用 Hikyuu API
@@ -105,7 +104,7 @@ class TestHikyuuDataAdapter:
         result = await adapter.load_stock_data(
             stock_code=sample_stock_code,
             date_range=sample_date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert
@@ -119,7 +118,7 @@ class TestHikyuuDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_converts_to_domain(
-        self, mock_hku, adapter, sample_stock_code, sample_date_range, mock_hikyuu_stock
+        self, mock_hku, adapter, sample_stock_code, sample_date_range, mock_hikyuu_stock,
     ):
         """
         测试: load_stock_data 将 Hikyuu 数据正确转换为 Domain KLineData
@@ -143,7 +142,7 @@ class TestHikyuuDataAdapter:
         result = await adapter.load_stock_data(
             stock_code=sample_stock_code,
             date_range=sample_date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert
@@ -166,7 +165,7 @@ class TestHikyuuDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_handles_hikyuu_error(
-        self, mock_hku, adapter, sample_stock_code, sample_date_range
+        self, mock_hku, adapter, sample_stock_code, sample_date_range,
     ):
         """
         测试: load_stock_data 正确处理 Hikyuu 异常
@@ -185,7 +184,7 @@ class TestHikyuuDataAdapter:
             await adapter.load_stock_data(
                 stock_code=sample_stock_code,
                 date_range=sample_date_range,
-                kline_type=KLineType.DAY
+                kline_type=KLineType.DAY,
             )
 
         assert "Failed to load stock data from Hikyuu" in str(exc_info.value)
@@ -196,7 +195,7 @@ class TestHikyuuDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_handles_empty_data(
-        self, mock_hku, adapter, sample_stock_code, sample_date_range
+        self, mock_hku, adapter, sample_stock_code, sample_date_range,
     ):
         """
         测试: load_stock_data 正确处理空数据
@@ -224,7 +223,7 @@ class TestHikyuuDataAdapter:
         result = await adapter.load_stock_data(
             stock_code=sample_stock_code,
             date_range=sample_date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert

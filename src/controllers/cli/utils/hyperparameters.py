@@ -7,13 +7,12 @@ for loading hyperparameters from various sources.
 
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 
 from domain.entities.model import ModelType
 
-
 # Default hyperparameters for each model type
-DEFAULT_HYPERPARAMETERS: Dict[ModelType, Dict[str, Any]] = {
+DEFAULT_HYPERPARAMETERS: dict[ModelType, dict[str, Any]] = {
     ModelType.LGBM: {
         "n_estimators": 100,
         "learning_rate": 0.05,
@@ -44,7 +43,7 @@ DEFAULT_HYPERPARAMETERS: Dict[ModelType, Dict[str, Any]] = {
 }
 
 
-def get_default_hyperparameters(model_type: ModelType) -> Dict[str, Any]:
+def get_default_hyperparameters(model_type: ModelType) -> dict[str, Any]:
     """
     Get default hyperparameters for a model type.
 
@@ -57,7 +56,7 @@ def get_default_hyperparameters(model_type: ModelType) -> Dict[str, Any]:
     return DEFAULT_HYPERPARAMETERS.get(model_type, {}).copy()
 
 
-def load_hyperparameters_from_json_string(json_string: str) -> Dict[str, Any]:
+def load_hyperparameters_from_json_string(json_string: str) -> dict[str, Any]:
     """
     Load hyperparameters from a JSON string.
 
@@ -76,10 +75,10 @@ def load_hyperparameters_from_json_string(json_string: str) -> Dict[str, Any]:
             raise ValueError("Hyperparameters must be a JSON object")
         return hyperparams
     except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON format: {str(e)}")
+        raise ValueError(f"Invalid JSON format: {e!s}")
 
 
-def load_hyperparameters_from_config_file(config_file_path: str) -> Dict[str, Any]:
+def load_hyperparameters_from_config_file(config_file_path: str) -> dict[str, Any]:
     """
     Load hyperparameters from a configuration file.
 
@@ -105,12 +104,12 @@ def load_hyperparameters_from_config_file(config_file_path: str) -> Dict[str, An
     suffix = config_path.suffix.lower()
 
     if suffix == ".json":
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config = json.load(f)
     elif suffix in [".yaml", ".yml"]:
         try:
             import yaml
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 config = yaml.safe_load(f)
         except ImportError:
             raise ValueError("YAML support requires PyYAML library. Install with: pip install pyyaml")
@@ -132,9 +131,9 @@ def load_hyperparameters_from_config_file(config_file_path: str) -> Dict[str, An
 
 
 def merge_hyperparameters(
-    base: Dict[str, Any],
-    override: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    base: dict[str, Any],
+    override: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Merge hyperparameters, with override taking precedence.
 
@@ -155,10 +154,10 @@ def merge_hyperparameters(
 
 def load_hyperparameters(
     model_type: ModelType,
-    cli_json: Optional[str] = None,
-    config_file: Optional[str] = None,
-    param_list: Optional[tuple] = None
-) -> Dict[str, Any]:
+    cli_json: str | None = None,
+    config_file: str | None = None,
+    param_list: tuple | None = None,
+) -> dict[str, Any]:
     """
     Load hyperparameters from multiple sources with proper precedence.
 
@@ -191,7 +190,7 @@ def load_hyperparameters(
         except FileNotFoundError:
             raise
         except Exception as e:
-            raise ValueError(f"Error loading configuration file: {str(e)}")
+            raise ValueError(f"Error loading configuration file: {e!s}")
 
     # Override with CLI JSON if provided
     if cli_json:
@@ -199,7 +198,7 @@ def load_hyperparameters(
             cli_hyperparams = load_hyperparameters_from_json_string(cli_json)
             hyperparams = merge_hyperparameters(hyperparams, cli_hyperparams)
         except Exception as e:
-            raise ValueError(f"Error loading CLI hyperparameters: {str(e)}")
+            raise ValueError(f"Error loading CLI hyperparameters: {e!s}")
 
     # Override with individual params (highest precedence)
     if param_list:
@@ -207,12 +206,12 @@ def load_hyperparameters(
             param_hyperparams = parse_param_list(param_list)
             hyperparams = merge_hyperparameters(hyperparams, param_hyperparams)
         except Exception as e:
-            raise ValueError(f"Error parsing --param options: {str(e)}")
+            raise ValueError(f"Error parsing --param options: {e!s}")
 
     return hyperparams
 
 
-def parse_param_list(param_list: tuple) -> Dict[str, Any]:
+def parse_param_list(param_list: tuple) -> dict[str, Any]:
     """
     Parse a list of key=value strings into a dictionary.
 
@@ -241,7 +240,7 @@ def parse_param_list(param_list: tuple) -> Dict[str, Any]:
     for param_str in param_list:
         if "=" not in param_str:
             raise ValueError(
-                f"Invalid parameter format: '{param_str}'. Expected 'key=value'"
+                f"Invalid parameter format: '{param_str}'. Expected 'key=value'",
             )
 
         key, value_str = param_str.split("=", 1)

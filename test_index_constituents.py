@@ -4,14 +4,14 @@
 """
 
 import sys
+
 sys.path.insert(0, 'src')
 
 from utils.index_constituents import (
+    get_hs300,
     get_index_constituents,
     list_available_indices,
     search_indices,
-    get_hs300,
-    get_zz500,
 )
 
 

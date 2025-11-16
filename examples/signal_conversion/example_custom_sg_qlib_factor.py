@@ -148,7 +148,7 @@ def example_3_domain_interface():
 
     # 生成信号批次
     signal_batch = sg.generate_signals_from_predictions(
-        batch, buy_threshold=0.02, sell_threshold=-0.02, top_k=5
+        batch, buy_threshold=0.02, sell_threshold=-0.02, top_k=5,
     )
 
     print(f"Signal Batch: {signal_batch.size()} signals")
@@ -210,7 +210,7 @@ def example_4_top_k_selection():
                 timestamp=date1,
                 predicted_value=value,
                 model_id="LGBM_Model",
-            )
+            ),
         )
 
     print(f"Total Predictions: {batch.size()}")
@@ -228,7 +228,7 @@ def example_4_top_k_selection():
 
     # 生成信号(仅Top-5生成买入信号)
     signal_batch = sg.generate_signals_from_predictions(
-        batch, buy_threshold=0.02, sell_threshold=-0.02, top_k=5
+        batch, buy_threshold=0.02, sell_threshold=-0.02, top_k=5,
     )
 
     buy_signals = signal_batch.filter_by_type(SignalType.BUY)
@@ -245,7 +245,7 @@ def example_5_query_specific_signal():
     print("=" * 60)
 
     sg = CustomSG_QlibFactor(
-        pred_pkl_path="dummy.pkl", buy_threshold=0.02, sell_threshold=-0.02
+        pred_pkl_path="dummy.pkl", buy_threshold=0.02, sell_threshold=-0.02,
     )
 
     # 创建预测批次
@@ -258,7 +258,7 @@ def example_5_query_specific_signal():
             timestamp=date1,
             predicted_value=0.05,
             model_id="LGBM_Model",
-        )
+        ),
     )
 
     # 生成信号
@@ -290,7 +290,7 @@ def example_6_parameter_tuning():
     date1 = datetime(2018, 9, 21)
 
     for i, code in enumerate(
-        ["sh600000", "sh600519", "sz000001", "sz000002", "sh600036"]
+        ["sh600000", "sh600519", "sz000001", "sz000002", "sh600036"],
     ):
         batch.add_prediction(
             Prediction(
@@ -298,7 +298,7 @@ def example_6_parameter_tuning():
                 timestamp=date1,
                 predicted_value=0.05 - i * 0.02,  # 0.05, 0.03, 0.01, -0.01, -0.03
                 model_id="LGBM_Model",
-            )
+            ),
         )
 
     # 测试不同阈值
@@ -308,7 +308,7 @@ def example_6_parameter_tuning():
         sg = CustomSG_QlibFactor(pred_pkl_path="dummy.pkl")
 
         signal_batch = sg.generate_signals_from_predictions(
-            batch, buy_threshold=buy_th, sell_threshold=sell_th
+            batch, buy_threshold=buy_th, sell_threshold=sell_th,
         )
 
         counts = signal_batch.count_by_type()
@@ -316,7 +316,7 @@ def example_6_parameter_tuning():
             f"Threshold (buy={buy_th}, sell={sell_th}): "
             f"BUY={counts[SignalType.BUY]}, "
             f"SELL={counts[SignalType.SELL]}, "
-            f"HOLD={counts[SignalType.HOLD]}"
+            f"HOLD={counts[SignalType.HOLD]}",
         )
 
     print()

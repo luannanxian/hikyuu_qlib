@@ -4,9 +4,10 @@ Portfolio 和 Position 实体单元测试
 测试 DR-007: Portfolio (投资组合) 和 Position (持仓) 领域模型
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
+
+import pytest
 
 from domain.entities.portfolio import Portfolio, Position
 from domain.value_objects.stock_code import StockCode
@@ -57,7 +58,7 @@ class TestPositionCreation:
             Position(
                 stock_code=StockCode("sh600000"),
                 quantity=1000,
-                avg_cost=Decimal("0"),
+                avg_cost=Decimal(0),
                 current_price=Decimal("11.20"),
             )
 
@@ -67,7 +68,7 @@ class TestPositionCreation:
                 stock_code=StockCode("sh600000"),
                 quantity=1000,
                 avg_cost=Decimal("10.50"),
-                current_price=Decimal("-5"),
+                current_price=Decimal(-5),
             )
 
 
@@ -84,7 +85,7 @@ class TestPositionCalculations:
         )
 
         # 市值 = 数量 × 当前价 = 1000 × 11.20 = 11200
-        assert position.market_value() == Decimal("11200")
+        assert position.market_value() == Decimal(11200)
 
     def test_calculate_cost_value(self):
         """测试成本计算"""
@@ -96,7 +97,7 @@ class TestPositionCalculations:
         )
 
         # 成本 = 数量 × 成本价 = 1000 × 10.50 = 10500
-        assert position.cost_value() == Decimal("10500")
+        assert position.cost_value() == Decimal(10500)
 
     def test_calculate_profit_loss(self):
         """测试盈亏计算"""
@@ -108,7 +109,7 @@ class TestPositionCalculations:
         )
 
         # 盈亏 = (当前价 - 成本价) × 数量 = (11.20 - 10.50) × 1000 = 700
-        assert position.profit_loss() == Decimal("700")
+        assert position.profit_loss() == Decimal(700)
 
     def test_calculate_profit_loss_negative(self):
         """测试亏损计算"""
@@ -120,7 +121,7 @@ class TestPositionCalculations:
         )
 
         # 盈亏 = (9.80 - 10.50) × 1000 = -700
-        assert position.profit_loss() == Decimal("-700")
+        assert position.profit_loss() == Decimal(-700)
 
     def test_calculate_return_pct(self):
         """测试收益率计算"""
@@ -159,7 +160,7 @@ class TestPositionCalculations:
         position.update_price(Decimal("12.50"))
 
         assert position.current_price == Decimal("12.50")
-        assert position.market_value() == Decimal("12500")
+        assert position.market_value() == Decimal(12500)
 
 
 class TestPositionIdentity:
@@ -219,12 +220,12 @@ class TestPortfolioCreation:
         """测试创建投资组合"""
         portfolio = Portfolio(
             name="我的组合",
-            initial_cash=Decimal("100000"),
+            initial_cash=Decimal(100000),
         )
 
         assert portfolio.name == "我的组合"
-        assert portfolio.initial_cash == Decimal("100000")
-        assert portfolio.available_cash == Decimal("100000")
+        assert portfolio.initial_cash == Decimal(100000)
+        assert portfolio.available_cash == Decimal(100000)
         assert len(portfolio.positions) == 0
 
     def test_portfolio_cash_validation(self):
@@ -233,13 +234,13 @@ class TestPortfolioCreation:
         with pytest.raises(ValueError, match="initial_cash must be >= 0"):
             Portfolio(
                 name="我的组合",
-                initial_cash=Decimal("-1000"),
+                initial_cash=Decimal(-1000),
             )
 
     def test_portfolio_has_unique_id(self):
         """验证每个组合有唯一标识"""
-        pf1 = Portfolio(name="组合1", initial_cash=Decimal("100000"))
-        pf2 = Portfolio(name="组合1", initial_cash=Decimal("100000"))
+        pf1 = Portfolio(name="组合1", initial_cash=Decimal(100000))
+        pf2 = Portfolio(name="组合1", initial_cash=Decimal(100000))
 
         assert hasattr(pf1, "id")
         assert hasattr(pf2, "id")
@@ -251,7 +252,7 @@ class TestPortfolioPositionManagement:
 
     def test_add_position(self):
         """测试添加持仓"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         position = Position(
             stock_code=StockCode("sh600000"),
@@ -267,7 +268,7 @@ class TestPortfolioPositionManagement:
 
     def test_add_multiple_positions(self):
         """测试添加多个持仓"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -289,7 +290,7 @@ class TestPortfolioPositionManagement:
 
     def test_cannot_add_duplicate_position(self):
         """测试不能添加重复持仓(相同股票代码)"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -311,7 +312,7 @@ class TestPortfolioPositionManagement:
 
     def test_remove_position(self):
         """测试移除持仓"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         position = Position(
             stock_code=StockCode("sh600000"),
@@ -328,7 +329,7 @@ class TestPortfolioPositionManagement:
 
     def test_get_position(self):
         """测试获取持仓"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -351,7 +352,7 @@ class TestPortfolioPositionManagement:
 
     def test_get_nonexistent_position_returns_none(self):
         """测试获取不存在的持仓返回 None"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         found = portfolio.get_position(StockCode("sh600000"))
         assert found is None
@@ -362,7 +363,7 @@ class TestPortfolioCalculations:
 
     def test_calculate_total_market_value(self):
         """测试总市值计算"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -381,11 +382,11 @@ class TestPortfolioCalculations:
         portfolio.add_position(pos2)
 
         # 总市值 = 1000×11 + 500×22 = 11000 + 11000 = 22000
-        assert portfolio.total_market_value() == Decimal("22000")
+        assert portfolio.total_market_value() == Decimal(22000)
 
     def test_calculate_total_cost_value(self):
         """测试总成本计算"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -404,12 +405,12 @@ class TestPortfolioCalculations:
         portfolio.add_position(pos2)
 
         # 总成本 = 1000×10 + 500×20 = 10000 + 10000 = 20000
-        assert portfolio.total_cost_value() == Decimal("20000")
+        assert portfolio.total_cost_value() == Decimal(20000)
 
     def test_calculate_total_value(self):
         """测试总资产计算"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
-        portfolio.available_cash = Decimal("80000")  # 使用了部分现金
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
+        portfolio.available_cash = Decimal(80000)  # 使用了部分现金
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -428,11 +429,11 @@ class TestPortfolioCalculations:
         portfolio.add_position(pos2)
 
         # 总资产 = 可用现金 + 总市值 = 80000 + 22000 = 102000
-        assert portfolio.total_value() == Decimal("102000")
+        assert portfolio.total_value() == Decimal(102000)
 
     def test_calculate_total_profit_loss(self):
         """测试总盈亏计算"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -451,12 +452,12 @@ class TestPortfolioCalculations:
         portfolio.add_position(pos2)
 
         # 总盈亏 = (11-10)×1000 + (22-20)×500 = 1000 + 1000 = 2000
-        assert portfolio.total_profit_loss() == Decimal("2000")
+        assert portfolio.total_profit_loss() == Decimal(2000)
 
     def test_get_position_weight(self):
         """测试持仓权重计算"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
-        portfolio.available_cash = Decimal("78000")
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
+        portfolio.available_cash = Decimal(78000)
 
         pos1 = Position(
             stock_code=StockCode("sh600000"),
@@ -481,11 +482,11 @@ class TestPortfolioCalculations:
 
     def test_get_position_weight_zero_total(self):
         """测试总资产为0时的权重"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("0"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(0))
 
         # 总资产为0(无现金无持仓),权重返回0
         weight = portfolio.get_position_weight(StockCode("sh600000"))
-        assert weight == Decimal("0")
+        assert weight == Decimal(0)
 
 
 class TestPortfolioStringRepresentation:
@@ -493,7 +494,7 @@ class TestPortfolioStringRepresentation:
 
     def test_portfolio_string_representation(self):
         """验证字符串表示"""
-        portfolio = Portfolio(name="我的组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="我的组合", initial_cash=Decimal(100000))
 
         pf_str = str(portfolio)
         assert "我的组合" in pf_str

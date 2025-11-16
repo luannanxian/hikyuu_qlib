@@ -5,9 +5,10 @@ QlibModelTrainerAdapter predict_batch 快速开始示例
 """
 
 import asyncio
-import pandas as pd
-import numpy as np
 from datetime import datetime
+
+import numpy as np
+import pandas as pd
 
 from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
 from domain.entities.model import Model, ModelType
@@ -27,8 +28,8 @@ async def main():
         hyperparameters={
             "learning_rate": 0.05,
             "num_leaves": 31,
-            "verbose": -1
-        }
+            "verbose": -1,
+        },
     )
     print(f"   模型类型: {model.model_type.value}")
     print(f"   模型ID: {model.id[:8]}...")
@@ -78,7 +79,7 @@ async def main():
     batch = await adapter.predict_batch(
         model=trained_model,
         input_data=prediction_data,
-        prediction_date=datetime(2024, 6, 15, 10, 0, 0)
+        prediction_date=datetime(2024, 6, 15, 10, 0, 0),
     )
     print(f"   批次ID: {batch.id[:8]}...")
     print(f"   预测数量: {batch.size()}")
@@ -108,7 +109,7 @@ async def main():
         new_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            file_path=trained_model.file_path
+            file_path=trained_model.file_path,
         )
 
         # 创建新的适配器实例（模拟新进程）
@@ -117,9 +118,9 @@ async def main():
         # 使用文件路径的模型进行预测
         batch2 = await new_adapter.predict_batch(
             model=new_model,
-            input_data=prediction_data
+            input_data=prediction_data,
         )
-        print(f"   从文件加载预测成功!")
+        print("   从文件加载预测成功!")
         print(f"   批次大小: {batch2.size()}")
 
     print("\n=== 演示完成 ===")

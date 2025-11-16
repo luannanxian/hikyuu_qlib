@@ -6,12 +6,12 @@ Qlib Portfolio Adapter
 """
 
 from pathlib import Path
-from typing import Dict, List
+
 import pandas as pd
 
 from domain.value_objects.date_range import DateRange
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.rebalance_period import RebalancePeriod
+from domain.value_objects.stock_code import StockCode
 
 
 class QlibPortfolioAdapter:
@@ -39,7 +39,7 @@ class QlibPortfolioAdapter:
         self,
         pred_pkl_path: str,
         top_k: int = 10,
-        rebalance_period: str = "WEEK"
+        rebalance_period: str = "WEEK",
     ):
         """
         初始化 Qlib Portfolio 适配器
@@ -64,7 +64,7 @@ class QlibPortfolioAdapter:
         self._pred_df: pd.DataFrame = None
 
         # Top-K 缓存 (性能优化)
-        self._top_k_cache: Dict[pd.Timestamp, List[str]] = {}
+        self._top_k_cache: dict[pd.Timestamp, list[str]] = {}
 
         # 加载预测结果
         self._load_predictions()
@@ -76,7 +76,7 @@ class QlibPortfolioAdapter:
         self,
         pred_pkl_path: str,
         top_k: int,
-        rebalance_period: str
+        rebalance_period: str,
     ) -> None:
         """
         验证初始化参数
@@ -103,7 +103,7 @@ class QlibPortfolioAdapter:
         if rebalance_period not in valid_periods:
             raise ValueError(
                 f"Invalid rebalance_period: {rebalance_period}. "
-                f"Must be one of {valid_periods}"
+                f"Must be one of {valid_periods}",
             )
 
     def _load_predictions(self) -> None:
@@ -117,13 +117,13 @@ class QlibPortfolioAdapter:
             self._pred_df = pd.read_pickle(self.pred_pkl_path)
         except Exception as e:
             raise ValueError(
-                f"Failed to load pred.pkl: {self.pred_pkl_path}"
+                f"Failed to load pred.pkl: {self.pred_pkl_path}",
             ) from e
 
         # 验证 DataFrame 格式
         if not isinstance(self._pred_df.index, pd.MultiIndex):
             raise ValueError(
-                "pred.pkl must have MultiIndex(datetime, instrument) format"
+                "pred.pkl must have MultiIndex(datetime, instrument) format",
             )
 
         # 验证必须有 'score' 列
@@ -152,7 +152,7 @@ class QlibPortfolioAdapter:
                 # 选出 Top-K 股票
                 top_k_stocks = date_predictions.nlargest(
                     self.top_k,
-                    'score'
+                    'score',
                 )
 
                 # 存入缓存
@@ -164,8 +164,8 @@ class QlibPortfolioAdapter:
 
     def get_dynamic_stock_pool(
         self,
-        date_range: DateRange
-    ) -> Dict[pd.Timestamp, List[StockCode]]:
+        date_range: DateRange,
+    ) -> dict[pd.Timestamp, list[StockCode]]:
         """
         获取动态股票池
 
@@ -202,8 +202,8 @@ class QlibPortfolioAdapter:
 
     def _get_rebalance_dates(
         self,
-        date_range: DateRange
-    ) -> List[pd.Timestamp]:
+        date_range: DateRange,
+    ) -> list[pd.Timestamp]:
         """
         获取调仓日期列表
 
@@ -255,10 +255,10 @@ class QlibPortfolioAdapter:
         else:
             # 不应该到达这里 (已在初始化时验证)
             raise ValueError(
-                f"Unsupported rebalance_period: {self.rebalance_period}"
+                f"Unsupported rebalance_period: {self.rebalance_period}",
             )
 
-    def get_all_stocks(self) -> List[StockCode]:
+    def get_all_stocks(self) -> list[StockCode]:
         """
         获取所有出现过的股票列表
 
@@ -283,7 +283,7 @@ class QlibPortfolioAdapter:
     def get_stock_weight(
         self,
         date: pd.Timestamp,
-        stock_code: StockCode
+        stock_code: StockCode,
     ) -> float:
         """
         获取某只股票在某日期的权重

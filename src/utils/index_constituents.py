@@ -4,16 +4,16 @@ Index Constituents Utilities
 提供获取指数成分股的工具函数
 """
 
-from typing import List, Optional
-import hikyuu as hku
+
+
 from domain.value_objects.stock_code import StockCode
 
 
 def get_index_constituents(
     index_name: str,
     category: str = "指数板块",
-    return_stock_codes: bool = True
-) -> List[StockCode] | List[str]:
+    return_stock_codes: bool = True,
+) -> list[StockCode] | list[str]:
     """
     获取指数成分股列表
 
@@ -38,15 +38,15 @@ def get_index_constituents(
     """
     # 直接使用数据库查询，因为 Hikyuu API 的板块功能可能未加载
     return get_index_constituents_from_db(
-        index_name, category, return_stock_codes
+        index_name, category, return_stock_codes,
     )
 
 
 def get_index_constituents_from_db(
     index_name: str,
     category: str = "指数板块",
-    return_stock_codes: bool = True
-) -> List[StockCode] | List[str]:
+    return_stock_codes: bool = True,
+) -> list[StockCode] | list[str]:
     """
     从 MySQL 数据库直接获取指数成分股
 
@@ -66,7 +66,7 @@ def get_index_constituents_from_db(
         port=3306,
         user='remote',
         password='remote123456',
-        database='hku_base'
+        database='hku_base',
     )
 
     try:
@@ -97,7 +97,7 @@ def get_index_constituents_from_db(
         conn.close()
 
 
-def list_available_indices(category: str = "指数板块") -> List[tuple[str, int]]:
+def list_available_indices(category: str = "指数板块") -> list[tuple[str, int]]:
     """
     列出可用的指数及其成分股数量
 
@@ -119,7 +119,7 @@ def list_available_indices(category: str = "指数板块") -> List[tuple[str, in
         port=3306,
         user='remote',
         password='remote123456',
-        database='hku_base'
+        database='hku_base',
     )
 
     try:
@@ -139,7 +139,7 @@ def list_available_indices(category: str = "指数板块") -> List[tuple[str, in
         conn.close()
 
 
-def search_indices(keyword: str, category: str = "指数板块") -> List[tuple[str, int]]:
+def search_indices(keyword: str, category: str = "指数板块") -> list[tuple[str, int]]:
     """
     搜索包含关键词的指数
 
@@ -163,7 +163,7 @@ def search_indices(keyword: str, category: str = "指数板块") -> List[tuple[s
         port=3306,
         user='remote',
         password='remote123456',
-        database='hku_base'
+        database='hku_base',
     )
 
     try:
@@ -185,26 +185,26 @@ def search_indices(keyword: str, category: str = "指数板块") -> List[tuple[s
 
 # 常用指数快捷函数
 
-def get_hs300() -> List[StockCode]:
+def get_hs300() -> list[StockCode]:
     """获取沪深300成分股"""
     return get_index_constituents("沪深300")
 
 
-def get_zz500() -> List[StockCode]:
+def get_zz500() -> list[StockCode]:
     """获取中证500成分股"""
     return get_index_constituents("中证500")
 
 
-def get_sz50() -> List[StockCode]:
+def get_sz50() -> list[StockCode]:
     """获取上证50成分股"""
     return get_index_constituents("上证50")
 
 
-def get_cyb50() -> List[StockCode]:
+def get_cyb50() -> list[StockCode]:
     """获取创业板50成分股"""
     return get_index_constituents("创业板50")
 
 
-def get_kc50() -> List[StockCode]:
+def get_kc50() -> list[StockCode]:
     """获取科创50成分股"""
     return get_index_constituents("科创50")

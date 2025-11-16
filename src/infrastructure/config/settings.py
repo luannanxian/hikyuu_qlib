@@ -7,7 +7,7 @@ This module defines application settings using Pydantic BaseSettings:
 - Immutable after creation
 """
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings as PydanticBaseSettings
@@ -35,7 +35,7 @@ class DataSourceSettings(PydanticBaseSettings):
     """Data source configuration."""
 
     HIKYUU_DATA_PATH: str = Field(
-        default="./data/hikyuu", description="Hikyuu data path"
+        default="./data/hikyuu", description="Hikyuu data path",
     )
     QLIB_DATA_PATH: str = Field(default="./data/qlib", description="Qlib data path")
 
@@ -46,10 +46,10 @@ class ModelSettings(PydanticBaseSettings):
     """Model configuration."""
 
     MODEL_STORAGE_PATH: str = Field(
-        default="./models", description="Path to store trained models"
+        default="./models", description="Path to store trained models",
     )
     DEFAULT_MODEL_TYPE: str = Field(
-        default="LightGBM", description="Default model type"
+        default="LightGBM", description="Default model type",
     )
 
     model_config = {"frozen": True}
@@ -59,10 +59,10 @@ class BacktestSettings(PydanticBaseSettings):
     """Backtest configuration."""
 
     INITIAL_CAPITAL: float = Field(
-        default=100000.0, description="Initial capital for backtest"
+        default=100000.0, description="Initial capital for backtest",
     )
     COMMISSION_RATE: float = Field(
-        default=0.0003, description="Commission rate (0.03%)"
+        default=0.0003, description="Commission rate (0.03%)",
     )
 
     @field_validator("INITIAL_CAPITAL")
@@ -89,9 +89,9 @@ class LoggingSettings(PydanticBaseSettings):
 
     LOG_LEVEL: LogLevel = Field(default=LogLevel.INFO, description="Logging level")
     LOG_FORMAT: Literal["json", "text"] = Field(
-        default="json", description="Log format"
+        default="json", description="Log format",
     )
-    LOG_FILE_PATH: Optional[str] = Field(default=None, description="Path to log file")
+    LOG_FILE_PATH: str | None = Field(default=None, description="Path to log file")
 
     model_config = {"frozen": True}
 
@@ -100,7 +100,7 @@ class DatabaseSettings(PydanticBaseSettings):
     """Database configuration."""
 
     DATABASE_URL: str = Field(
-        default="sqlite:///./app.db", description="Database connection URL"
+        default="sqlite:///./app.db", description="Database connection URL",
     )
     DATABASE_ECHO: bool = Field(default=False, description="Echo SQL statements")
 
@@ -124,38 +124,38 @@ class Settings(PydanticBaseSettings):
     # Logging settings
     LOG_LEVEL: LogLevel = Field(default=LogLevel.INFO, description="Logging level")
     LOG_FORMAT: Literal["json", "text"] = Field(
-        default="json", description="Log format"
+        default="json", description="Log format",
     )
-    LOG_FILE_PATH: Optional[str] = Field(default=None, description="Path to log file")
+    LOG_FILE_PATH: str | None = Field(default=None, description="Path to log file")
 
     # Data source settings
     HIKYUU_DATA_PATH: str = Field(
-        default="./data/hikyuu", description="Hikyuu data path"
+        default="./data/hikyuu", description="Hikyuu data path",
     )
     HIKYUU_CONFIG_FILE: str = Field(
-        default="./config/hikyuu.ini", description="Hikyuu configuration file path"
+        default="./config/hikyuu.ini", description="Hikyuu configuration file path",
     )
     QLIB_DATA_PATH: str = Field(default="./data/qlib", description="Qlib data path")
 
     # Model settings
     MODEL_STORAGE_PATH: str = Field(
-        default="./models", description="Path to store trained models"
+        default="./models", description="Path to store trained models",
     )
     DEFAULT_MODEL_TYPE: str = Field(
-        default="LightGBM", description="Default model type"
+        default="LightGBM", description="Default model type",
     )
 
     # Backtest settings
     INITIAL_CAPITAL: float = Field(
-        default=100000.0, description="Initial capital for backtest"
+        default=100000.0, description="Initial capital for backtest",
     )
     COMMISSION_RATE: float = Field(
-        default=0.0003, description="Commission rate (0.03%)"
+        default=0.0003, description="Commission rate (0.03%)",
     )
 
     # Database settings
     DATABASE_URL: str = Field(
-        default="sqlite:///./app.db", description="Database connection URL"
+        default="sqlite:///./app.db", description="Database connection URL",
     )
     DATABASE_ECHO: bool = Field(default=False, description="Echo SQL statements")
 
@@ -167,7 +167,7 @@ class Settings(PydanticBaseSettings):
             valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
             if v not in valid_levels:
                 raise ValueError(
-                    f"Invalid log level: {v}. Must be one of {valid_levels}"
+                    f"Invalid log level: {v}. Must be one of {valid_levels}",
                 )
         return v
 
@@ -179,7 +179,7 @@ class Settings(PydanticBaseSettings):
             valid_envs = ["dev", "test", "prod"]
             if v not in valid_envs:
                 raise ValueError(
-                    f"Invalid environment: {v}. Must be one of {valid_envs}"
+                    f"Invalid environment: {v}. Must be one of {valid_envs}",
                 )
         return v
 

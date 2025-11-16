@@ -4,12 +4,10 @@ Configuration Integration Tests
 测试配置管理的完整流程
 """
 
-import tempfile
-import yaml
-from pathlib import Path
 from decimal import Decimal
 
 import pytest
+import yaml
 
 
 @pytest.mark.asyncio
@@ -23,8 +21,8 @@ async def test_configuration_loading_integration(temp_config_file):
     3. 验证配置可被使用
     """
     # Arrange
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=temp_config_file)
     use_case = LoadConfigurationUseCase(repository=repository)
@@ -51,35 +49,35 @@ async def test_configuration_update_integration(temp_config_file):
     4. 重新加载验证
     """
     # Arrange
+    from adapters.repositories.yaml_config_repository import YAMLConfigRepository
     from use_cases.config.load_configuration import LoadConfigurationUseCase
     from use_cases.config.save_configuration import SaveConfigurationUseCase
-    from adapters.repositories.yaml_config_repository import YAMLConfigRepository
 
     repository = YAMLConfigRepository(config_path=temp_config_file)
     load_use_case = LoadConfigurationUseCase(repository=repository)
     save_use_case = SaveConfigurationUseCase(repository=repository)
 
     # Act - 加载原始配置
-    original_config = await load_use_case.execute()
+    _original_config = await load_use_case.execute()  # noqa: F841
 
     # 修改配置
     from domain.value_objects.configuration import (
+        BacktestConfig,
         Configuration,
         DataSourceConfig,
         ModelConfig,
-        BacktestConfig,
     )
 
     updated_config = Configuration(
         data_source=DataSourceConfig(
-            hikyuu_path="/new/path/hikyuu", qlib_path="/new/path/qlib"
+            hikyuu_path="/new/path/hikyuu", qlib_path="/new/path/qlib",
         ),
         model=ModelConfig(
             default_type="MLP",
             hyperparameters={"learning_rate": 0.05, "hidden_layers": [64, 32]},
         ),
         backtest=BacktestConfig(
-            initial_capital=Decimal("200000"), commission_rate=Decimal("0.002")
+            initial_capital=Decimal(200000), commission_rate=Decimal("0.002"),
         ),
     )
 
@@ -92,7 +90,7 @@ async def test_configuration_update_integration(temp_config_file):
     # Assert
     assert reloaded_config.data_source.hikyuu_path == "/new/path/hikyuu"
     assert reloaded_config.model.default_type == "MLP"
-    assert reloaded_config.backtest.initial_capital == Decimal("200000")
+    assert reloaded_config.backtest.initial_capital == Decimal(200000)
 
 
 @pytest.mark.asyncio
@@ -109,8 +107,8 @@ async def test_configuration_validation_integration(temp_config_dir):
     with open(invalid_config_path, "w") as f:
         yaml.dump({"data_source": {}}, f)  # 缺少其他必需字段
 
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=str(invalid_config_path))
     use_case = LoadConfigurationUseCase(repository=repository)
@@ -128,8 +126,8 @@ async def test_configuration_used_by_components(temp_config_file):
     场景: 加载的配置应该影响系统行为
     """
     # Arrange
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=temp_config_file)
     use_case = LoadConfigurationUseCase(repository=repository)
@@ -140,7 +138,7 @@ async def test_configuration_used_by_components(temp_config_file):
     # Assert - 验证配置值
     assert config.model.default_type == "LGBM"
     assert config.model.hyperparameters["learning_rate"] == 0.01
-    assert config.backtest.initial_capital == Decimal("100000")
+    assert config.backtest.initial_capital == Decimal(100000)
     assert config.backtest.commission_rate == Decimal("0.001")
 
 
@@ -171,8 +169,8 @@ async def test_configuration_with_different_formats(temp_config_dir):
     with open(yaml_config_path, "w") as f:
         yaml.dump(config_data, f)
 
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=str(yaml_config_path))
     use_case = LoadConfigurationUseCase(repository=repository)
@@ -197,8 +195,8 @@ async def test_configuration_environment_overrides(temp_config_file):
     # Arrange
     os.environ["HIKYUU_PATH"] = "/env/override/hikyuu"
 
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=temp_config_file)
     use_case = LoadConfigurationUseCase(repository=repository)
@@ -232,8 +230,8 @@ async def test_configuration_default_values(temp_config_dir):
     with open(minimal_config_path, "w") as f:
         yaml.dump(minimal_config, f)
 
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=str(minimal_config_path))
     use_case = LoadConfigurationUseCase(repository=repository)
@@ -254,8 +252,8 @@ async def test_configuration_hot_reload(temp_config_file):
     场景: 配置文件更新后，系统应该能够重新加载
     """
     # Arrange
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=temp_config_file)
     use_case = LoadConfigurationUseCase(repository=repository)
@@ -265,7 +263,7 @@ async def test_configuration_hot_reload(temp_config_file):
     original_learning_rate = config1.model.hyperparameters["learning_rate"]
 
     # 修改配置文件
-    with open(temp_config_file, "r") as f:
+    with open(temp_config_file) as f:
         config_data = yaml.safe_load(f)
 
     config_data["model"]["hyperparameters"]["learning_rate"] = 0.05
@@ -305,8 +303,8 @@ async def test_configuration_multi_environment(temp_config_dir):
         with open(env_config_path, "w") as f:
             yaml.dump(config_data, f)
 
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     # Act & Assert - 加载每个环境的配置
     for env in environments:
@@ -341,8 +339,8 @@ async def test_configuration_versioning(temp_config_dir):
     with open(config_path, "w") as f:
         yaml.dump(config_v1, f)
 
-    from use_cases.config.load_configuration import LoadConfigurationUseCase
     from adapters.repositories.yaml_config_repository import YAMLConfigRepository
+    from use_cases.config.load_configuration import LoadConfigurationUseCase
 
     repository = YAMLConfigRepository(config_path=str(config_path))
     use_case = LoadConfigurationUseCase(repository=repository)

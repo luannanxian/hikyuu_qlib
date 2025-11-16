@@ -55,7 +55,7 @@ class TrainModelUseCase:
         """
         # 1. 调用训练器Port训练模型
         trained_model = await self.trainer.train(
-            model=model, training_data=training_data
+            model=model, training_data=training_data,
         )
 
         # 2. 保存训练后的模型到仓库

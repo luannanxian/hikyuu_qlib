@@ -55,8 +55,9 @@ log_level: DEBUG
 
 def test_load_config_from_json_file():
     """Test loading configuration from JSON file."""
-    from src.infrastructure.config.loader import load_config_from_file
     import json
+
+    from src.infrastructure.config.loader import load_config_from_file
 
     config_data = {"app_name": "Test App", "environment": "test"}
 

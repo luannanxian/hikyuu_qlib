@@ -50,7 +50,7 @@ class TestTradeCreation:
 
         profit = sell_trade.calculate_profit(buy_trade)
         # 盈亏 = (12.00 - 10.00) * 1000 = 2000
-        assert profit == Decimal("2000")
+        assert profit == Decimal(2000)
 
     def test_calculate_hold_days(self):
         """测试持有天数计算"""
@@ -82,13 +82,13 @@ class TestBacktestResultCreation:
             strategy_name="MA_Cross",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("120000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(120000),
         )
 
         assert result.strategy_name == "MA_Cross"
-        assert result.initial_capital == Decimal("100000")
-        assert result.final_capital == Decimal("120000")
+        assert result.initial_capital == Decimal(100000)
+        assert result.final_capital == Decimal(120000)
 
     def test_calculate_total_return(self):
         """测试总收益率计算"""
@@ -96,8 +96,8 @@ class TestBacktestResultCreation:
             strategy_name="MA_Cross",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("120000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(120000),
         )
 
         # 收益率 = (120000 - 100000) / 100000 = 0.20 = 20%
@@ -109,13 +109,13 @@ class TestBacktestResultCreation:
             strategy_name="MA_Cross",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("120000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(120000),
         )
 
         # 简化的夏普比率计算
         sharpe = result.calculate_sharpe_ratio(risk_free_rate=Decimal("0.03"))
-        assert sharpe > Decimal("0")
+        assert sharpe > Decimal(0)
 
     def test_calculate_max_drawdown(self):
         """测试最大回撤计算"""
@@ -123,16 +123,16 @@ class TestBacktestResultCreation:
             strategy_name="MA_Cross",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("120000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(120000),
         )
 
         # 添加一些权益曲线数据
         result.equity_curve = [
-            Decimal("100000"),
-            Decimal("110000"),
-            Decimal("105000"),  # 回撤
-            Decimal("120000"),
+            Decimal(100000),
+            Decimal(110000),
+            Decimal(105000),  # 回撤
+            Decimal(120000),
         ]
 
         max_dd = result.calculate_max_drawdown()
@@ -145,8 +145,8 @@ class TestBacktestResultCreation:
             strategy_name="MA_Cross",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("120000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(120000),
         )
 
         # 添加交易记录

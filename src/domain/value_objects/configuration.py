@@ -7,17 +7,17 @@ Configuration Value Objects
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
 class DataSourceConfig:
     """数据源配置值对象"""
 
-    hikyuu_path: Optional[str] = None
-    qlib_path: Optional[str] = None
-    provider: Optional[str] = None  # "hikyuu" or "qlib" (legacy)
-    data_path: Optional[str] = None  # (legacy)
+    hikyuu_path: str | None = None
+    qlib_path: str | None = None
+    provider: str | None = None  # "hikyuu" or "qlib" (legacy)
+    data_path: str | None = None  # (legacy)
 
     def __post_init__(self):
         """验证配置有效性"""
@@ -40,9 +40,9 @@ class DataSourceConfig:
 class ModelConfig:
     """模型配置值对象"""
 
-    hyperparameters: Dict[str, Any]
-    default_type: Optional[str] = None
-    model_type: Optional[str] = None  # Legacy field
+    hyperparameters: dict[str, Any]
+    default_type: str | None = None
+    model_type: str | None = None  # Legacy field
 
     def __post_init__(self):
         """验证配置有效性"""
@@ -67,10 +67,10 @@ class BacktestConfig:
         if self.initial_capital <= 0:
             raise ValueError("initial_capital must be > 0")
 
-        if not (Decimal("0") <= self.commission_rate <= Decimal("0.1")):
+        if not (Decimal(0) <= self.commission_rate <= Decimal("0.1")):
             raise ValueError("commission_rate must be between 0 and 0.1")
 
-        if not (Decimal("0") <= self.slippage_rate <= Decimal("0.1")):
+        if not (Decimal(0) <= self.slippage_rate <= Decimal("0.1")):
             raise ValueError("slippage_rate must be between 0 and 0.1")
 
 

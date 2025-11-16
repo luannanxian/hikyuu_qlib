@@ -5,14 +5,15 @@ IndicatorCalculatorAdapter 单元测试
 使用 Mock 隔离 Hikyuu 框架依赖
 """
 
-import pytest
-from decimal import Decimal
 from datetime import datetime, timedelta
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from domain.entities.kline_data import KLineData
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 
 
 class TestIndicatorCalculatorAdapter:
@@ -39,7 +40,7 @@ class TestIndicatorCalculatorAdapter:
                     close=Decimal(f"{11 + i}"),
                     volume=1000000 + i * 10000,
                     amount=Decimal(f"{11000000 + i * 110000}"),
-                )
+                ),
             )
 
         return data_list
@@ -71,7 +72,7 @@ class TestIndicatorCalculatorAdapter:
             # 执行
             adapter = IndicatorCalculatorAdapter()
             result = await adapter.calculate_indicators(
-                kline_data=kline_data_list, indicator_names=["MA5"]
+                kline_data=kline_data_list, indicator_names=["MA5"],
             )
 
             # 验证
@@ -117,7 +118,7 @@ class TestIndicatorCalculatorAdapter:
             # 执行
             adapter = IndicatorCalculatorAdapter()
             result = await adapter.calculate_indicators(
-                kline_data=kline_data_list, indicator_names=["MA5", "RSI14"]
+                kline_data=kline_data_list, indicator_names=["MA5", "RSI14"],
             )
 
             # 验证
@@ -155,7 +156,7 @@ class TestIndicatorCalculatorAdapter:
 
             adapter = IndicatorCalculatorAdapter()
             result = await adapter.calculate_indicators(
-                kline_data=kline_data_list, indicator_names=["MA5"]
+                kline_data=kline_data_list, indicator_names=["MA5"],
             )
 
             # 验证调用
@@ -181,7 +182,7 @@ class TestIndicatorCalculatorAdapter:
 
             adapter = IndicatorCalculatorAdapter()
             result = await adapter.calculate_indicators(
-                kline_data=[], indicator_names=["MA5"]
+                kline_data=[], indicator_names=["MA5"],
             )
 
             # 验证
@@ -207,7 +208,7 @@ class TestIndicatorCalculatorAdapter:
             adapter = IndicatorCalculatorAdapter()
             with pytest.raises(Exception) as exc_info:
                 await adapter.calculate_indicators(
-                    kline_data=kline_data_list, indicator_names=["MA5"]
+                    kline_data=kline_data_list, indicator_names=["MA5"],
                 )
 
             assert (
@@ -237,7 +238,7 @@ class TestIndicatorCalculatorAdapter:
 
             adapter = IndicatorCalculatorAdapter()
             result = await adapter.calculate_indicators(
-                kline_data=kline_data_list, indicator_names=["MA5", "MA10", "MA20"]
+                kline_data=kline_data_list, indicator_names=["MA5", "MA10", "MA20"],
             )
 
             # 验证所有指标都被计算

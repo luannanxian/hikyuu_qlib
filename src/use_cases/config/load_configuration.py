@@ -19,7 +19,7 @@ class LoadConfigurationUseCase:
         # 尝试加载模型配置(使用默认名称)
         try:
             model = await self.repository.get_model_config("default")
-        except:
+        except Exception:
             # 如果没有default模型配置,返回None或使用默认值
             from domain.value_objects.configuration import ModelConfig
             model = ModelConfig(model_type="LGBM", hyperparameters={}, default_type="LGBM")
@@ -28,5 +28,5 @@ class LoadConfigurationUseCase:
         return Configuration(
             data_source=data_source,
             model=model,
-            backtest=backtest
+            backtest=backtest,
         )

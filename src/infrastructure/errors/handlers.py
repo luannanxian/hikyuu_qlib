@@ -8,7 +8,8 @@ This module provides utilities for handling exceptions consistently:
 """
 import functools
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
+from collections.abc import Callable
 
 from .exceptions import BaseInfrastructureException
 from .formatters import format_error_for_logging
@@ -19,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 def handle_exception(
     exception: Exception,
-    on_error: Optional[Callable[[Exception], None]] = None,
-) -> Dict[str, Any]:
+    on_error: Callable[[Exception], None] | None = None,
+) -> dict[str, Any]:
     """Handle an exception and return structured error information.
 
     Args:
@@ -39,7 +40,7 @@ def handle_exception(
             exc_info=True,
         )
     else:
-        logger.exception(f"Unexpected error: {str(exception)}")
+        logger.exception(f"Unexpected error: {exception!s}")
 
     # Call error callback if provided
     if on_error:
@@ -57,7 +58,7 @@ def handle_exception(
                 "exception_type": exception.__class__.__name__,
                 "message": str(exception),
                 "code": "UNKNOWN_ERROR",
-            }
+            },
         }
 
 
@@ -66,7 +67,7 @@ class ExceptionHandler:
 
     def __init__(self):
         """Initialize the exception handler."""
-        self.caught_exception: Optional[Exception] = None
+        self.caught_exception: Exception | None = None
 
     def __enter__(self):
         """Enter the context manager."""
@@ -79,7 +80,7 @@ class ExceptionHandler:
         # Return False to let the exception propagate
         return False
 
-    def handle(self, exception: Exception) -> Dict[str, Any]:
+    def handle(self, exception: Exception) -> dict[str, Any]:
         """Handle an exception within the context.
 
         Args:
@@ -110,7 +111,7 @@ def exception_handler():
 
 def handle_exceptions(
     reraise: bool = False,
-    on_error: Optional[Callable[[Exception], None]] = None,
+    on_error: Callable[[Exception], None] | None = None,
 ):
     """Decorator for automatic exception handling.
 
@@ -153,7 +154,7 @@ class ChainedExceptionHandler:
 
     def __init__(self):
         """Initialize the chained handler."""
-        self.handlers: List[Callable[[Exception], bool]] = []
+        self.handlers: list[Callable[[Exception], bool]] = []
 
     def add_handler(self, handler: Callable[[Exception], bool]):
         """Add a handler to the chain.

@@ -6,18 +6,15 @@ QlibPortfolioAdapter 单元测试
 """
 
 from datetime import date
-from pathlib import Path
-from typing import List
-import pandas as pd
-import numpy as np
-import pytest
-import tempfile
-import pickle
 
-from domain.value_objects.date_range import DateRange
-from domain.value_objects.stock_code import StockCode
-from domain.value_objects.rebalance_period import RebalancePeriod
+import numpy as np
+import pandas as pd
+import pytest
+
 from adapters.qlib.portfolio_adapter import QlibPortfolioAdapter
+from domain.value_objects.date_range import DateRange
+from domain.value_objects.rebalance_period import RebalancePeriod
+from domain.value_objects.stock_code import StockCode
 
 
 class TestQlibPortfolioAdapter:
@@ -45,7 +42,7 @@ class TestQlibPortfolioAdapter:
         # 创建 MultiIndex
         index = pd.MultiIndex.from_product(
             [dates, instruments],
-            names=['datetime', 'instrument']
+            names=['datetime', 'instrument'],
         )
 
         # 创建随机预测分数 (模拟真实场景)
@@ -70,7 +67,7 @@ class TestQlibPortfolioAdapter:
         return QlibPortfolioAdapter(
             pred_pkl_path=sample_pred_pkl,
             top_k=5,
-            rebalance_period="WEEK"
+            rebalance_period="WEEK",
         )
 
     @pytest.fixture
@@ -78,7 +75,7 @@ class TestQlibPortfolioAdapter:
         """示例日期范围 (2023年1月)"""
         return DateRange(
             start_date=date(2023, 1, 1),
-            end_date=date(2023, 1, 31)
+            end_date=date(2023, 1, 31),
         )
 
     # =============================================================================
@@ -97,7 +94,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=sample_pred_pkl,
             top_k=10,
-            rebalance_period="MONTH"
+            rebalance_period="MONTH",
         )
 
         assert adapter.pred_pkl_path == sample_pred_pkl
@@ -117,7 +114,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path="/nonexistent/pred.pkl",
                 top_k=10,
-                rebalance_period="WEEK"
+                rebalance_period="WEEK",
             )
 
     def test_init_with_invalid_top_k(self, sample_pred_pkl):
@@ -132,7 +129,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path=sample_pred_pkl,
                 top_k=0,
-                rebalance_period="WEEK"
+                rebalance_period="WEEK",
             )
 
         # top_k = -1
@@ -140,7 +137,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path=sample_pred_pkl,
                 top_k=-1,
-                rebalance_period="WEEK"
+                rebalance_period="WEEK",
             )
 
         # top_k = 非整数
@@ -148,7 +145,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path=sample_pred_pkl,
                 top_k=3.5,
-                rebalance_period="WEEK"
+                rebalance_period="WEEK",
             )
 
     def test_init_with_invalid_rebalance_period(self, sample_pred_pkl):
@@ -162,7 +159,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path=sample_pred_pkl,
                 top_k=10,
-                rebalance_period="INVALID"
+                rebalance_period="INVALID",
             )
 
     # =============================================================================
@@ -180,7 +177,7 @@ class TestQlibPortfolioAdapter:
         df = pd.DataFrame({
             'date': ['2023-01-03'],
             'instrument': ['SH600000'],
-            'score': [0.5]
+            'score': [0.5],
         })
 
         pkl_file = tmp_path / "invalid.pkl"
@@ -190,7 +187,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path=str(pkl_file),
                 top_k=10,
-                rebalance_period="WEEK"
+                rebalance_period="WEEK",
             )
 
     def test_load_predictions_without_score_column(self, tmp_path):
@@ -205,7 +202,7 @@ class TestQlibPortfolioAdapter:
         instruments = ['SH600000', 'SH600001']
         index = pd.MultiIndex.from_product(
             [dates, instruments],
-            names=['datetime', 'instrument']
+            names=['datetime', 'instrument'],
         )
         df = pd.DataFrame({'price': [100.0] * len(index)}, index=index)
 
@@ -216,7 +213,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path=str(pkl_file),
                 top_k=10,
-                rebalance_period="WEEK"
+                rebalance_period="WEEK",
             )
 
     def test_load_predictions_with_empty_dataframe(self, tmp_path):
@@ -229,7 +226,7 @@ class TestQlibPortfolioAdapter:
         # 创建空 DataFrame
         index = pd.MultiIndex.from_tuples(
             [],
-            names=['datetime', 'instrument']
+            names=['datetime', 'instrument'],
         )
         df = pd.DataFrame({'score': []}, index=index)
 
@@ -240,7 +237,7 @@ class TestQlibPortfolioAdapter:
             QlibPortfolioAdapter(
                 pred_pkl_path=str(pkl_file),
                 top_k=10,
-                rebalance_period="WEEK"
+                rebalance_period="WEEK",
             )
 
     # =============================================================================
@@ -315,7 +312,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=sample_pred_pkl,
             top_k=5,
-            rebalance_period="DAY"
+            rebalance_period="DAY",
         )
 
         stock_pool = adapter.get_dynamic_stock_pool(sample_date_range)
@@ -333,7 +330,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=sample_pred_pkl,
             top_k=5,
-            rebalance_period="MONTH"
+            rebalance_period="MONTH",
         )
 
         stock_pool = adapter.get_dynamic_stock_pool(sample_date_range)
@@ -355,7 +352,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=sample_pred_pkl,
             top_k=5,
-            rebalance_period="DAY"
+            rebalance_period="DAY",
         )
 
         date_range = DateRange(date(2023, 1, 1), date(2023, 1, 31))
@@ -402,7 +399,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=sample_pred_pkl,
             top_k=5,
-            rebalance_period="MONTH"
+            rebalance_period="MONTH",
         )
 
         # 测试跨两个月
@@ -547,7 +544,7 @@ class TestQlibPortfolioAdapter:
         instruments = ['SH600000', 'SH600001', 'SH600002']
         index = pd.MultiIndex.from_product(
             [dates, instruments],
-            names=['datetime', 'instrument']
+            names=['datetime', 'instrument'],
         )
         df = pd.DataFrame({'score': np.random.randn(len(index))}, index=index)
 
@@ -558,7 +555,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=str(pkl_file),
             top_k=10,
-            rebalance_period="DAY"
+            rebalance_period="DAY",
         )
 
         # 获取第一天的 Top-K
@@ -580,7 +577,7 @@ class TestQlibPortfolioAdapter:
         instruments = [f'SH60000{i}' for i in range(10)]
         index = pd.MultiIndex.from_product(
             [dates, instruments],
-            names=['datetime', 'instrument']
+            names=['datetime', 'instrument'],
         )
         df = pd.DataFrame({'score': np.random.randn(len(index))}, index=index)
 
@@ -590,7 +587,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=str(pkl_file),
             top_k=5,
-            rebalance_period="DAY"
+            rebalance_period="DAY",
         )
 
         # 验证缓存有1天数据
@@ -608,7 +605,7 @@ class TestQlibPortfolioAdapter:
         instruments = [f'SH{i:06d}' for i in range(1000)]
         index = pd.MultiIndex.from_product(
             [dates, instruments],
-            names=['datetime', 'instrument']
+            names=['datetime', 'instrument'],
         )
 
         # 使用随机种子保证可重复性
@@ -625,7 +622,7 @@ class TestQlibPortfolioAdapter:
         adapter = QlibPortfolioAdapter(
             pred_pkl_path=str(pkl_file),
             top_k=50,
-            rebalance_period="WEEK"
+            rebalance_period="WEEK",
         )
 
         end_time = time.time()

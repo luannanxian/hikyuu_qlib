@@ -4,9 +4,9 @@ Prediction Entity 和 PredictionBatch Aggregate 单元测试
 测试 DR-005: Prediction (预测结果) 领域模型
 """
 
-import pytest
 from datetime import datetime
-from decimal import Decimal
+
+import pytest
 
 from domain.entities.prediction import Prediction, PredictionBatch
 from domain.value_objects.stock_code import StockCode
@@ -294,7 +294,7 @@ class TestPredictionBatchStatistics:
         """测试空批次的平均置信度"""
         batch = PredictionBatch(model_id="model-123", generated_at=datetime(2024, 1, 15))
 
-        assert batch.average_confidence() == None
+        assert batch.average_confidence() is None
 
 
 class TestPredictionBatchStringRepresentation:
@@ -303,7 +303,7 @@ class TestPredictionBatchStringRepresentation:
     def test_batch_string_representation(self):
         """验证字符串表示"""
         batch = PredictionBatch(
-            model_id="model-123", generated_at=datetime(2024, 1, 15, 10, 30)
+            model_id="model-123", generated_at=datetime(2024, 1, 15, 10, 30),
         )
 
         batch_str = str(batch)

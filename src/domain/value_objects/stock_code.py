@@ -32,7 +32,7 @@ class StockCode:
         if not self._is_valid():
             raise ValueError(
                 f"Invalid stock code: {self.value}. "
-                f"Expected format: [sh|sz|bj]XXXXXX (e.g., sh600000)"
+                f"Expected format: [sh|sz|bj]XXXXXX (e.g., sh600000)",
             )
 
     def _is_valid(self) -> bool:

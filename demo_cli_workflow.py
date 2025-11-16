@@ -12,18 +12,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from datetime import datetime
-from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from domain.value_objects.stock_code import StockCode
+from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
-from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
+from domain.value_objects.stock_code import StockCode
 
 
 async def demo_with_mock_data():
     """演示：当Hikyuu有数据时的正确工作流程"""
-
     print("=" * 70)
     print("演示：CLI data load命令的正确工作流程")
     print("=" * 70)
@@ -73,13 +71,13 @@ async def demo_with_mock_data():
     stock_code = StockCode("sh600038")
     date_range = DateRange(
         start_date=datetime(2023, 1, 1),
-        end_date=datetime(2023, 12, 31)
+        end_date=datetime(2023, 12, 31),
     )
 
     result = await adapter.load_stock_data(
         stock_code=stock_code,
         date_range=date_range,
-        kline_type=KLineType.DAY
+        kline_type=KLineType.DAY,
     )
 
     print(f"   ✅ 成功加载 {len(result)} 条K线数据")

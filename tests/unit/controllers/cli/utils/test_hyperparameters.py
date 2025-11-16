@@ -10,15 +10,15 @@ Tests:
 """
 
 import json
+
 import pytest
-from pathlib import Path
 
 from controllers.cli.utils.hyperparameters import (
     get_default_hyperparameters,
-    load_hyperparameters_from_json_string,
-    load_hyperparameters_from_config_file,
-    merge_hyperparameters,
     load_hyperparameters,
+    load_hyperparameters_from_config_file,
+    load_hyperparameters_from_json_string,
+    merge_hyperparameters,
 )
 from domain.entities.model import ModelType
 
@@ -252,7 +252,7 @@ class TestLoadHyperparameters:
 
         # Act
         hyperparams = load_hyperparameters(
-            ModelType.LGBM, config_file=str(config_file)
+            ModelType.LGBM, config_file=str(config_file),
         )
 
         # Assert
@@ -273,7 +273,7 @@ class TestLoadHyperparameters:
 
         # Act
         hyperparams = load_hyperparameters(
-            ModelType.LGBM, cli_json=cli_json, config_file=str(config_file)
+            ModelType.LGBM, cli_json=cli_json, config_file=str(config_file),
         )
 
         # Assert

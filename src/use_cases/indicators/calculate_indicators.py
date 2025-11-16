@@ -4,7 +4,6 @@ CalculateIndicatorsUseCase - 计算技术指标用例
 UC-006: Calculate Indicators (计算技术指标)
 """
 
-from typing import Dict, List
 
 from domain.entities.kline_data import KLineData
 from domain.ports.indicator_calculator import IIndicatorCalculator
@@ -35,9 +34,9 @@ class CalculateIndicatorsUseCase:
 
     async def execute(
         self,
-        kline_data: List[KLineData],
-        indicator_names: List[str],
-    ) -> Dict[str, List[float]]:
+        kline_data: list[KLineData],
+        indicator_names: list[str],
+    ) -> dict[str, list[float]]:
         """
         执行计算技术指标
 
@@ -61,7 +60,7 @@ class CalculateIndicatorsUseCase:
 
         # 2. 调用指标计算器Port计算指标
         indicators = await self.calculator.calculate_indicators(
-            kline_data=kline_data, indicator_names=indicator_names
+            kline_data=kline_data, indicator_names=indicator_names,
         )
 
         # 3. 返回计算结果

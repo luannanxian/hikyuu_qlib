@@ -4,7 +4,7 @@ AnalyzeBacktestResultUseCase - 分析回测结果用例
 UC-010: Analyze Backtest Result (分析回测结果)
 """
 
-from typing import Any, Dict
+from typing import Any
 
 from domain.entities.backtest import BacktestResult
 
@@ -22,7 +22,7 @@ class AnalyzeBacktestResultUseCase:
     - 不依赖外部 Port，直接使用领域对象
     """
 
-    async def execute(self, backtest_result: BacktestResult) -> Dict[str, Any]:
+    async def execute(self, backtest_result: BacktestResult) -> dict[str, Any]:
         """
         执行回测结果分析
 

@@ -9,11 +9,11 @@ from decimal import Decimal
 
 import pytest
 
-from domain.entities.model import Model, ModelType, ModelStatus
-from domain.value_objects.stock_code import StockCode
-from domain.value_objects.kline_type import KLineType
-from domain.value_objects.date_range import DateRange
+from domain.entities.model import Model, ModelStatus, ModelType
 from domain.value_objects.configuration import BacktestConfig
+from domain.value_objects.date_range import DateRange
+from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 
 
 @pytest.mark.asyncio
@@ -34,7 +34,7 @@ async def test_complete_trading_workflow(integration_container):
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     kline_data = await integration_container.load_stock_data_use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
     )
 
     assert len(kline_data) > 0, "数据加载失败"
@@ -46,7 +46,7 @@ async def test_complete_trading_workflow(integration_container):
     )
 
     trained_model = await integration_container.train_model_use_case.execute(
-        model=model, training_data=kline_data
+        model=model, training_data=kline_data,
     )
 
     assert trained_model.status == ModelStatus.TRAINED, "模型训练失败"
@@ -54,7 +54,7 @@ async def test_complete_trading_workflow(integration_container):
 
     # Step 3: 生成预测
     prediction_batch = await integration_container.generate_predictions_use_case.execute(
-        model_id=trained_model.id, input_data=kline_data[-30:]  # 最近30天
+        model_id=trained_model.id, input_data=kline_data[-30:],  # 最近30天
     )
 
     assert len(prediction_batch.predictions) > 0, "预测生成失败"
@@ -68,18 +68,18 @@ async def test_complete_trading_workflow(integration_container):
 
     # Step 5: 运行回测
     backtest_config = BacktestConfig(
-        initial_capital=Decimal("100000"),
+        initial_capital=Decimal(100000),
         commission_rate=Decimal("0.001"),
         slippage_rate=Decimal("0.001"),
     )
 
     backtest_result = await integration_container.run_backtest_use_case.execute(
-        signals=signals, config=backtest_config, date_range=date_range
+        signals=signals, config=backtest_config, date_range=date_range,
     )
 
     # Step 6: 验证最终结果
     assert backtest_result is not None, "回测执行失败"
-    assert backtest_result.final_capital > Decimal("0"), "最终资金异常"
+    assert backtest_result.final_capital > Decimal(0), "最终资金异常"
     assert backtest_result.total_return() >= 0
     assert backtest_result.calculate_sharpe_ratio() is not None, "缺少夏普比率指标"
 
@@ -100,24 +100,24 @@ async def test_multi_stock_trading_workflow(integration_container, test_data_fac
     for stock_code in stock_codes:
         # 1. 加载数据
         kline_data = await integration_container.load_stock_data_use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
         )
 
         assert len(kline_data) > 0
 
         # 2. 训练模型（每只股票一个模型）
         model = Model(
-            model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01}
+            model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01},
         )
         trained_model = await integration_container.train_model_use_case.execute(
-            model=model, training_data=kline_data
+            model=model, training_data=kline_data,
         )
 
         assert trained_model.is_trained()
 
         # 3. 生成预测
         prediction_batch = await integration_container.generate_predictions_use_case.execute(
-        model_id=trained_model.id, input_data=kline_data[-30:]
+        model_id=trained_model.id, input_data=kline_data[-30:],
         )
 
         all_predictions.extend(prediction_batch.predictions)
@@ -140,15 +140,15 @@ async def test_multi_stock_trading_workflow(integration_container, test_data_fac
     , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
     # 5. 运行回测
-    backtest_config = BacktestConfig(initial_capital=Decimal("300000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    backtest_config = BacktestConfig(initial_capital=Decimal(300000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
 
     backtest_result = await integration_container.run_backtest_use_case.execute(
-        signals=signals, config=backtest_config, date_range=date_range
+        signals=signals, config=backtest_config, date_range=date_range,
     )
 
     # 验证
     assert backtest_result is not None
-    assert backtest_result.initial_capital == Decimal("300000")
+    assert backtest_result.initial_capital == Decimal(300000)
 
 
 @pytest.mark.asyncio
@@ -160,11 +160,11 @@ async def test_model_retraining_workflow(integration_container, sample_kline_dat
     """
     # 1. 初始训练
     model = Model(
-        model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01}
+        model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01},
     )
 
     trained_model_v1 = await integration_container.train_model_use_case.execute(
-        model=model, training_data=sample_kline_data[:20]
+        model=model, training_data=sample_kline_data[:20],
     )
 
     assert trained_model_v1.is_trained()
@@ -172,7 +172,7 @@ async def test_model_retraining_workflow(integration_container, sample_kline_dat
 
     # 2. 使用更多数据重新训练
     trained_model_v2 = await integration_container.train_model_use_case.execute(
-        model=trained_model_v1, training_data=sample_kline_data  # 使用全部数据
+        model=trained_model_v1, training_data=sample_kline_data,  # 使用全部数据
     )
 
     # 验证
@@ -197,12 +197,12 @@ async def test_strategy_comparison_workflow(integration_container, sample_kline_
         model = Model(model_type=model_type, hyperparameters={"learning_rate": 0.01})
 
         trained_model = await integration_container.train_model_use_case.execute(
-            model=model, training_data=sample_kline_data
+            model=model, training_data=sample_kline_data,
         )
 
         # 2. 生成预测
         prediction_batch = await integration_container.generate_predictions_use_case.execute(
-        model_id=trained_model.id, input_data=sample_kline_data[-30:]
+        model_id=trained_model.id, input_data=sample_kline_data[-30:],
         )
 
         # 3. 转换信号
@@ -211,10 +211,10 @@ async def test_strategy_comparison_workflow(integration_container, sample_kline_
         , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
         # 4. 回测
-        config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+        config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
 
         result = await integration_container.run_backtest_use_case.execute(
-            signals=signals, config=config, date_range=date_range
+            signals=signals, config=config, date_range=date_range,
         )
 
         backtest_results.append((model_type, result))
@@ -223,12 +223,12 @@ async def test_strategy_comparison_workflow(integration_container, sample_kline_
     assert len(backtest_results) == 3
     for model_type, result in backtest_results:
         assert result is not None
-        assert result.final_capital > Decimal("0")
+        assert result.final_capital > Decimal(0)
 
 
 @pytest.mark.asyncio
 async def test_incremental_prediction_workflow(
-    integration_container, sample_kline_data, sample_trained_model
+    integration_container, sample_kline_data, sample_trained_model,
 ):
     """
     测试增量预测工作流
@@ -248,7 +248,7 @@ async def test_incremental_prediction_workflow(
         window_data = sample_kline_data[i : i + window_size]
 
         prediction_batch = await integration_container.generate_predictions_use_case.execute(
-        model_id=model.id, input_data=window_data
+        model_id=model.id, input_data=window_data,
         )
 
         all_predictions.extend(prediction_batch.predictions)
@@ -269,11 +269,11 @@ async def test_incremental_prediction_workflow(
     , strategy_params={"strategy_type": "threshold", "threshold": 0.5})
 
     # 回测
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     result = await integration_container.run_backtest_use_case.execute(
-        signals=signals, config=config, date_range=date_range
+        signals=signals, config=config, date_range=date_range,
     )
 
     # 验证
@@ -296,7 +296,7 @@ async def test_error_recovery_workflow(integration_container, mock_model_trainer
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     kline_data = await integration_container.load_stock_data_use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
     )
 
     assert len(kline_data) > 0
@@ -308,7 +308,7 @@ async def test_error_recovery_workflow(integration_container, mock_model_trainer
 
     with pytest.raises(Exception, match="Training failed"):
         await integration_container.train_model_use_case.execute(
-            model=model, training_data=kline_data
+            model=model, training_data=kline_data,
         )
 
     # 3. 修复后重试
@@ -319,7 +319,7 @@ async def test_error_recovery_workflow(integration_container, mock_model_trainer
     mock_model_trainer.train.side_effect = train_success
 
     trained_model = await integration_container.train_model_use_case.execute(
-        model=model, training_data=kline_data
+        model=model, training_data=kline_data,
     )
 
     # 验证恢复成功
@@ -338,7 +338,7 @@ async def test_full_workflow_with_validation(integration_container, sample_kline
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     kline_data = await integration_container.load_stock_data_use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
     )
 
     # 验证数据质量
@@ -348,11 +348,11 @@ async def test_full_workflow_with_validation(integration_container, sample_kline
 
     # 2. 训练并验证模型
     model = Model(
-        model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01}
+        model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01},
     )
 
     trained_model = await integration_container.train_model_use_case.execute(
-        model=model, training_data=kline_data
+        model=model, training_data=kline_data,
     )
 
     # 验证模型
@@ -362,7 +362,7 @@ async def test_full_workflow_with_validation(integration_container, sample_kline
 
     # 3. 生成并验证预测
     prediction_batch = await integration_container.generate_predictions_use_case.execute(
-        model_id=trained_model.id, input_data=kline_data[-30:]
+        model_id=trained_model.id, input_data=kline_data[-30:],
     )
 
     # 验证预测
@@ -380,15 +380,15 @@ async def test_full_workflow_with_validation(integration_container, sample_kline
     assert len(all_signals) > 0
 
     # 5. 回测并验证结果
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
 
     result = await integration_container.run_backtest_use_case.execute(
-        signals=signals, config=config, date_range=date_range
+        signals=signals, config=config, date_range=date_range,
     )
 
     # 验证回测结果
     assert result is not None
-    assert result.final_capital > Decimal("0")
+    assert result.final_capital > Decimal(0)
     assert result.metrics is not None
     assert all(isinstance(v, (int, float)) for v in result.metrics.values())
 
@@ -410,7 +410,7 @@ async def test_workflow_with_performance_tracking(integration_container, sample_
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     kline_data = await integration_container.load_stock_data_use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+        stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
     )
     timings["data_loading"] = time.time() - start
 
@@ -418,14 +418,14 @@ async def test_workflow_with_performance_tracking(integration_container, sample_
     start = time.time()
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
     trained_model = await integration_container.train_model_use_case.execute(
-        model=model, training_data=kline_data
+        model=model, training_data=kline_data,
     )
     timings["model_training"] = time.time() - start
 
     # 3. 预测生成
     start = time.time()
     prediction_batch = await integration_container.generate_predictions_use_case.execute(
-        model_id=trained_model.id, input_data=kline_data[-30:]
+        model_id=trained_model.id, input_data=kline_data[-30:],
     )
     timings["prediction"] = time.time() - start
 
@@ -438,9 +438,9 @@ async def test_workflow_with_performance_tracking(integration_container, sample_
 
     # 5. 回测
     start = time.time()
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
-    result = await integration_container.run_backtest_use_case.execute(
-        signals=signals, config=config, date_range=date_range
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    _result = await integration_container.run_backtest_use_case.execute(
+        signals=signals, config=config, date_range=date_range,
     )
     timings["backtest"] = time.time() - start
 

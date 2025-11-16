@@ -8,7 +8,6 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
 
 from domain.value_objects.stock_code import StockCode
 
@@ -34,7 +33,7 @@ class Position:
     quantity: int
     avg_cost: Decimal
     current_price: Decimal
-    open_date: Optional[datetime] = None
+    open_date: datetime | None = None
 
     # 实体唯一标识
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -52,7 +51,7 @@ class Position:
         # 当前价必须 > 0
         if self.current_price <= 0:
             raise ValueError(
-                f"current_price must be > 0, got current_price={self.current_price}"
+                f"current_price must be > 0, got current_price={self.current_price}",
             )
 
     def market_value(self) -> Decimal:
@@ -90,7 +89,7 @@ class Position:
             Decimal: 收益率 = (当前价 - 成本价) / 成本价
         """
         if self.avg_cost == 0:
-            return Decimal("0")
+            return Decimal(0)
         return (self.current_price - self.avg_cost) / self.avg_cost
 
     def update_price(self, new_price: Decimal) -> None:
@@ -147,7 +146,7 @@ class Portfolio:
     name: str
     initial_cash: Decimal
     available_cash: Decimal = field(init=False)
-    positions: List[Position] = field(default_factory=list)
+    positions: list[Position] = field(default_factory=list)
 
     # 聚合根唯一标识
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -157,7 +156,7 @@ class Portfolio:
         # 初始现金必须 >= 0
         if self.initial_cash < 0:
             raise ValueError(
-                f"initial_cash must be >= 0, got initial_cash={self.initial_cash}"
+                f"initial_cash must be >= 0, got initial_cash={self.initial_cash}",
             )
 
         # 初始可用现金等于初始现金
@@ -189,7 +188,7 @@ class Portfolio:
         """
         self.positions = [p for p in self.positions if p.stock_code != stock_code]
 
-    def get_position(self, stock_code: StockCode) -> Optional[Position]:
+    def get_position(self, stock_code: StockCode) -> Position | None:
         """
         根据股票代码获取持仓
 
@@ -211,7 +210,7 @@ class Portfolio:
         Returns:
             Decimal: 所有持仓的市值总和
         """
-        return sum((p.market_value() for p in self.positions), Decimal("0"))
+        return sum((p.market_value() for p in self.positions), Decimal(0))
 
     def total_cost_value(self) -> Decimal:
         """
@@ -220,7 +219,7 @@ class Portfolio:
         Returns:
             Decimal: 所有持仓的成本总和
         """
-        return sum((p.cost_value() for p in self.positions), Decimal("0"))
+        return sum((p.cost_value() for p in self.positions), Decimal(0))
 
     def total_value(self) -> Decimal:
         """
@@ -238,7 +237,7 @@ class Portfolio:
         Returns:
             Decimal: 所有持仓的盈亏总和
         """
-        return sum((p.profit_loss() for p in self.positions), Decimal("0"))
+        return sum((p.profit_loss() for p in self.positions), Decimal(0))
 
     def get_position_weight(self, stock_code: StockCode) -> Decimal:
         """
@@ -252,11 +251,11 @@ class Portfolio:
         """
         total = self.total_value()
         if total == 0:
-            return Decimal("0")
+            return Decimal(0)
 
         position = self.get_position(stock_code)
         if position is None:
-            return Decimal("0")
+            return Decimal(0)
 
         return position.market_value() / total
 

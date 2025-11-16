@@ -5,7 +5,6 @@ UC-TOPK: Generate Top-K Trading Signals (从Qlib预测生成Top-K交易信号)
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from domain.entities.prediction import PredictionBatch
 from domain.entities.trading_signal import SignalBatch
@@ -39,7 +38,7 @@ class GenerateTopKSignalsRequest:
         if self.buy_threshold <= self.sell_threshold:
             raise ValueError(
                 f"buy_threshold must be > sell_threshold, "
-                f"got buy_threshold={self.buy_threshold}, sell_threshold={self.sell_threshold}"
+                f"got buy_threshold={self.buy_threshold}, sell_threshold={self.sell_threshold}",
             )
 
 
@@ -54,9 +53,9 @@ class GenerateTopKSignalsResponse:
         error: 错误信息(如果失败)
     """
 
-    signal_batch: Optional[SignalBatch] = None
+    signal_batch: SignalBatch | None = None
     success: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class GenerateTopKSignalsUseCase:
@@ -89,7 +88,7 @@ class GenerateTopKSignalsUseCase:
         self.signal_provider = signal_provider
 
     async def execute(
-        self, request: GenerateTopKSignalsRequest
+        self, request: GenerateTopKSignalsRequest,
     ) -> GenerateTopKSignalsResponse:
         """
         执行生成Top-K交易信号
@@ -136,7 +135,6 @@ class GenerateTopKSignalsUseCase:
             # 如果不可变,需要创建新的 SignalBatch
             if signal_batch.strategy_name != request.strategy_name:
                 # 创建新的 SignalBatch with 自定义策略名称
-                from datetime import datetime
 
                 signal_batch = SignalBatch(
                     strategy_name=request.strategy_name,
@@ -154,12 +152,12 @@ class GenerateTopKSignalsUseCase:
             # 参数验证失败
             return GenerateTopKSignalsResponse(
                 success=False,
-                error=f"Validation error: {str(e)}",
+                error=f"Validation error: {e!s}",
             )
 
         except Exception as e:
             # 其他异常
             return GenerateTopKSignalsResponse(
                 success=False,
-                error=f"Failed to generate signals: {str(e)}",
+                error=f"Failed to generate signals: {e!s}",
             )

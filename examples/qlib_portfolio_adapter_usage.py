@@ -5,14 +5,15 @@ QlibPortfolioAdapter Usage Examples
 """
 
 from datetime import date
+
 import pandas as pd
+
+# Import adapter
+from adapters.qlib.portfolio_adapter import QlibPortfolioAdapter
 
 # Import domain objects
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.stock_code import StockCode
-
-# Import adapter
-from adapters.qlib.portfolio_adapter import QlibPortfolioAdapter
 
 
 def example_basic_usage():
@@ -25,13 +26,13 @@ def example_basic_usage():
     adapter = QlibPortfolioAdapter(
         pred_pkl_path="path/to/pred.pkl",
         top_k=10,                        # 选择 Top-10 股票
-        rebalance_period="WEEK"          # 每周调仓
+        rebalance_period="WEEK",          # 每周调仓
     )
 
     # 2. 定义回测日期范围
     date_range = DateRange(
         start_date=date(2023, 1, 1),
-        end_date=date(2023, 12, 31)
+        end_date=date(2023, 12, 31),
     )
 
     # 3. 获取动态股票池
@@ -55,7 +56,7 @@ def example_different_rebalance_periods():
     adapter_day = QlibPortfolioAdapter(
         pred_pkl_path=pred_pkl_path,
         top_k=10,
-        rebalance_period="DAY"
+        rebalance_period="DAY",
     )
     stock_pool_day = adapter_day.get_dynamic_stock_pool(date_range)
     print(f"DAY rebalance: {len(stock_pool_day)} 调仓日")
@@ -64,7 +65,7 @@ def example_different_rebalance_periods():
     adapter_week = QlibPortfolioAdapter(
         pred_pkl_path=pred_pkl_path,
         top_k=10,
-        rebalance_period="WEEK"
+        rebalance_period="WEEK",
     )
     stock_pool_week = adapter_week.get_dynamic_stock_pool(date_range)
     print(f"WEEK rebalance: {len(stock_pool_week)} 调仓日")
@@ -73,7 +74,7 @@ def example_different_rebalance_periods():
     adapter_month = QlibPortfolioAdapter(
         pred_pkl_path=pred_pkl_path,
         top_k=10,
-        rebalance_period="MONTH"
+        rebalance_period="MONTH",
     )
     stock_pool_month = adapter_month.get_dynamic_stock_pool(date_range)
     print(f"MONTH rebalance: {len(stock_pool_month)} 调仓日")
@@ -88,7 +89,7 @@ def example_stock_weight():
     adapter = QlibPortfolioAdapter(
         pred_pkl_path="path/to/pred.pkl",
         top_k=10,
-        rebalance_period="WEEK"
+        rebalance_period="WEEK",
     )
 
     # 获取某个日期的股票权重
@@ -113,7 +114,7 @@ def example_get_all_stocks():
     adapter = QlibPortfolioAdapter(
         pred_pkl_path="path/to/pred.pkl",
         top_k=10,
-        rebalance_period="WEEK"
+        rebalance_period="WEEK",
     )
 
     # 获取所有股票
@@ -133,7 +134,7 @@ def example_integration_with_hikyuu():
     adapter = QlibPortfolioAdapter(
         pred_pkl_path="path/to/pred.pkl",
         top_k=30,
-        rebalance_period="WEEK"
+        rebalance_period="WEEK",
     )
 
     # 2. 获取动态股票池
@@ -171,7 +172,7 @@ def example_performance_optimization():
     adapter = QlibPortfolioAdapter(
         pred_pkl_path="path/to/pred.pkl",
         top_k=50,
-        rebalance_period="DAY"
+        rebalance_period="DAY",
     )
 
     init_time = time.time() - start_time

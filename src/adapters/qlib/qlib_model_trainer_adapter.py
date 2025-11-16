@@ -4,18 +4,19 @@ QlibModelTrainerAdapter - Qlib 模型训练适配器
 适配 Qlib 框架实现 IModelTrainer 接口
 """
 
-from typing import Any, Dict, List, Optional
+import pickle
 from datetime import datetime
 from pathlib import Path
-import pickle
-import pandas as pd
+from typing import Any
+
 import numpy as np
+import pandas as pd
 
 # 导入真实的机器学习库
 try:
     import lightgbm as lgb
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
     from sklearn.model_selection import train_test_split
-    from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 except ImportError:
     lgb = None
     train_test_split = None
@@ -23,9 +24,9 @@ except ImportError:
     mean_absolute_error = None
     r2_score = None
 
-from domain.ports.model_trainer import IModelTrainer
 from domain.entities.model import Model, ModelType
 from domain.entities.prediction import Prediction, PredictionBatch
+from domain.ports.model_trainer import IModelTrainer
 from domain.value_objects.stock_code import StockCode
 
 
@@ -69,7 +70,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
         return X_train, X_test, y_train, y_test
 
     def _train_lgbm(
-        self, X_train, X_test, y_train, y_test, hyperparameters: Dict[str, Any]
+        self, X_train, X_test, y_train, y_test, hyperparameters: dict[str, Any],
     ) -> tuple:
         """
         训练 LightGBM 模型
@@ -91,7 +92,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
             'feature_fraction': 0.9,
             'bagging_fraction': 0.8,
             'bagging_freq': 5,
-            'verbose': -1
+            'verbose': -1,
         }
 
         # 更新用户提供的超参数
@@ -152,7 +153,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
             # 根据模型类型训练
             if model.model_type == ModelType.LGBM:
                 trained_model, metrics = self._train_lgbm(
-                    X_train, X_test, y_train, y_test, model.hyperparameters
+                    X_train, X_test, y_train, y_test, model.hyperparameters,
                 )
                 self.trained_model = trained_model
             else:
@@ -171,10 +172,10 @@ class QlibModelTrainerAdapter(IModelTrainer):
 
         except Exception as e:
             raise Exception(
-                f"Failed to train model: {model.model_type.name}, {e}"
+                f"Failed to train model: {model.model_type.name}, {e}",
             ) from e
 
-    async def predict(self, model: Model, input_data: pd.DataFrame) -> List[Prediction]:
+    async def predict(self, model: Model, input_data: pd.DataFrame) -> list[Prediction]:
         """
         生成预测
 
@@ -206,17 +207,17 @@ class QlibModelTrainerAdapter(IModelTrainer):
 
             # 转换为领域层 Prediction 列表
             predictions = self._create_predictions(
-                input_data, predictions_array, confidences, model.id
+                input_data, predictions_array, confidences, model.id,
             )
 
             return predictions
 
-        except ValueError as e:
+        except ValueError:
             # 重新抛出验证错误
             raise
         except Exception as e:
             raise Exception(
-                f"Failed to predict: {model.model_type.name}, {e}"
+                f"Failed to predict: {model.model_type.name}, {e}",
             ) from e
 
     def _validate_model_trained(self) -> None:
@@ -247,7 +248,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
             'date',
             'label_return',
             'label_direction',
-            'label_multiclass'
+            'label_multiclass',
         ]
         feature_cols = [col for col in input_data.columns if col not in exclude_cols]
 
@@ -261,8 +262,8 @@ class QlibModelTrainerAdapter(IModelTrainer):
         input_data: pd.DataFrame,
         predictions_array: np.ndarray,
         confidences: np.ndarray,
-        model_id: str
-    ) -> List[Prediction]:
+        model_id: str,
+    ) -> list[Prediction]:
         """
         创建Prediction实体列表
 
@@ -286,7 +287,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
                 timestamp=timestamp,
                 predicted_value=float(pred_value),
                 confidence=float(confidences[i]),
-                model_id=model_id
+                model_id=model_id,
             )
             predictions.append(prediction)
 
@@ -353,7 +354,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
 
         return confidences
 
-    async def evaluate(self, model: Model, validation_data: Any) -> Dict[str, float]:
+    async def evaluate(self, model: Model, validation_data: Any) -> dict[str, float]:
         """
         评估模型
 
@@ -392,7 +393,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
 
         except Exception as e:
             raise Exception(
-                f"Failed to evaluate model: {model.model_type.name}, {e}"
+                f"Failed to evaluate model: {model.model_type.name}, {e}",
             ) from e
 
     def save_model(self, model: Model, file_path: str) -> None:
@@ -452,7 +453,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
         self,
         model: Model,
         input_data: pd.DataFrame,
-        prediction_date: Optional[datetime] = None
+        prediction_date: datetime | None = None,
     ) -> PredictionBatch:
         """
         使用训练好的模型进行预测（返回 PredictionBatch）
@@ -493,7 +494,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
                 return PredictionBatch(
                     model_id=model.id,
                     predictions=[],
-                    generated_at=prediction_date or datetime.now()
+                    generated_at=prediction_date or datetime.now(),
                 )
 
             # 3. 提取特征并预测
@@ -505,25 +506,25 @@ class QlibModelTrainerAdapter(IModelTrainer):
 
             # 5. 转换为领域层 Prediction 列表
             predictions = self._create_predictions(
-                input_data, predictions_array, confidences, model.id
+                input_data, predictions_array, confidences, model.id,
             )
 
             # 6. 创建 PredictionBatch 聚合根
             batch = PredictionBatch(
                 model_id=model.id,
                 predictions=predictions,
-                generated_at=prediction_date or datetime.now()
+                generated_at=prediction_date or datetime.now(),
             )
 
             return batch
 
-        except ValueError as e:
+        except ValueError:
             # 重新抛出验证错误
             raise
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             # 重新抛出文件不存在错误
             raise
         except Exception as e:
             raise Exception(
-                f"Failed to predict batch: {model.model_type.name}, {e}"
+                f"Failed to predict batch: {model.model_type.name}, {e}",
             ) from e

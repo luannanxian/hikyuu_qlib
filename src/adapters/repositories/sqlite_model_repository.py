@@ -5,12 +5,12 @@ SQLiteModelRepository - SQLite 模型仓储
 """
 
 import json
-from typing import List, Optional
 from datetime import datetime
+
 import aiosqlite
 
+from domain.entities.model import Model, ModelStatus, ModelType
 from domain.ports.model_repository import IModelRepository
-from domain.entities.model import Model, ModelType, ModelStatus
 
 
 class SQLiteModelRepository(IModelRepository):
@@ -33,7 +33,7 @@ class SQLiteModelRepository(IModelRepository):
             db_path = db_path.replace("sqlite:///", "")
 
         self.db_path = db_path
-        self._connection: Optional[aiosqlite.Connection] = None
+        self._connection: aiosqlite.Connection | None = None
 
     async def initialize(self) -> None:
         """
@@ -56,7 +56,7 @@ class SQLiteModelRepository(IModelRepository):
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
-            """
+            """,
         )
         await self._connection.commit()
 
@@ -205,7 +205,7 @@ class SQLiteModelRepository(IModelRepository):
         except Exception as e:
             raise Exception(f"Failed to save model: {e}") from e
 
-    async def find_by_id(self, model_id: str) -> Optional[Model]:
+    async def find_by_id(self, model_id: str) -> Model | None:
         """
         根据ID查找模型
 
@@ -235,7 +235,7 @@ class SQLiteModelRepository(IModelRepository):
         except Exception as e:
             raise Exception(f"Failed to find model by id: {e}") from e
 
-    async def find_all(self) -> List[Model]:
+    async def find_all(self) -> list[Model]:
         """
         查找所有模型
 
@@ -249,10 +249,10 @@ class SQLiteModelRepository(IModelRepository):
 
     async def list_models(
         self,
-        status: Optional[ModelStatus] = None,
-        model_type: Optional[ModelType] = None,
-        limit: Optional[int] = None,
-    ) -> List[Model]:
+        status: ModelStatus | None = None,
+        model_type: ModelType | None = None,
+        limit: int | None = None,
+    ) -> list[Model]:
         """
         列出模型,支持筛选和限制数量
 
@@ -345,7 +345,7 @@ class SQLiteModelRepository(IModelRepository):
 
             # 删除模型
             await self._connection.execute(
-                "DELETE FROM models WHERE id = ?", (model_id,)
+                "DELETE FROM models WHERE id = ?", (model_id,),
             )
             await self._connection.commit()
 

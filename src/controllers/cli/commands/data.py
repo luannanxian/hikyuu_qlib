@@ -7,7 +7,6 @@ Commands:
 """
 
 import asyncio
-from typing import List, Optional
 
 import click
 
@@ -26,7 +25,6 @@ from utils.data_conversion import (
 @click.group(name="data")
 def data_group():
     """Data management commands."""
-    pass
 
 
 @data_group.command(name="load")
@@ -77,7 +75,7 @@ def load_command(
     start,
     end,
     kline_type: str,
-    output_file: Optional[str],
+    output_file: str | None,
     add_features: bool,
     add_labels: bool,
 ):
@@ -85,7 +83,6 @@ def load_command(
     Load stock data.
 
     Examples:
-
     1. Basic usage (display only):
         hikyuu-qlib data load --code sh600000 --start 2023-01-01 --end 2023-12-31
 
@@ -102,11 +99,11 @@ def load_command(
         # Run async function in event loop
         asyncio.run(
             _load_stock_data(
-                code, start, end, kline_type, output_file, add_features, add_labels, output
-            )
+                code, start, end, kline_type, output_file, add_features, add_labels, output,
+            ),
         )
     except Exception as e:
-        output.error(f"Failed to load data: {str(e)}")
+        output.error(f"Failed to load data: {e!s}")
         raise click.Abort()
 
 
@@ -115,7 +112,7 @@ async def _load_stock_data(
     start_date,
     end_date,
     kline_type_str: str,
-    output_file: Optional[str],
+    output_file: str | None,
     add_features: bool,
     add_labels: bool,
     output: CLIOutput,
@@ -147,21 +144,21 @@ async def _load_stock_data(
         output.info(f"Loading data for {code_str} from {start_date} to {end_date}...")
 
         kline_data_list = await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
 
         # Display results
         if kline_data_list:
             output.success(
-                f"Successfully loaded {len(kline_data_list)} K-line records for {code_str}"
+                f"Successfully loaded {len(kline_data_list)} K-line records for {code_str}",
             )
             output.info(
-                f"Date range: {kline_data_list[0].timestamp.date()} to {kline_data_list[-1].timestamp.date()}"
+                f"Date range: {kline_data_list[0].timestamp.date()} to {kline_data_list[-1].timestamp.date()}",
             )
 
             # Save to file if requested
             if output_file:
-                output.info(f"Converting data to training format...")
+                output.info("Converting data to training format...")
 
                 # Convert to training data
                 training_data = convert_kline_to_training_data(
@@ -175,7 +172,7 @@ async def _load_stock_data(
                 save_to_file(training_data, output_file)
 
                 output.success(
-                    f"Data saved to {output_file} ({len(training_data)} records)"
+                    f"Data saved to {output_file} ({len(training_data)} records)",
                 )
 
                 # Show column info
@@ -189,7 +186,7 @@ async def _load_stock_data(
             output.warning(f"No data found for {code_str} in the specified date range")
 
     except Exception as e:
-        output.error(f"Error loading data: {str(e)}")
+        output.error(f"Error loading data: {e!s}")
         raise
 
 
@@ -256,7 +253,7 @@ def list_command(source: str, directory: str, market: str, output_format: str):
     except click.Abort:
         raise
     except Exception as e:
-        output.error(f"Failed to list data: {str(e)}")
+        output.error(f"Failed to list data: {e!s}")
         raise click.Abort()
 
 
@@ -269,8 +266,9 @@ def _list_data_files(directory: str, output_format: str, output: CLIOutput):
         output_format: Output format (table/json/csv)
         output: CLI output instance
     """
-    from pathlib import Path
     from datetime import datetime
+    from pathlib import Path
+
     import pandas as pd
 
     # Validate directory
@@ -316,7 +314,7 @@ def _list_data_files(directory: str, output_format: str, output: CLIOutput):
                     df = pd.read_csv(file_path, nrows=0)
                     cols = len(df.columns)
                     # Get row count efficiently
-                    with open(file_path, 'r') as f:
+                    with open(file_path) as f:
                         rows = sum(1 for _ in f) - 1  # Subtract header
                 elif suffix == ".parquet":
                     df = pd.read_parquet(file_path)
@@ -344,7 +342,7 @@ def _list_data_files(directory: str, output_format: str, output: CLIOutput):
 
         except Exception as e:
             # Log error but continue with other files
-            output.warning(f"Error reading {file_path.name}: {str(e)}")
+            output.warning(f"Error reading {file_path.name}: {e!s}")
 
     # Output results
     if output_format == "json":
@@ -404,7 +402,7 @@ async def _list_hikyuu_stocks(market: str, output_format: str, output: CLIOutput
                             kline_data = await data_provider.load_stock_data(
                                 stock_code=stock_code,
                                 date_range=date_range,
-                                kline_type=KLineType.DAY
+                                kline_type=KLineType.DAY,
                             )
 
                             if kline_data:
@@ -416,7 +414,7 @@ async def _list_hikyuu_stocks(market: str, output_format: str, output: CLIOutput
                                 data_end = None
                                 record_count = 0
 
-                        except Exception as e:
+                        except Exception:
                             # If we can't load data for this stock, skip it
                             data_start = None
                             data_end = None
@@ -432,11 +430,11 @@ async def _list_hikyuu_stocks(market: str, output_format: str, output: CLIOutput
                         "market": mkt,
                         "data_start": data_start,
                         "data_end": data_end,
-                        "records": record_count if record_count is not None else "N/A"
+                        "records": record_count if record_count is not None else "N/A",
                     })
 
             except Exception as e:
-                output.warning(f"Error querying {mkt} market: {str(e)}")
+                output.warning(f"Error querying {mkt} market: {e!s}")
 
         if not stock_infos:
             output.info("No stocks found in Hikyuu database")
@@ -451,7 +449,7 @@ async def _list_hikyuu_stocks(market: str, output_format: str, output: CLIOutput
             _output_hikyuu_stocks_table(stock_infos, total_stocks, output)
 
     except Exception as e:
-        output.error(f"Error listing Hikyuu stocks: {str(e)}")
+        output.error(f"Error listing Hikyuu stocks: {e!s}")
         raise
 
 
@@ -542,9 +540,9 @@ def _output_hikyuu_stocks_table(stock_infos: list, total_stocks: int, output: CL
     df = pd.DataFrame(data)
     output.info(f"\nFound {total_stocks} stock(s) in Hikyuu database")
     if len(stock_infos) > 20:
-        output.info(f"Showing first 20 stocks with data details:\n")
+        output.info("Showing first 20 stocks with data details:\n")
     else:
-        output.info(f"\n")
+        output.info("\n")
     click.echo(df.to_string(index=False))
 
     if len(stock_infos) > 20:

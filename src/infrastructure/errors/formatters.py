@@ -7,7 +7,7 @@ This module provides functions to format errors for different audiences:
 - Log format for logging systems
 """
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from .error_codes import get_error_description
 from .exceptions import BaseInfrastructureException
@@ -52,7 +52,7 @@ def format_error_for_user(exception: BaseInfrastructureException) -> str:
 
 def format_error_for_developer(
     exception: BaseInfrastructureException,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Format error with full technical details for developers.
 
     Args:
@@ -83,7 +83,7 @@ def format_error_as_json(exception: BaseInfrastructureException) -> str:
     return json.dumps(exception.to_dict(), default=str)
 
 
-def format_validation_errors(errors: List[Dict[str, str]]) -> str:
+def format_validation_errors(errors: list[dict[str, str]]) -> str:
     """Format multiple validation errors.
 
     Args:
@@ -106,7 +106,7 @@ def format_validation_errors(errors: List[Dict[str, str]]) -> str:
 
 def format_error_response(
     exception: BaseInfrastructureException,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Format error as HTTP API response.
 
     Args:
@@ -139,7 +139,7 @@ def format_error_response(
 
 def format_error_with_suggestions(
     exception: BaseInfrastructureException,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Format error with helpful suggestions.
 
     Args:
@@ -178,7 +178,7 @@ def format_error_with_suggestions(
 
 def format_exception_chain(
     exception: BaseInfrastructureException,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Format the exception chain (exception and all causes).
 
     Args:
@@ -196,7 +196,7 @@ def format_exception_chain(
             "exception_type": current.__class__.__name__,
             "message": current.message,
             "code": current.code,
-        }
+        },
     )
 
     # Add original exception if present
@@ -207,13 +207,13 @@ def format_exception_chain(
                 "exception_type": original.__class__.__name__,
                 "message": str(original),
                 "code": getattr(original, "code", "N/A"),
-            }
+            },
         )
 
     return chain
 
 
-def format_error_for_logging(exception: BaseInfrastructureException) -> Dict[str, Any]:
+def format_error_for_logging(exception: BaseInfrastructureException) -> dict[str, Any]:
     """Format error for structured logging.
 
     Args:

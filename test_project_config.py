@@ -14,12 +14,13 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+import asyncio
+from datetime import datetime
+
 from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
-from datetime import datetime
-import asyncio
+from domain.value_objects.stock_code import StockCode
 
 
 async def test_project_config():
@@ -58,7 +59,7 @@ async def test_project_config():
         print("✅ 股票数据加载成功")
 
         # 显示示例股票
-        print(f"\n📈 示例股票 (前5只):")
+        print("\n📈 示例股票 (前5只):")
         count = 0
         for stock in sm:
             if count >= 5:
@@ -82,7 +83,7 @@ async def test_project_config():
         if test_stock:
             stock_code = StockCode(f"{test_stock.market_code.lower()}{test_stock.code}")
             date_range = DateRange(
-                start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31)
+                start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31),
             )
 
             print(f"\n测试股票: {stock_code.value}")
@@ -95,7 +96,7 @@ async def test_project_config():
 
             if kline_data:
                 print(f"✅ 成功加载 {len(kline_data)} 条K线数据")
-                print(f"\n第一条数据:")
+                print("\n第一条数据:")
                 first = kline_data[0]
                 print(f"  日期: {first.timestamp}")
                 print(f"  开盘: {first.open}")

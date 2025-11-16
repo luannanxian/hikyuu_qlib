@@ -6,23 +6,21 @@ Integration Test Fixtures
 
 import sqlite3
 import tempfile
-import yaml
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import List, Dict, Any
-from unittest.mock import AsyncMock, Mock
+from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
+import yaml
 
 from domain.entities.kline_data import KLineData
-from domain.entities.model import Model, ModelType, ModelStatus
+from domain.entities.model import Model, ModelType
 from domain.entities.prediction import Prediction
-from domain.entities.trading_signal import TradingSignal, SignalType, SignalBatch
-from domain.value_objects.stock_code import StockCode
+from domain.entities.trading_signal import SignalType, TradingSignal
 from domain.value_objects.kline_type import KLineType
-from domain.value_objects.date_range import DateRange
-
+from domain.value_objects.stock_code import StockCode
 
 # =============================================================================
 # Test Data Factory
@@ -34,8 +32,8 @@ class TestDataFactory:
 
     @staticmethod
     def create_kline_data(
-        stock_code: str = "sh600000", count: int = 10, start_date: date = None
-    ) -> List[KLineData]:
+        stock_code: str = "sh600000", count: int = 10, start_date: date = None,
+    ) -> list[KLineData]:
         """
         创建测试 K线数据
 
@@ -62,7 +60,7 @@ class TestDataFactory:
                 low=Decimal("9.0") + Decimal(str(i * 0.1)),
                 close=Decimal("10.5") + Decimal(str(i * 0.1)),
                 volume=1000000 + i * 10000,
-                amount=Decimal("10500000") + Decimal(str(i * 10000)),
+                amount=Decimal(10500000) + Decimal(str(i * 10000)),
             )
             for i in range(count)
         ]
@@ -70,7 +68,7 @@ class TestDataFactory:
     @staticmethod
     def create_trained_model(
         model_type: ModelType = ModelType.LGBM,
-        metrics: Dict[str, float] = None,
+        metrics: dict[str, float] = None,
     ) -> Model:
         """
         创建已训练模型
@@ -86,13 +84,13 @@ class TestDataFactory:
             metrics = {"accuracy": 0.85}
 
         model = Model(
-            model_type=model_type, hyperparameters={"learning_rate": 0.01}
+            model_type=model_type, hyperparameters={"learning_rate": 0.01},
         )
         model.mark_as_trained(metrics)
         return model
 
     @staticmethod
-    def create_predictions(count: int = 10) -> List[Prediction]:
+    def create_predictions(count: int = 10) -> list[Prediction]:
         """
         创建测试预测数据
 
@@ -114,7 +112,7 @@ class TestDataFactory:
         return predictions
 
     @staticmethod
-    def create_signals(count: int = 10) -> List[TradingSignal]:
+    def create_signals(count: int = 10) -> list[TradingSignal]:
         """
         创建测试交易信号
 
@@ -162,7 +160,7 @@ def in_memory_db():
             status TEXT NOT NULL,
             created_at TEXT NOT NULL
         )
-    """
+    """,
     )
     db.commit()
 
@@ -180,7 +178,7 @@ def in_memory_db():
 def temp_config_file():
     """临时配置文件"""
     with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yaml", delete=False
+        mode="w", suffix=".yaml", delete=False,
     ) as f:
         config = {
             "data_source": {
@@ -265,15 +263,15 @@ def mock_backtest_engine():
             start_date=datetime.combine(date_range.start_date, datetime.min.time()),
             end_date=datetime.combine(date_range.end_date, datetime.min.time()),
             initial_capital=config.initial_capital,
-            final_capital=Decimal("120000"),
+            final_capital=Decimal(120000),
             trades=[],
-            equity_curve=[Decimal("100000"), Decimal("110000"), Decimal("120000")],
+            equity_curve=[Decimal(100000), Decimal(110000), Decimal(120000)],
             metrics={
                 "total_return": 0.2,
                 "sharpe_ratio": 1.5,
                 "max_drawdown": 0.05,
-                "win_rate": 0.6
-            }
+                "win_rate": 0.6,
+            },
         )
 
     engine.run_backtest.side_effect = run_backtest_side_effect
@@ -308,7 +306,7 @@ def train_model_use_case(mock_model_trainer, mock_model_repository):
     from use_cases.model.train_model import TrainModelUseCase
 
     return TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
 
@@ -325,7 +323,7 @@ def generate_predictions_use_case(mock_model_trainer, mock_model_repository):
     mock_model_trainer.predict.side_effect = predict_side_effect
 
     return GeneratePredictionsUseCase(
-        repository=mock_model_repository, trainer=mock_model_trainer
+        repository=mock_model_repository, trainer=mock_model_trainer,
     )
 
 
@@ -403,8 +401,9 @@ def sample_trained_model():
 @pytest.fixture
 def sample_predictions():
     """示例预测数据"""
-    from domain.entities.prediction import PredictionBatch
     from datetime import datetime
+
+    from domain.entities.prediction import PredictionBatch
 
     predictions_list = TestDataFactory.create_predictions(count=30)
     batch = PredictionBatch(model_id="test_model", batch_date=datetime(2023, 1, 1))

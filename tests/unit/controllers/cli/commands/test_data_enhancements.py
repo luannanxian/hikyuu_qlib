@@ -6,18 +6,12 @@ Tests:
 - data list command with file source
 """
 
-import pytest
+from unittest.mock import AsyncMock, Mock, patch
+
 from click.testing import CliRunner
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
-from datetime import datetime
-from decimal import Decimal
-from pathlib import Path
 
 from controllers.cli.commands.data import data_group
-from domain.entities.kline_data import KLineData
 from domain.value_objects.stock_code import StockCode
-from domain.value_objects.date_range import DateRange
-from domain.value_objects.kline_type import KLineType
 
 
 class TestDataListHikyuuSource:

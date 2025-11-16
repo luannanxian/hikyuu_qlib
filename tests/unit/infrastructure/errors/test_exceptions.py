@@ -25,7 +25,7 @@ def test_base_infrastructure_exception_with_context():
 
     context = {"stock_code": "000001", "date": "2024-01-01"}
     exc = BaseInfrastructureException(
-        message="Test error", code="TEST_002", context=context
+        message="Test error", code="TEST_002", context=context,
     )
 
     assert exc.context == context
@@ -38,7 +38,7 @@ def test_base_infrastructure_exception_chaining():
 
     original = ValueError("Original error")
     exc = BaseInfrastructureException(
-        message="Wrapped error", code="TEST_003", original_exception=original
+        message="Wrapped error", code="TEST_003", original_exception=original,
     )
 
     assert exc.original_exception is original
@@ -114,7 +114,7 @@ def test_model_prediction_exception():
     from src.infrastructure.errors.exceptions import ModelPredictionException
 
     exc = ModelPredictionException(
-        message="Prediction failed", code="MODEL_002", context={"model_id": "model_123"}
+        message="Prediction failed", code="MODEL_002", context={"model_id": "model_123"},
     )
 
     assert isinstance(exc, ModelPredictionException)
@@ -173,15 +173,15 @@ def test_exception_to_dict():
 def test_exception_hierarchy():
     """Test exception class hierarchy."""
     from src.infrastructure.errors.exceptions import (
+        BacktestException,
         BaseInfrastructureException,
+        ConfigurationException,
         DataException,
         DataLoadException,
         DataValidationException,
         ModelException,
-        ModelTrainingException,
         ModelPredictionException,
-        BacktestException,
-        ConfigurationException,
+        ModelTrainingException,
     )
 
     # Test inheritance

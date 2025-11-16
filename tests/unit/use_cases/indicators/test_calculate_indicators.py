@@ -4,10 +4,11 @@ CalculateIndicatorsUseCase 单元测试
 测试 UC-006: Calculate Indicators (计算技术指标) 用例
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
+
+import pytest
 
 from domain.entities.kline_data import KLineData
 from domain.ports.indicator_calculator import IIndicatorCalculator
@@ -46,7 +47,7 @@ class TestCalculateIndicatorsSuccess:
                 low=Decimal("9.90"),
                 close=Decimal("10.20"),
                 volume=1000000,
-                amount=Decimal("10200000"),
+                amount=Decimal(10200000),
             ),
             KLineData(
                 stock_code=StockCode("sh600000"),
@@ -57,14 +58,14 @@ class TestCalculateIndicatorsSuccess:
                 low=Decimal("10.10"),
                 close=Decimal("10.50"),
                 volume=1200000,
-                amount=Decimal("12600000"),
+                amount=Decimal(12600000),
             ),
         ]
         indicator_names = ["MA5", "MA10"]
 
         # Act: 执行用例
         result = await use_case.execute(
-            kline_data=kline_data, indicator_names=indicator_names
+            kline_data=kline_data, indicator_names=indicator_names,
         )
 
         # Assert: 验证结果
@@ -75,7 +76,7 @@ class TestCalculateIndicatorsSuccess:
 
         # 验证 calculator 被正确调用
         calculator_mock.calculate_indicators.assert_called_once_with(
-            kline_data=kline_data, indicator_names=indicator_names
+            kline_data=kline_data, indicator_names=indicator_names,
         )
 
 
@@ -110,8 +111,8 @@ class TestCalculateIndicatorsValidation:
                 low=Decimal("9.90"),
                 close=Decimal("10.20"),
                 volume=1000000,
-                amount=Decimal("10200000"),
-            )
+                amount=Decimal(10200000),
+            ),
         ]
 
         # Act & Assert: 空指标名称应该抛出异常
@@ -141,8 +142,8 @@ class TestCalculateIndicatorsErrorHandling:
                 low=Decimal("9.90"),
                 close=Decimal("10.20"),
                 volume=1000000,
-                amount=Decimal("10200000"),
-            )
+                amount=Decimal(10200000),
+            ),
         ]
 
         # Act & Assert: 应该传播异常

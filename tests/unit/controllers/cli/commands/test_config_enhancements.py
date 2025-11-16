@@ -8,12 +8,12 @@ Tests:
 - config set invalid keys
 """
 
-import pytest
-from pathlib import Path
-from click.testing import CliRunner
 from unittest.mock import AsyncMock, Mock, patch
 
-from controllers.cli.commands.config import config_group, _parse_config_value
+import pytest
+from click.testing import CliRunner
+
+from controllers.cli.commands.config import _parse_config_value, config_group
 
 
 class TestConfigSetYAML:
@@ -71,12 +71,13 @@ class TestConfigSetYAML:
         # Mock a proper config object
         from decimal import Decimal
         from unittest.mock import Mock as ConfigMock
+
         from domain.value_objects.configuration import BacktestConfig
 
         mock_backtest_config = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
-            slippage_rate=Decimal("0.001")
+            slippage_rate=Decimal("0.001"),
         )
 
         mock_config = ConfigMock()
@@ -126,12 +127,13 @@ class TestConfigSetYAML:
         # Mock a proper config object
         from decimal import Decimal
         from unittest.mock import Mock as ConfigMock
+
         from domain.value_objects.configuration import BacktestConfig
 
         mock_backtest_config = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
-            slippage_rate=Decimal("0.001")
+            slippage_rate=Decimal("0.001"),
         )
 
         mock_config = ConfigMock()

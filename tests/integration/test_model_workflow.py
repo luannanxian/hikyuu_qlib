@@ -4,17 +4,15 @@ Model Workflow Integration Tests
 测试模型训练的完整工作流
 """
 
-from decimal import Decimal
-from unittest.mock import AsyncMock
 
 import pytest
 
-from domain.entities.model import Model, ModelType, ModelStatus
+from domain.entities.model import Model, ModelStatus, ModelType
 
 
 @pytest.mark.asyncio
 async def test_train_model_integration(
-    train_model_use_case, sample_kline_data, mock_model_repository
+    train_model_use_case, sample_kline_data, mock_model_repository,
 ):
     """
     测试完整的模型训练流程
@@ -35,7 +33,7 @@ async def test_train_model_integration(
 
     # Act
     trained_model = await train_model_use_case.execute(
-        model=model, training_data=sample_kline_data
+        model=model, training_data=sample_kline_data,
     )
 
     # Assert
@@ -53,7 +51,7 @@ async def test_train_model_integration(
 
 @pytest.mark.asyncio
 async def test_train_multiple_models_integration(
-    train_model_use_case, sample_kline_data
+    train_model_use_case, sample_kline_data,
 ):
     """
     测试训练多个模型
@@ -67,10 +65,10 @@ async def test_train_multiple_models_integration(
     # Act
     for model_type in model_types:
         model = Model(
-            model_type=model_type, hyperparameters={"learning_rate": 0.01}
+            model_type=model_type, hyperparameters={"learning_rate": 0.01},
         )
         trained_model = await train_model_use_case.execute(
-            model=model, training_data=sample_kline_data
+            model=model, training_data=sample_kline_data,
         )
         trained_models.append(trained_model)
 
@@ -102,7 +100,7 @@ async def test_train_model_with_validation(mock_model_trainer, mock_model_reposi
 
     mock_model_trainer.train.side_effect = train_with_low_metrics
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
@@ -114,7 +112,7 @@ async def test_train_model_with_validation(mock_model_trainer, mock_model_reposi
 
 @pytest.mark.asyncio
 async def test_train_model_handles_trainer_error(
-    mock_model_trainer, mock_model_repository, sample_kline_data
+    mock_model_trainer, mock_model_repository, sample_kline_data,
 ):
     """
     测试处理训练器错误
@@ -126,7 +124,7 @@ async def test_train_model_handles_trainer_error(
 
     mock_model_trainer.train.side_effect = Exception("Training failed")
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
@@ -142,7 +140,7 @@ async def test_train_model_handles_trainer_error(
 
 @pytest.mark.asyncio
 async def test_train_model_repository_persistence(
-    mock_model_trainer, mock_model_repository, sample_kline_data
+    mock_model_trainer, mock_model_repository, sample_kline_data,
 ):
     """
     测试模型持久化
@@ -155,7 +153,7 @@ async def test_train_model_repository_persistence(
     from use_cases.model.train_model import TrainModelUseCase
 
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
@@ -179,7 +177,7 @@ async def test_train_model_repository_persistence(
 
 @pytest.mark.asyncio
 async def test_train_model_with_hyperparameter_tuning(
-    mock_model_trainer, mock_model_repository, sample_kline_data
+    mock_model_trainer, mock_model_repository, sample_kline_data,
 ):
     """
     测试超参数调优场景
@@ -190,7 +188,7 @@ async def test_train_model_with_hyperparameter_tuning(
     from use_cases.model.train_model import TrainModelUseCase
 
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     hyperparameter_sets = [
@@ -214,7 +212,7 @@ async def test_train_model_with_hyperparameter_tuning(
 
         model = Model(model_type=ModelType.LGBM, hyperparameters=hyperparams)
         trained_model = await use_case.execute(
-            model=model, training_data=sample_kline_data
+            model=model, training_data=sample_kline_data,
         )
         trained_models.append(trained_model)
 
@@ -229,7 +227,7 @@ async def test_train_model_with_hyperparameter_tuning(
 
 @pytest.mark.asyncio
 async def test_train_model_with_insufficient_data(
-    mock_model_trainer, mock_model_repository
+    mock_model_trainer, mock_model_repository,
 ):
     """
     测试训练数据不足的场景
@@ -241,7 +239,7 @@ async def test_train_model_with_insufficient_data(
 
     mock_model_trainer.train.side_effect = ValueError("Insufficient training data")
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
@@ -254,7 +252,7 @@ async def test_train_model_with_insufficient_data(
 
 @pytest.mark.asyncio
 async def test_train_model_state_transitions(
-    mock_model_trainer, mock_model_repository, sample_kline_data
+    mock_model_trainer, mock_model_repository, sample_kline_data,
 ):
     """
     测试模型状态转换
@@ -268,7 +266,7 @@ async def test_train_model_state_transitions(
     from use_cases.model.train_model import TrainModelUseCase
 
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
@@ -297,7 +295,7 @@ async def test_train_model_state_transitions(
 
 @pytest.mark.asyncio
 async def test_train_model_metrics_tracking(
-    mock_model_trainer, mock_model_repository, sample_kline_data
+    mock_model_trainer, mock_model_repository, sample_kline_data,
 ):
     """
     测试训练指标跟踪
@@ -320,7 +318,7 @@ async def test_train_model_metrics_tracking(
 
     mock_model_trainer.train.side_effect = train_with_full_metrics
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
@@ -330,4 +328,4 @@ async def test_train_model_metrics_tracking(
 
     # Assert
     assert trained_model.metrics == expected_metrics
-    assert all(metric in trained_model.metrics for metric in expected_metrics.keys())
+    assert all(metric in trained_model.metrics for metric in expected_metrics)

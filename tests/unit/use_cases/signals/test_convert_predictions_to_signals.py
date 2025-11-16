@@ -4,10 +4,11 @@ ConvertPredictionsToSignalsUseCase 单元测试
 测试 UC-004: Convert Predictions to Signals (预测转信号) 用例
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
+
+import pytest
 
 from domain.entities.prediction import Prediction, PredictionBatch
 from domain.entities.trading_signal import (
@@ -75,7 +76,7 @@ class TestConvertPredictionsSuccess:
 
         # Act: 执行用例
         result = await use_case.execute(
-            predictions=predictions, strategy_params=strategy_params
+            predictions=predictions, strategy_params=strategy_params,
         )
 
         # Assert: 验证结果
@@ -85,7 +86,7 @@ class TestConvertPredictionsSuccess:
 
         # 验证 converter 被正确调用
         converter_mock.convert_to_signals.assert_called_once_with(
-            predictions=predictions, strategy_params=strategy_params
+            predictions=predictions, strategy_params=strategy_params,
         )
 
     @pytest.mark.asyncio
@@ -147,7 +148,7 @@ class TestConvertPredictionsSuccess:
 
         # Act
         result = await use_case.execute(
-            predictions=predictions, strategy_params=strategy_params
+            predictions=predictions, strategy_params=strategy_params,
         )
 
         # Assert: 验证只返回 Top-2
@@ -200,7 +201,7 @@ class TestConvertPredictionsSuccess:
 
         # Act
         result = await use_case.execute(
-            predictions=predictions, strategy_params=strategy_params
+            predictions=predictions, strategy_params=strategy_params,
         )
 
         # Assert: 验证只返回高于阈值的信号
@@ -235,7 +236,7 @@ class TestConvertPredictionsValidation:
         converter_mock = AsyncMock(spec=ISignalConverter)
 
         predictions = PredictionBatch(
-            model_id="model-123", batch_date=datetime(2024, 1, 10), predictions=[]
+            model_id="model-123", batch_date=datetime(2024, 1, 10), predictions=[],
         )
 
         use_case = ConvertPredictionsToSignalsUseCase(converter=converter_mock)
@@ -259,7 +260,7 @@ class TestConvertPredictionsErrorHandling:
         converter_mock.convert_to_signals.side_effect = Exception("转换失败")
 
         predictions = PredictionBatch(
-            model_id="model-123", batch_date=datetime(2024, 1, 10), predictions=[]
+            model_id="model-123", batch_date=datetime(2024, 1, 10), predictions=[],
         )
 
         use_case = ConvertPredictionsToSignalsUseCase(converter=converter_mock)
@@ -285,7 +286,7 @@ class TestConvertPredictionsErrorHandling:
 
         # Mock converter 返回空信号批次
         mock_signal_batch = SignalBatch(
-            strategy_name="top_k", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="top_k", batch_date=datetime(2024, 1, 10), signals=[],
         )
         converter_mock.convert_to_signals.return_value = mock_signal_batch
 
@@ -293,7 +294,7 @@ class TestConvertPredictionsErrorHandling:
 
         # Act
         result = await use_case.execute(
-            predictions=predictions, strategy_params={"strategy_type": "top_k", "k": 5}
+            predictions=predictions, strategy_params={"strategy_type": "top_k", "k": 5},
         )
 
         # Assert: 空结果也是有效的

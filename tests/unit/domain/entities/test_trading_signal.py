@@ -4,15 +4,16 @@ TradingSignal Entity 和 SignalBatch Aggregate 单元测试
 测试 DR-006: TradingSignal (交易信号) 领域模型
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 
+import pytest
+
 from domain.entities.trading_signal import (
-    TradingSignal,
     SignalBatch,
-    SignalType,
     SignalStrength,
+    SignalType,
+    TradingSignal,
 )
 from domain.value_objects.stock_code import StockCode
 
@@ -59,7 +60,7 @@ class TestTradingSignalCreation:
                 stock_code=StockCode("sh600000"),
                 signal_date=datetime(2024, 1, 15),
                 signal_type=SignalType.BUY,
-                price=Decimal("0"),
+                price=Decimal(0),
             )
 
         with pytest.raises(ValueError, match="price must be > 0"):
@@ -425,7 +426,7 @@ class TestSignalBatchStringRepresentation:
     def test_batch_string_representation(self):
         """验证字符串表示"""
         batch = SignalBatch(
-            strategy_name="MA_Cross", batch_date=datetime(2024, 1, 15, 10, 30)
+            strategy_name="MA_Cross", batch_date=datetime(2024, 1, 15, 10, 30),
         )
 
         batch_str = str(batch)

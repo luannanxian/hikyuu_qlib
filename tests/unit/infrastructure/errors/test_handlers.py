@@ -5,14 +5,15 @@ Tests exception handling utilities:
 - Context manager for exception handling
 - Exception logging and reporting
 """
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 
 def test_handle_exception_basic():
     """Test basic exception handling."""
-    from src.infrastructure.errors.handlers import handle_exception
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.handlers import handle_exception
 
     exc = DataException("Test error", code="DATA_001")
 
@@ -38,8 +39,8 @@ def test_handle_exception_with_unknown_exception():
 
 def test_exception_context_manager():
     """Test exception context manager."""
-    from src.infrastructure.errors.handlers import exception_handler
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.handlers import exception_handler
 
     caught = False
     error_info = None
@@ -78,8 +79,8 @@ def test_exception_handler_with_callback():
 
 def test_exception_handler_decorator():
     """Test exception handler decorator."""
-    from src.infrastructure.errors.handlers import handle_exceptions
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.handlers import handle_exceptions
 
     @handle_exceptions()
     def failing_function():
@@ -92,8 +93,8 @@ def test_exception_handler_decorator():
 
 def test_exception_handler_decorator_with_reraise():
     """Test exception handler decorator with reraise option."""
-    from src.infrastructure.errors.handlers import handle_exceptions
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.handlers import handle_exceptions
 
     @handle_exceptions(reraise=True)
     def failing_function():
@@ -105,8 +106,8 @@ def test_exception_handler_decorator_with_reraise():
 
 def test_exception_handler_logs_exception():
     """Test that exception handler logs exceptions."""
-    from src.infrastructure.errors.handlers import handle_exception
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.handlers import handle_exception
 
     with patch("src.infrastructure.errors.handlers.logger") as mock_logger:
         exc = DataException("Test error", code="DATA_001")
@@ -117,8 +118,8 @@ def test_exception_handler_logs_exception():
 
 def test_chain_exception_handlers():
     """Test chaining multiple exception handlers."""
-    from src.infrastructure.errors.handlers import ChainedExceptionHandler
     from src.infrastructure.errors.exceptions import DataException, ModelException
+    from src.infrastructure.errors.handlers import ChainedExceptionHandler
 
     handler = ChainedExceptionHandler()
 

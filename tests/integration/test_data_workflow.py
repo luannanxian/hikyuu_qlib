@@ -6,19 +6,18 @@ Data Workflow Integration Tests
 
 from datetime import date, datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from domain.entities.kline_data import KLineData
-from domain.value_objects.stock_code import StockCode
-from domain.value_objects.kline_type import KLineType
 from domain.value_objects.date_range import DateRange
+from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 
 
 @pytest.mark.asyncio
 async def test_load_stock_data_integration(
-    load_stock_data_use_case, test_data_factory
+    load_stock_data_use_case, test_data_factory,
 ):
     """
     测试完整的数据加载流程
@@ -36,7 +35,7 @@ async def test_load_stock_data_integration(
 
     # Act
     result = await load_stock_data_use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=kline_type
+        stock_code=stock_code, date_range=date_range, kline_type=kline_type,
     )
 
     # Assert
@@ -66,19 +65,19 @@ async def test_load_stock_data_with_empty_result(mock_stock_data_provider):
 
     # Act
     result = await use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=kline_type
+        stock_code=stock_code, date_range=date_range, kline_type=kline_type,
     )
 
     # Assert
     assert result == []
     mock_stock_data_provider.load_stock_data.assert_called_once_with(
-        stock_code=stock_code, date_range=date_range, kline_type=kline_type
+        stock_code=stock_code, date_range=date_range, kline_type=kline_type,
     )
 
 
 @pytest.mark.asyncio
 async def test_load_stock_data_validates_data_quality(
-    mock_stock_data_provider, test_data_factory
+    mock_stock_data_provider, test_data_factory,
 ):
     """
     测试数据质量验证
@@ -101,7 +100,7 @@ async def test_load_stock_data_validates_data_quality(
 
     # Act
     result = await use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=kline_type
+        stock_code=stock_code, date_range=date_range, kline_type=kline_type,
     )
 
     # Assert - 验证数据质量
@@ -110,10 +109,10 @@ async def test_load_stock_data_validates_data_quality(
     # 验证价格数据
     for k in result:
         assert k.high >= k.low
-        assert k.open > Decimal("0")
-        assert k.close > Decimal("0")
+        assert k.open > Decimal(0)
+        assert k.close > Decimal(0)
         assert k.volume >= 0
-        assert k.amount >= Decimal("0")
+        assert k.amount >= Decimal(0)
 
 
 @pytest.mark.asyncio
@@ -127,7 +126,7 @@ async def test_load_stock_data_handles_provider_error(mock_stock_data_provider):
     from use_cases.data.load_stock_data import LoadStockDataUseCase
 
     mock_stock_data_provider.load_stock_data.side_effect = Exception(
-        "Data provider error"
+        "Data provider error",
     )
     use_case = LoadStockDataUseCase(provider=mock_stock_data_provider)
 
@@ -138,13 +137,13 @@ async def test_load_stock_data_handles_provider_error(mock_stock_data_provider):
     # Act & Assert
     with pytest.raises(Exception, match="Data provider error"):
         await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
 
 
 @pytest.mark.asyncio
 async def test_load_multiple_stocks_integration(
-    mock_stock_data_provider, test_data_factory
+    mock_stock_data_provider, test_data_factory,
 ):
     """
     测试加载多只股票数据
@@ -167,7 +166,7 @@ async def test_load_multiple_stocks_integration(
             test_data_factory.create_kline_data(stock_code=stock_code.value, count=10)
         )
         result = await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
         results.append(result)
 
@@ -180,7 +179,7 @@ async def test_load_multiple_stocks_integration(
 
 @pytest.mark.asyncio
 async def test_load_stock_data_with_different_kline_types(
-    mock_stock_data_provider, test_data_factory
+    mock_stock_data_provider, test_data_factory,
 ):
     """
     测试加载不同K线类型的数据
@@ -204,7 +203,7 @@ async def test_load_stock_data_with_different_kline_types(
             KLineData(
                 stock_code=StockCode("sh600000"),
                 timestamp=datetime.combine(
-                    date(2023, 1, 1) + timedelta(days=i), datetime.min.time()
+                    date(2023, 1, 1) + timedelta(days=i), datetime.min.time(),
                 ),
                 kline_type=kline_type,  # Set the requested type
                 open=Decimal("10.0"),
@@ -212,7 +211,7 @@ async def test_load_stock_data_with_different_kline_types(
                 low=Decimal("9.0"),
                 close=Decimal("10.5"),
                 volume=1000000,
-                amount=Decimal("10500000"),
+                amount=Decimal(10500000),
             )
             for i in range(10)
         ]
@@ -220,7 +219,7 @@ async def test_load_stock_data_with_different_kline_types(
         mock_stock_data_provider.load_stock_data.return_value = test_data
 
         result = await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
 
         assert len(result) > 0
@@ -229,7 +228,7 @@ async def test_load_stock_data_with_different_kline_types(
 
 @pytest.mark.asyncio
 async def test_load_stock_data_performance(
-    mock_stock_data_provider, test_data_factory
+    mock_stock_data_provider, test_data_factory,
 ):
     """
     测试数据加载性能
@@ -237,6 +236,7 @@ async def test_load_stock_data_performance(
     验证: 加载大量数据的性能
     """
     import time
+
     from use_cases.data.load_stock_data import LoadStockDataUseCase
 
     # Arrange
@@ -251,7 +251,7 @@ async def test_load_stock_data_performance(
     # Act
     start_time = time.time()
     result = await use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=kline_type
+        stock_code=stock_code, date_range=date_range, kline_type=kline_type,
     )
     elapsed = time.time() - start_time
 
@@ -278,11 +278,11 @@ async def test_load_stock_data_caching_behavior(mock_stock_data_provider):
     kline_type = KLineType.DAY
 
     # Act - 多次调用
-    result1 = await use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=kline_type
+    _result1 = await use_case.execute(
+        stock_code=stock_code, date_range=date_range, kline_type=kline_type,
     )
-    result2 = await use_case.execute(
-        stock_code=stock_code, date_range=date_range, kline_type=kline_type
+    _result2 = await use_case.execute(
+        stock_code=stock_code, date_range=date_range, kline_type=kline_type,
     )
 
     # Assert - 每次调用都会请求数据提供者（当前无缓存实现）

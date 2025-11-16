@@ -1,15 +1,16 @@
 """LoadConfigurationUseCase 和 SaveConfigurationUseCase 单元测试"""
 
-import pytest
 from decimal import Decimal
 from unittest.mock import AsyncMock
+
+import pytest
 
 from domain.ports.config_repository import IConfigRepository
 from domain.value_objects.configuration import (
     BacktestConfig,
+    Configuration,
     DataSourceConfig,
     ModelConfig,
-    Configuration,
 )
 from use_cases.config.load_configuration import LoadConfigurationUseCase
 from use_cases.config.save_configuration import SaveConfigurationUseCase
@@ -25,13 +26,13 @@ class TestLoadConfiguration:
         repository_mock = AsyncMock(spec=IConfigRepository)
 
         mock_data_source = DataSourceConfig(
-            hikyuu_path="./data/hikyuu", qlib_path="./data/qlib"
+            hikyuu_path="./data/hikyuu", qlib_path="./data/qlib",
         )
         mock_model = ModelConfig(
-            hyperparameters={"learning_rate": 0.01}, default_type="LGBM"
+            hyperparameters={"learning_rate": 0.01}, default_type="LGBM",
         )
         mock_backtest = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
             slippage_rate=Decimal("0.0001"),
         )
@@ -64,16 +65,16 @@ class TestSaveConfiguration:
         repository_mock = AsyncMock(spec=IConfigRepository)
 
         data_source = DataSourceConfig(
-            hikyuu_path="./data/hikyuu", qlib_path="./data/qlib"
+            hikyuu_path="./data/hikyuu", qlib_path="./data/qlib",
         )
         model = ModelConfig(hyperparameters={"learning_rate": 0.01}, default_type="LGBM")
         backtest = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
             slippage_rate=Decimal("0.0001"),
         )
         configuration = Configuration(
-            data_source=data_source, model=model, backtest=backtest
+            data_source=data_source, model=model, backtest=backtest,
         )
 
         use_case = SaveConfigurationUseCase(repository=repository_mock)
@@ -93,21 +94,21 @@ class TestSaveConfiguration:
         # Arrange
         repository_mock = AsyncMock(spec=IConfigRepository)
 
-        use_case = SaveConfigurationUseCase(repository=repository_mock)
+        _use_case = SaveConfigurationUseCase(repository=repository_mock)
 
         # Act & Assert: 无效配置应该在创建时失败
         with pytest.raises(ValueError):
             data_source = DataSourceConfig(
-                hikyuu_path="./data/hikyuu", qlib_path="./data/qlib"
+                hikyuu_path="./data/hikyuu", qlib_path="./data/qlib",
             )
             model = ModelConfig(
-                hyperparameters={"learning_rate": 0.01}, default_type="LGBM"
+                hyperparameters={"learning_rate": 0.01}, default_type="LGBM",
             )
             invalid_backtest = BacktestConfig(
-                initial_capital=Decimal("0"),  # Invalid
+                initial_capital=Decimal(0),  # Invalid
                 commission_rate=Decimal("0.0003"),
                 slippage_rate=Decimal("0.0001"),
             )
-            invalid_config = Configuration(
-                data_source=data_source, model=model, backtest=invalid_backtest
+            _invalid_config = Configuration(
+                data_source=data_source, model=model, backtest=invalid_backtest,
             )

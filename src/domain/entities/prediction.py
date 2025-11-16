@@ -7,8 +7,7 @@ Prediction Entity 和 PredictionBatch Aggregate
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from decimal import Decimal
-from typing import List, Optional
+
 import pandas as pd
 
 from domain.value_objects.stock_code import StockCode
@@ -35,7 +34,7 @@ class Prediction:
     timestamp: datetime  # 使用timestamp而非prediction_date
     predicted_value: float  # 使用float以兼容模型输出
     model_id: str  # 关联的模型ID
-    confidence: Optional[float] = None  # 可选的置信度
+    confidence: float | None = None  # 可选的置信度
 
     # 实体唯一标识
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -52,7 +51,7 @@ class Prediction:
         if self.confidence is not None:
             if not (0 <= self.confidence <= 1):
                 raise ValueError(
-                    f"confidence must be between 0 and 1, got confidence={self.confidence}"
+                    f"confidence must be between 0 and 1, got confidence={self.confidence}",
                 )
 
     def __eq__(self, other: object) -> bool:
@@ -98,7 +97,7 @@ class PredictionBatch:
     """
 
     model_id: str
-    predictions: List[Prediction] = field(default_factory=list)
+    predictions: list[Prediction] = field(default_factory=list)
     generated_at: datetime = field(default_factory=datetime.now)  # 使用generated_at
 
     # 聚合根唯一标识
@@ -122,17 +121,17 @@ class PredictionBatch:
         """
         # 检查是否已存在相同预测
         existing = self.get_prediction(
-            prediction.stock_code, prediction.timestamp
+            prediction.stock_code, prediction.timestamp,
         )
         if existing is not None:
             raise ValueError(
-                f"Prediction already exists for {prediction.stock_code.value} at {prediction.timestamp}"
+                f"Prediction already exists for {prediction.stock_code.value} at {prediction.timestamp}",
             )
 
         self.predictions.append(prediction)
 
     def remove_prediction(
-        self, stock_code: StockCode, timestamp: datetime
+        self, stock_code: StockCode, timestamp: datetime,
     ) -> None:
         """
         从批次移除预测
@@ -148,8 +147,8 @@ class PredictionBatch:
         ]
 
     def get_prediction(
-        self, stock_code: StockCode, timestamp: datetime
-    ) -> Optional[Prediction]:
+        self, stock_code: StockCode, timestamp: datetime,
+    ) -> Prediction | None:
         """
         根据股票代码和时间戳获取预测
 
@@ -177,7 +176,7 @@ class PredictionBatch:
         """
         return len(self.predictions)
 
-    def average_confidence(self) -> Optional[float]:
+    def average_confidence(self) -> float | None:
         """
         计算平均置信度
 
@@ -208,7 +207,7 @@ class PredictionBatch:
                 "predicted_value": pred.predicted_value,
                 "confidence": pred.confidence,
                 "model_id": pred.model_id,
-                "prediction_id": pred.id
+                "prediction_id": pred.id,
             })
 
         return pd.DataFrame(records)

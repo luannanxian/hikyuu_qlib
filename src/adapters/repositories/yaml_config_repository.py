@@ -4,16 +4,17 @@ YAMLConfigRepository - YAML 配置仓储
 使用 YAML 文件存储和读取配置,实现 IConfigRepository 接口
 """
 
-from pathlib import Path
 from decimal import Decimal
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any
+
 import yaml
 
 from domain.ports.config_repository import IConfigRepository
 from domain.value_objects.configuration import (
+    BacktestConfig,
     DataSourceConfig,
     ModelConfig,
-    BacktestConfig,
 )
 
 
@@ -32,9 +33,9 @@ class YAMLConfigRepository(IConfigRepository):
             config_path: YAML 配置文件路径
         """
         self.config_path = Path(config_path)
-        self._config_cache: Dict[str, Any] = {}
+        self._config_cache: dict[str, Any] = {}
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> dict[str, Any]:
         """
         从 YAML 文件加载配置
 
@@ -48,17 +49,17 @@ class YAMLConfigRepository(IConfigRepository):
             if not self.config_path.exists():
                 raise FileNotFoundError(f"Config file not found: {self.config_path}")
 
-            with open(self.config_path, "r", encoding="utf-8") as f:
+            with open(self.config_path, encoding="utf-8") as f:
                 config = yaml.safe_load(f)
 
             return config if config is not None else {}
 
         except Exception as e:
             raise Exception(
-                f"Failed to load config from {self.config_path}: {e}"
+                f"Failed to load config from {self.config_path}: {e}",
             ) from e
 
-    def _save_config(self, config: Dict[str, Any]) -> None:
+    def _save_config(self, config: dict[str, Any]) -> None:
         """
         保存配置到 YAML 文件
 

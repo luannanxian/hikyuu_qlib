@@ -12,10 +12,9 @@ import sys
 import uuid
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Optional
 
 # Context variable for trace ID
-_trace_id_var: ContextVar[Optional[str]] = ContextVar("trace_id", default=None)
+_trace_id_var: ContextVar[str | None] = ContextVar("trace_id", default=None)
 
 
 class TraceIDFilter(logging.Filter):
@@ -30,7 +29,7 @@ class TraceIDFilter(logging.Filter):
 def configure_logging(
     level: str = "INFO",
     format: str = "json",
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
     enable_console: bool = True,
 ) -> None:
     """Configure application logging.
@@ -104,7 +103,7 @@ def set_trace_id(trace_id: str) -> None:
     _trace_id_var.set(trace_id)
 
 
-def get_trace_id() -> Optional[str]:
+def get_trace_id() -> str | None:
     """Get the current trace ID.
 
     Returns:

@@ -5,7 +5,6 @@ UC-007: Manage Portfolio (管理投资组合)
 """
 
 from decimal import Decimal
-from typing import Dict
 
 from domain.entities.portfolio import Portfolio, Position
 from domain.value_objects.stock_code import StockCode
@@ -46,7 +45,7 @@ class ManagePortfolioUseCase:
         return portfolio
 
     async def remove_position(
-        self, portfolio: Portfolio, stock_code: StockCode
+        self, portfolio: Portfolio, stock_code: StockCode,
     ) -> Portfolio:
         """
         从组合移除持仓
@@ -63,7 +62,7 @@ class ManagePortfolioUseCase:
         return portfolio
 
     async def update_position_price(
-        self, portfolio: Portfolio, stock_code: StockCode, new_price: Decimal
+        self, portfolio: Portfolio, stock_code: StockCode, new_price: Decimal,
     ) -> Portfolio:
         """
         更新持仓价格
@@ -89,7 +88,7 @@ class ManagePortfolioUseCase:
 
         return portfolio
 
-    async def calculate_metrics(self, portfolio: Portfolio) -> Dict[str, Decimal]:
+    async def calculate_metrics(self, portfolio: Portfolio) -> dict[str, Decimal]:
         """
         计算组合指标
 

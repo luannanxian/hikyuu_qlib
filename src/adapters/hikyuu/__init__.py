@@ -9,7 +9,7 @@ from .indicator_calculator_adapter import IndicatorCalculatorAdapter
 __all__ = [
     "CustomSG_QlibFactor",
     "DynamicRebalanceSG",
-    "HikyuuDataAdapter",
     "HikyuuBacktestAdapter",
+    "HikyuuDataAdapter",
     "IndicatorCalculatorAdapter",
 ]

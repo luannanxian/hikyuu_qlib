@@ -9,8 +9,8 @@
 4. 能否成功加载K线数据
 """
 
+
 import hikyuu as hku
-from datetime import datetime
 
 
 def check_hikyuu_status():
@@ -37,7 +37,7 @@ def check_hikyuu_status():
     print(f"\n🏛️  可用市场: {markets}")
 
     # 3. 显示示例股票
-    print(f"\n📈 示例股票 (前10只):")
+    print("\n📈 示例股票 (前10只):")
     count = 0
     for stock in sm:
         if count >= 10:
@@ -77,7 +77,7 @@ def test_data_load():
         query = hku.Query(
             start=hku.Datetime(2024, 1, 1),
             end=hku.Datetime(2024, 1, 31),
-            ktype=hku.Query.DAY
+            ktype=hku.Query.DAY,
         )
 
         kdata = stock.get_kdata(query)
@@ -85,7 +85,7 @@ def test_data_load():
 
         if len(kdata) > 0:
             first = kdata[0]
-            print(f"\n第一条数据:")
+            print("\n第一条数据:")
             print(f"  日期: {first.datetime}")
             print(f"  开盘: {first.openPrice}")
             print(f"  最高: {first.highPrice}")
@@ -127,20 +127,20 @@ def test_cli_integration():
 
     if stock:
         code = f"{stock.market_code.lower()}{stock.code}"
-        print(f"\n✅ 可以测试的CLI命令:")
-        print(f"\n1. 加载数据:")
-        print(f"PYTHONPATH=src python -m controllers.cli.main data load \\")
+        print("\n✅ 可以测试的CLI命令:")
+        print("\n1. 加载数据:")
+        print("PYTHONPATH=src python -m controllers.cli.main data load \\")
         print(f"  --code {code} \\")
-        print(f"  --start 2024-01-01 \\")
-        print(f"  --end 2024-01-31 \\")
-        print(f"  --kline-type DAY")
+        print("  --start 2024-01-01 \\")
+        print("  --end 2024-01-31 \\")
+        print("  --kline-type DAY")
 
-        print(f"\n2. 使用便捷脚本:")
-        print(f"./run_cli.sh data load \\")
+        print("\n2. 使用便捷脚本:")
+        print("./run_cli.sh data load \\")
         print(f"  --code {code} \\")
-        print(f"  --start 2024-01-01 \\")
-        print(f"  --end 2024-01-31 \\")
-        print(f"  --kline-type DAY")
+        print("  --start 2024-01-01 \\")
+        print("  --end 2024-01-31 \\")
+        print("  --kline-type DAY")
 
 
 if __name__ == "__main__":

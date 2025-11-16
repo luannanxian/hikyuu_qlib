@@ -4,9 +4,10 @@ GenerateTopKSignalsUseCase 单元测试
 测试 UC-TOPK: Generate Top-K Trading Signals (从Qlib预测生成Top-K交易信号) 用例
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import Mock
+
+import pytest
 
 from domain.entities.prediction import Prediction, PredictionBatch
 from domain.entities.trading_signal import (
@@ -19,7 +20,6 @@ from domain.ports.signal_provider import ISignalProvider
 from domain.value_objects.stock_code import StockCode
 from use_cases.strategies.generate_topk_signals import (
     GenerateTopKSignalsRequest,
-    GenerateTopKSignalsResponse,
     GenerateTopKSignalsUseCase,
 )
 
@@ -228,7 +228,7 @@ class TestGenerateTopKSignalsRequestValidation:
     def test_request_validates_top_k_positive(self):
         """测试top_k必须为正数"""
         prediction_batch = PredictionBatch(
-            model_id="qlib_model", predictions=[], generated_at=datetime(2024, 1, 10)
+            model_id="qlib_model", predictions=[], generated_at=datetime(2024, 1, 10),
         )
 
         # Act & Assert: top_k <= 0 应该抛出异常
@@ -247,12 +247,12 @@ class TestGenerateTopKSignalsRequestValidation:
     def test_request_validates_thresholds(self):
         """测试买入阈值必须大于卖出阈值"""
         prediction_batch = PredictionBatch(
-            model_id="qlib_model", predictions=[], generated_at=datetime(2024, 1, 10)
+            model_id="qlib_model", predictions=[], generated_at=datetime(2024, 1, 10),
         )
 
         # Act & Assert: buy_threshold <= sell_threshold 应该抛出异常
         with pytest.raises(
-            ValueError, match="buy_threshold must be > sell_threshold"
+            ValueError, match="buy_threshold must be > sell_threshold",
         ):
             GenerateTopKSignalsRequest(
                 prediction_batch=prediction_batch,
@@ -261,7 +261,7 @@ class TestGenerateTopKSignalsRequestValidation:
             )
 
         with pytest.raises(
-            ValueError, match="buy_threshold must be > sell_threshold"
+            ValueError, match="buy_threshold must be > sell_threshold",
         ):
             GenerateTopKSignalsRequest(
                 prediction_batch=prediction_batch,
@@ -281,7 +281,7 @@ class TestGenerateTopKSignalsErrorHandling:
 
         # 空预测批次
         prediction_batch = PredictionBatch(
-            model_id="qlib_model", predictions=[], generated_at=datetime(2024, 1, 10)
+            model_id="qlib_model", predictions=[], generated_at=datetime(2024, 1, 10),
         )
 
         use_case = GenerateTopKSignalsUseCase(signal_provider=signal_provider_mock)
@@ -306,7 +306,7 @@ class TestGenerateTopKSignalsErrorHandling:
         # Arrange: Mock signal_provider 抛出异常
         signal_provider_mock = Mock(spec=ISignalProvider)
         signal_provider_mock.generate_signals_from_predictions.side_effect = Exception(
-            "Signal generation failed"
+            "Signal generation failed",
         )
 
         prediction_batch = PredictionBatch(
@@ -317,7 +317,7 @@ class TestGenerateTopKSignalsErrorHandling:
                     timestamp=datetime(2024, 1, 10),
                     predicted_value=0.05,
                     model_id="qlib_model",
-                )
+                ),
             ],
             generated_at=datetime(2024, 1, 10),
         )
@@ -341,7 +341,7 @@ class TestGenerateTopKSignalsErrorHandling:
         # Arrange: Mock signal_provider 抛出ValueError
         signal_provider_mock = Mock(spec=ISignalProvider)
         signal_provider_mock.generate_signals_from_predictions.side_effect = ValueError(
-            "Invalid threshold"
+            "Invalid threshold",
         )
 
         prediction_batch = PredictionBatch(
@@ -352,7 +352,7 @@ class TestGenerateTopKSignalsErrorHandling:
                     timestamp=datetime(2024, 1, 10),
                     predicted_value=0.05,
                     model_id="qlib_model",
-                )
+                ),
             ],
             generated_at=datetime(2024, 1, 10),
         )
@@ -389,7 +389,7 @@ class TestGenerateTopKSignalsStrategyName:
                     timestamp=datetime(2024, 1, 10),
                     predicted_value=0.05,
                     model_id="qlib_model",
-                )
+                ),
             ],
             generated_at=datetime(2024, 1, 10),
         )
@@ -403,7 +403,7 @@ class TestGenerateTopKSignalsStrategyName:
                     stock_code=StockCode("sh600000"),
                     signal_date=datetime(2024, 1, 10),
                     signal_type=SignalType.BUY,
-                )
+                ),
             ],
         )
         signal_provider_mock.generate_signals_from_predictions.return_value = (
@@ -414,7 +414,7 @@ class TestGenerateTopKSignalsStrategyName:
 
         # 使用自定义策略名称
         request = GenerateTopKSignalsRequest(
-            prediction_batch=prediction_batch, strategy_name="MyCustomStrategy"
+            prediction_batch=prediction_batch, strategy_name="MyCustomStrategy",
         )
 
         # Act

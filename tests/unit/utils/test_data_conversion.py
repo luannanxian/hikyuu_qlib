@@ -9,16 +9,16 @@ import pandas as pd
 import pytest
 
 from domain.entities.kline_data import KLineData
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 from utils.data_conversion import (
-    convert_kline_to_training_data,
-    kline_data_to_dataframe,
     add_technical_indicators,
     add_training_labels,
+    convert_kline_to_training_data,
+    kline_data_to_dataframe,
     load_from_file,
-    save_to_file,
     prepare_features_and_labels,
+    save_to_file,
 )
 
 
@@ -39,7 +39,7 @@ def sample_kline_data():
             low=Decimal("29.0") + Decimal(str(i * 0.1)),
             close=Decimal("30.5") + Decimal(str(i * 0.1)),
             volume=1000000 + i * 10000,
-            amount=Decimal("30500000") + Decimal(str(i * 100000)),
+            amount=Decimal(30500000) + Decimal(str(i * 100000)),
         )
         data.append(kline)
     return data
@@ -171,7 +171,7 @@ class TestConvertKlineToTrainingData:
     def test_basic_conversion(self, sample_kline_data):
         """Test basic conversion without features or labels."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=False, add_labels=False
+            sample_kline_data, add_features=False, add_labels=False,
         )
 
         assert len(df) > 0
@@ -180,7 +180,7 @@ class TestConvertKlineToTrainingData:
     def test_with_features(self, sample_kline_data):
         """Test conversion with technical indicators."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=True, add_labels=False
+            sample_kline_data, add_features=True, add_labels=False,
         )
 
         assert "ma5" in df.columns
@@ -189,7 +189,7 @@ class TestConvertKlineToTrainingData:
     def test_with_labels(self, sample_kline_data):
         """Test conversion with training labels."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=False, add_labels=True
+            sample_kline_data, add_features=False, add_labels=True,
         )
 
         assert "label_return" in df.columns
@@ -198,7 +198,7 @@ class TestConvertKlineToTrainingData:
     def test_with_features_and_labels(self, sample_kline_data):
         """Test full conversion with both features and labels."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=True, add_labels=True
+            sample_kline_data, add_features=True, add_labels=True,
         )
 
         assert len(df) > 0
@@ -208,7 +208,7 @@ class TestConvertKlineToTrainingData:
     def test_nan_removal(self, sample_kline_data):
         """Test that NaN values are removed."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=True, add_labels=True
+            sample_kline_data, add_features=True, add_labels=True,
         )
 
         # Should have fewer rows due to NaN removal from indicators
@@ -275,7 +275,7 @@ class TestPrepareFeaturesAndLabels:
     def test_automatic_feature_selection(self, sample_kline_data):
         """Test automatic feature column selection."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=True, add_labels=True
+            sample_kline_data, add_features=True, add_labels=True,
         )
 
         X, y = prepare_features_and_labels(df)
@@ -292,7 +292,7 @@ class TestPrepareFeaturesAndLabels:
     def test_manual_feature_selection(self, sample_kline_data):
         """Test manual feature column selection."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=True, add_labels=True
+            sample_kline_data, add_features=True, add_labels=True,
         )
 
         feature_cols = ["close", "volume", "ma5"]
@@ -303,7 +303,7 @@ class TestPrepareFeaturesAndLabels:
     def test_label_selection(self, sample_kline_data):
         """Test different label column selection."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=True, add_labels=True
+            sample_kline_data, add_features=True, add_labels=True,
         )
 
         X, y_return = prepare_features_and_labels(df, label_col="label_return")
@@ -316,7 +316,7 @@ class TestPrepareFeaturesAndLabels:
     def test_output_types(self, sample_kline_data):
         """Test output types."""
         df = convert_kline_to_training_data(
-            sample_kline_data, add_features=True, add_labels=True
+            sample_kline_data, add_features=True, add_labels=True,
         )
 
         X, y = prepare_features_and_labels(df)

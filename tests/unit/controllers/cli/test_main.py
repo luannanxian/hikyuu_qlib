@@ -7,7 +7,6 @@ Tests:
 - Help messages
 """
 
-import pytest
 from click.testing import CliRunner
 
 from controllers.cli.main import cli

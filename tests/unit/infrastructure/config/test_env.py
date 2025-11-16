@@ -154,8 +154,9 @@ def test_get_all_env_with_prefix():
 
 def test_load_env_file():
     """Test loading environment variables from .env file."""
-    from src.infrastructure.config.env import load_env_file
     import tempfile
+
+    from src.infrastructure.config.env import load_env_file
 
     env_content = """
 APP_NAME=Test App
@@ -191,7 +192,7 @@ def test_env_to_settings_dict():
 
     try:
         settings_dict = env_to_settings_dict(
-            prefix="", keys=["APP_NAME", "LOG_LEVEL", "PORT"]
+            prefix="", keys=["APP_NAME", "LOG_LEVEL", "PORT"],
         )
 
         assert settings_dict["APP_NAME"] == "Test App"

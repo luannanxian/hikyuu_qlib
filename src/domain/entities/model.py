@@ -8,7 +8,6 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Optional
 
 
 class ModelType(str, Enum):
@@ -49,11 +48,11 @@ class Model:
     """
 
     model_type: ModelType
-    hyperparameters: Dict[str, any]
-    training_date: Optional[datetime] = None
-    metrics: Dict[str, float] = field(default_factory=dict)
+    hyperparameters: dict[str, any]
+    training_date: datetime | None = None
+    metrics: dict[str, float] = field(default_factory=dict)
     status: ModelStatus = ModelStatus.UNTRAINED
-    file_path: Optional[str] = None
+    file_path: str | None = None
 
     # 实体唯一标识
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -76,7 +75,7 @@ class Model:
         """
         return self.status == ModelStatus.DEPLOYED
 
-    def update_metrics(self, metrics: Dict[str, float]) -> None:
+    def update_metrics(self, metrics: dict[str, float]) -> None:
         """
         更新模型评估指标
 
@@ -86,7 +85,7 @@ class Model:
         self.metrics = metrics
 
     def mark_as_trained(
-        self, metrics: Dict[str, float], threshold: float = 0.3
+        self, metrics: dict[str, float], threshold: float = 0.3,
     ) -> None:
         """
         标记模型为已训练状态
@@ -102,7 +101,7 @@ class Model:
         if not self.validate_metrics(metrics, threshold):
             raise ValueError(
                 f"Model metrics below threshold. Required: {threshold}, "
-                f"got: {metrics}"
+                f"got: {metrics}",
             )
 
         self.status = ModelStatus.TRAINED
@@ -110,7 +109,7 @@ class Model:
         self.training_date = datetime.now()
 
     def validate_metrics(
-        self, metrics: Dict[str, float], threshold: float = 0.5
+        self, metrics: dict[str, float], threshold: float = 0.5,
     ) -> bool:
         """
         验证模型指标是否达标
@@ -148,7 +147,7 @@ class Model:
         return self.status in [ModelStatus.TRAINED, ModelStatus.DEPLOYED]
 
     @property
-    def trained_at(self) -> Optional[datetime]:
+    def trained_at(self) -> datetime | None:
         """
         获取训练时间 (training_date 的别名)
 

@@ -8,11 +8,9 @@ Provides validation functions for:
 - Numeric values
 """
 
-import os
 import re
 from datetime import date, datetime
 from pathlib import Path
-from typing import Union
 
 
 def validate_date(date_str: str) -> date:
@@ -32,7 +30,7 @@ def validate_date(date_str: str) -> date:
         return datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError as e:
         raise ValueError(
-            f"Invalid date format: {date_str}. Expected format: YYYY-MM-DD"
+            f"Invalid date format: {date_str}. Expected format: YYYY-MM-DD",
         ) from e
 
 
@@ -56,13 +54,13 @@ def validate_stock_code(code: str) -> str:
     if not re.match(pattern, code):
         raise ValueError(
             f"Invalid stock code format: {code}. "
-            f"Expected format: sh/sz followed by 6 digits (e.g., sh600000)"
+            f"Expected format: sh/sz followed by 6 digits (e.g., sh600000)",
         )
 
     # Check market prefix
     if not code.startswith(("sh", "sz")):
         raise ValueError(
-            f"Invalid stock code: {code}. Stock code must start with 'sh' or 'sz'"
+            f"Invalid stock code: {code}. Stock code must start with 'sh' or 'sz'",
         )
 
     return code
@@ -183,7 +181,7 @@ def validate_model_type(model_type: str) -> str:
     if model_type_upper not in valid_types:
         raise ValueError(
             f"Invalid model type: {model_type}. "
-            f"Supported types: LGBM, MLP, LSTM, GRU, TRANSFORMER"
+            f"Supported types: LGBM, MLP, LSTM, GRU, TRANSFORMER",
         )
 
     return model_type_upper

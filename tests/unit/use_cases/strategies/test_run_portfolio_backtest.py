@@ -4,17 +4,15 @@ RunPortfolioBacktestUseCase 单元测试
 测试 UC-PORTFOLIO-BT: Run Portfolio Backtest (运行Hikyuu投资组合回测) 用例
 """
 
-import pytest
 import pickle
-import tempfile
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
-from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock
+
 import pandas as pd
+import pytest
 
 from domain.entities.backtest import BacktestResult, Trade
-from domain.entities.prediction import PredictionBatch
 from domain.entities.trading_signal import SignalBatch, SignalType, TradingSignal
 from domain.ports.backtest_engine import IBacktestEngine
 from domain.ports.signal_provider import ISignalProvider
@@ -23,7 +21,6 @@ from domain.value_objects.rebalance_period import RebalancePeriod
 from domain.value_objects.stock_code import StockCode
 from use_cases.strategies.run_portfolio_backtest import (
     RunPortfolioBacktestRequest,
-    RunPortfolioBacktestResponse,
     RunPortfolioBacktestUseCase,
 )
 
@@ -46,7 +43,7 @@ class TestRunPortfolioBacktestSuccess:
                 "predicted_value": [0.08, 0.05, 0.03],
                 "model_id": ["qlib_model"] * 3,
                 "confidence": [0.9, 0.85, 0.8],
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -79,8 +76,8 @@ class TestRunPortfolioBacktestSuccess:
             strategy_name="QlibTopK",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("1000000"),
-            final_capital=Decimal("1200000"),
+            initial_capital=Decimal(1000000),
+            final_capital=Decimal(1200000),
             trades=[
                 Trade(
                     stock_code=StockCode("sh600000"),
@@ -88,12 +85,12 @@ class TestRunPortfolioBacktestSuccess:
                     quantity=1000,
                     price=Decimal("10.5"),
                     trade_date=datetime(2024, 1, 10),
-                )
+                ),
             ],
             equity_curve=[
-                Decimal("1000000"),
-                Decimal("1100000"),
-                Decimal("1200000"),
+                Decimal(1000000),
+                Decimal(1100000),
+                Decimal(1200000),
             ],
         )
         backtest_engine_mock.run_backtest.return_value = mock_backtest_result
@@ -152,7 +149,7 @@ class TestRunPortfolioBacktestSuccess:
                 "timestamp": [datetime(2024, 1, 10)] * 5,
                 "predicted_value": [0.05] * 5,
                 "model_id": ["qlib_model"] * 5,
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -160,7 +157,7 @@ class TestRunPortfolioBacktestSuccess:
             pickle.dump(pred_data, f)
 
         mock_signal_batch = SignalBatch(
-            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[],
         )
         signal_provider_mock.generate_signals_from_predictions.return_value = (
             mock_signal_batch
@@ -170,8 +167,8 @@ class TestRunPortfolioBacktestSuccess:
             strategy_name="QlibTopK",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("1000000"),
-            final_capital=Decimal("1000000"),
+            initial_capital=Decimal(1000000),
+            final_capital=Decimal(1000000),
         )
         backtest_engine_mock.run_backtest.return_value = mock_backtest_result
 
@@ -213,7 +210,7 @@ class TestRunPortfolioBacktestSuccess:
                 "timestamp": [datetime(2024, 1, 10)] * 4,
                 "predicted_value": [0.08, 0.05, 0.03, 0.02],
                 "model_id": ["qlib_model"] * 4,
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -227,7 +224,7 @@ class TestRunPortfolioBacktestSuccess:
             nonlocal captured_batch
             captured_batch = prediction_batch
             return SignalBatch(
-                strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[]
+                strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[],
             )
 
         signal_provider_mock.generate_signals_from_predictions.side_effect = (
@@ -238,8 +235,8 @@ class TestRunPortfolioBacktestSuccess:
             strategy_name="QlibTopK",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("1000000"),
-            final_capital=Decimal("1000000"),
+            initial_capital=Decimal(1000000),
+            final_capital=Decimal(1000000),
         )
         backtest_engine_mock.run_backtest.return_value = mock_backtest_result
 
@@ -368,7 +365,7 @@ class TestRunPortfolioBacktestErrorHandling:
                 "timestamp": [datetime(2024, 1, 10)] * 2,
                 "predicted_value": [0.05, 0.03],
                 "model_id": ["qlib_model"] * 2,
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -446,7 +443,7 @@ class TestRunPortfolioBacktestErrorHandling:
                 "timestamp": [datetime(2024, 1, 10)],
                 "predicted_value": [0.05],
                 "model_id": ["qlib_model"],
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -455,7 +452,7 @@ class TestRunPortfolioBacktestErrorHandling:
 
         # Mock signal_provider 抛出异常
         signal_provider_mock.generate_signals_from_predictions.side_effect = Exception(
-            "Signal generation failed"
+            "Signal generation failed",
         )
 
         use_case = RunPortfolioBacktestUseCase(
@@ -494,7 +491,7 @@ class TestRunPortfolioBacktestErrorHandling:
                 "timestamp": [datetime(2024, 1, 10)],
                 "predicted_value": [0.05],
                 "model_id": ["qlib_model"],
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -502,7 +499,7 @@ class TestRunPortfolioBacktestErrorHandling:
             pickle.dump(pred_data, f)
 
         mock_signal_batch = SignalBatch(
-            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[],
         )
         signal_provider_mock.generate_signals_from_predictions.return_value = (
             mock_signal_batch
@@ -510,7 +507,7 @@ class TestRunPortfolioBacktestErrorHandling:
 
         # Mock backtest_engine 抛出异常
         backtest_engine_mock.run_backtest.side_effect = Exception(
-            "Backtest engine error"
+            "Backtest engine error",
         )
 
         use_case = RunPortfolioBacktestUseCase(
@@ -552,7 +549,7 @@ class TestRunPortfolioBacktestRebalancePeriods:
                 "timestamp": [datetime(2024, 1, 10)],
                 "predicted_value": [0.05],
                 "model_id": ["qlib_model"],
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -560,7 +557,7 @@ class TestRunPortfolioBacktestRebalancePeriods:
             pickle.dump(pred_data, f)
 
         mock_signal_batch = SignalBatch(
-            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[],
         )
         signal_provider_mock.generate_signals_from_predictions.return_value = (
             mock_signal_batch
@@ -570,8 +567,8 @@ class TestRunPortfolioBacktestRebalancePeriods:
             strategy_name="QlibTopK",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("1000000"),
-            final_capital=Decimal("1100000"),
+            initial_capital=Decimal(1000000),
+            final_capital=Decimal(1100000),
         )
         backtest_engine_mock.run_backtest.return_value = mock_backtest_result
 
@@ -610,7 +607,7 @@ class TestRunPortfolioBacktestRebalancePeriods:
                 "timestamp": [datetime(2024, 1, 10)],
                 "predicted_value": [0.05],
                 "model_id": ["qlib_model"],
-            }
+            },
         )
 
         pred_pkl_path = tmp_path / "predictions.pkl"
@@ -618,7 +615,7 @@ class TestRunPortfolioBacktestRebalancePeriods:
             pickle.dump(pred_data, f)
 
         mock_signal_batch = SignalBatch(
-            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="QlibTopK", batch_date=datetime(2024, 1, 10), signals=[],
         )
         signal_provider_mock.generate_signals_from_predictions.return_value = (
             mock_signal_batch
@@ -628,8 +625,8 @@ class TestRunPortfolioBacktestRebalancePeriods:
             strategy_name="QlibTopK",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("1000000"),
-            final_capital=Decimal("1050000"),
+            initial_capital=Decimal(1000000),
+            final_capital=Decimal(1050000),
         )
         backtest_engine_mock.run_backtest.return_value = mock_backtest_result
 

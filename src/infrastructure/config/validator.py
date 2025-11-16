@@ -7,7 +7,8 @@ This module provides utilities for validating configuration:
 - Custom validation rules
 """
 import os
-from typing import Any, Callable, Dict, List, Type
+from typing import Any
+from collections.abc import Callable
 from urllib.parse import urlparse
 
 from ..errors import ConfigurationException
@@ -15,7 +16,7 @@ from .settings import Settings
 
 
 def validate_required_fields(
-    config: Dict[str, Any], required_fields: List[str]
+    config: dict[str, Any], required_fields: list[str],
 ) -> None:
     """Validate that required fields are present in configuration.
 
@@ -36,7 +37,7 @@ def validate_required_fields(
         )
 
 
-def validate_field_type(value: Any, expected_type: Type) -> bool:
+def validate_field_type(value: Any, expected_type: type) -> bool:
     """Validate that a value matches the expected type.
 
     Args:
@@ -49,7 +50,7 @@ def validate_field_type(value: Any, expected_type: Type) -> bool:
     return isinstance(value, expected_type)
 
 
-def validate_config_types(config: Dict[str, Any], type_specs: Dict[str, Type]) -> None:
+def validate_config_types(config: dict[str, Any], type_specs: dict[str, type]) -> None:
     """Validate types for all configuration fields.
 
     Args:
@@ -67,7 +68,7 @@ def validate_config_types(config: Dict[str, Any], type_specs: Dict[str, Type]) -
             if not isinstance(value, expected_type):
                 errors.append(
                     f"{field}: expected {expected_type.__name__}, "
-                    f"got {type(value).__name__}"
+                    f"got {type(value).__name__}",
                 )
 
     if errors:
@@ -109,7 +110,7 @@ def validate_value_range(value: float, min_val: float, max_val: float) -> bool:
     return min_val <= value <= max_val
 
 
-def validate_enum_value(value: str, valid_values: List[str]) -> bool:
+def validate_enum_value(value: str, valid_values: list[str]) -> bool:
     """Validate that a value is one of the allowed values.
 
     Args:
@@ -186,7 +187,7 @@ class ConfigValidator:
 
     def __init__(self):
         """Initialize validator."""
-        self.rules: Dict[str, Callable[[Any], bool]] = {}
+        self.rules: dict[str, Callable[[Any], bool]] = {}
 
     def add_rule(self, name: str, rule: Callable[[Any], bool]) -> None:
         """Add a validation rule.
@@ -215,7 +216,7 @@ class ConfigValidator:
         except Exception:
             return False
 
-    def validate_config(self, config: Dict[str, Any]) -> None:
+    def validate_config(self, config: dict[str, Any]) -> None:
         """Validate an entire configuration dictionary.
 
         Args:

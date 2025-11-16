@@ -5,9 +5,6 @@ in your use cases and adapters.
 """
 import asyncio
 
-# 1. Configuration Management
-from src.infrastructure.config import Settings
-
 # 2. Logging
 from src.infrastructure.app_logging import (
     configure_logging,
@@ -15,6 +12,9 @@ from src.infrastructure.app_logging import (
     get_logger,
     set_trace_id,
 )
+
+# 1. Configuration Management
+from src.infrastructure.config import Settings
 
 # 3. Error Handling
 from src.infrastructure.errors import (

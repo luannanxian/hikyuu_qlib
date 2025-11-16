@@ -6,9 +6,8 @@ Tests:
 - config set command
 """
 
-import pytest
+
 from click.testing import CliRunner
-from unittest.mock import Mock, patch
 
 from controllers.cli.commands.config import config_group
 

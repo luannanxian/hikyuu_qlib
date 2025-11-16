@@ -6,7 +6,8 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import yaml
 
 
@@ -16,10 +17,10 @@ class DataConfig:
     source: str = "hikyuu"
     hikyuu_config: str = "config/hikyuu.ini"
     default_kline_type: str = "DAY"
-    cache: Dict[str, Any] = field(default_factory=lambda: {
+    cache: dict[str, Any] = field(default_factory=lambda: {
         "enabled": True,
         "directory": "data/cache",
-        "max_size_gb": 10
+        "max_size_gb": 10,
     })
 
 
@@ -27,29 +28,29 @@ class DataConfig:
 class TrainingConfig:
     """训练配置"""
     model_type: str = "LGBM"
-    hyperparameters: Dict[str, Any] = field(default_factory=dict)
-    data: Dict[str, Any] = field(default_factory=lambda: {
+    hyperparameters: dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=lambda: {
         "test_size": 0.2,
         "time_series_split": True,
-        "label_horizon": 1
+        "label_horizon": 1,
     })
-    features: Dict[str, Any] = field(default_factory=lambda: {
+    features: dict[str, Any] = field(default_factory=lambda: {
         "add_technical_indicators": True,
         "technical_indicators": {
             "ma_windows": [5, 10, 20, 60],
             "return_periods": [1, 5, 10],
             "volatility_window": 20,
             "volume_ma_window": 5,
-            "price_position_window": 20
-        }
+            "price_position_window": 20,
+        },
     })
-    validation: Dict[str, Any] = field(default_factory=lambda: {
+    validation: dict[str, Any] = field(default_factory=lambda: {
         "metrics_threshold": {
             "single_stock_r2": 0.3,
             "multi_stock_r2": 0.1,
-            "max_training_time": 3600
+            "max_training_time": 3600,
         },
-        "adaptive_threshold": True
+        "adaptive_threshold": True,
     })
 
 
@@ -67,15 +68,15 @@ class SignalConfig:
     """信号转换配置"""
     output_dir: str = "signals"
     output_format: str = "csv"
-    strategy: Dict[str, Any] = field(default_factory=lambda: {
+    strategy: dict[str, Any] = field(default_factory=lambda: {
         "method": "top_k",
         "top_k": 30,
         "threshold": 0.05,
-        "percentile": 0.2
+        "percentile": 0.2,
     })
-    strength_mapping: Dict[str, Any] = field(default_factory=lambda: {
+    strength_mapping: dict[str, Any] = field(default_factory=lambda: {
         "method": "linear",
-        "normalize": True
+        "normalize": True,
     })
 
 
@@ -84,25 +85,25 @@ class BacktestConfig:
     """回测配置"""
     engine: str = "hikyuu"
     initial_cash: float = 1000000
-    commission: Dict[str, Any] = field(default_factory=lambda: {
+    commission: dict[str, Any] = field(default_factory=lambda: {
         "rate": 0.0003,
-        "min_commission": 5
+        "min_commission": 5,
     })
     slippage: float = 0.001
-    position: Dict[str, Any] = field(default_factory=lambda: {
+    position: dict[str, Any] = field(default_factory=lambda: {
         "max_stocks": 30,
         "max_position_per_stock": 0.1,
-        "total_position_ratio": 0.95
+        "total_position_ratio": 0.95,
     })
-    risk_control: Dict[str, Any] = field(default_factory=lambda: {
+    risk_control: dict[str, Any] = field(default_factory=lambda: {
         "stop_loss": 0.1,
         "stop_profit": 0.3,
-        "max_drawdown": 0.2
+        "max_drawdown": 0.2,
     })
-    output: Dict[str, Any] = field(default_factory=lambda: {
+    output: dict[str, Any] = field(default_factory=lambda: {
         "directory": "backtest_results",
         "generate_charts": True,
-        "chart_format": "png"
+        "chart_format": "png",
     })
 
 
@@ -112,12 +113,12 @@ class ExperimentConfig:
     enabled: bool = True
     directory: str = "experiments"
     name_template: str = "{model_type}_{timestamp}"
-    auto_log: List[str] = field(default_factory=lambda: [
+    auto_log: list[str] = field(default_factory=lambda: [
         "hyperparameters",
         "metrics",
         "predictions",
         "feature_importance",
-        "training_data_stats"
+        "training_data_stats",
     ])
 
 
@@ -129,9 +130,9 @@ class LoggingConfig:
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     console: bool = True
     file: bool = True
-    rotation: Dict[str, Any] = field(default_factory=lambda: {
+    rotation: dict[str, Any] = field(default_factory=lambda: {
         "max_bytes": 10485760,
-        "backup_count": 5
+        "backup_count": 5,
     })
 
 
@@ -147,10 +148,10 @@ class UnifiedConfig:
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
     # 额外的原始配置数据（用于访问预设和场景）
-    _raw_config: Dict[str, Any] = field(default_factory=dict, repr=False)
+    _raw_config: dict[str, Any] = field(default_factory=dict, repr=False)
 
     @classmethod
-    def from_yaml(cls, config_path: str, preset: Optional[str] = None) -> "UnifiedConfig":
+    def from_yaml(cls, config_path: str, preset: str | None = None) -> "UnifiedConfig":
         """
         从YAML文件加载配置
 
@@ -165,7 +166,7 @@ class UnifiedConfig:
         if not config_file.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-        with open(config_file, 'r', encoding='utf-8') as f:
+        with open(config_file, encoding='utf-8') as f:
             raw_config = yaml.safe_load(f)
 
         # 如果指定了预设，合并预设配置
@@ -182,13 +183,13 @@ class UnifiedConfig:
             backtest=cls._create_backtest_config(raw_config.get("backtest", {})),
             experiment=cls._create_experiment_config(raw_config.get("experiment", {})),
             logging=cls._create_logging_config(raw_config.get("logging", {})),
-            _raw_config=raw_config
+            _raw_config=raw_config,
         )
 
         return config
 
     @staticmethod
-    def _merge_configs(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    def _merge_configs(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
         """
         深度合并配置字典
 
@@ -210,48 +211,48 @@ class UnifiedConfig:
         return result
 
     @staticmethod
-    def _create_data_config(data: Dict[str, Any]) -> DataConfig:
+    def _create_data_config(data: dict[str, Any]) -> DataConfig:
         """创建数据配置对象"""
         return DataConfig(
             source=data.get("source", "hikyuu"),
             hikyuu_config=data.get("hikyuu_config", "config/hikyuu.ini"),
             default_kline_type=data.get("default_kline_type", "DAY"),
-            cache=data.get("cache", {})
+            cache=data.get("cache", {}),
         )
 
     @staticmethod
-    def _create_training_config(training: Dict[str, Any]) -> TrainingConfig:
+    def _create_training_config(training: dict[str, Any]) -> TrainingConfig:
         """创建训练配置对象"""
         return TrainingConfig(
             model_type=training.get("model_type", "LGBM"),
             hyperparameters=training.get("hyperparameters", {}),
             data=training.get("data", {}),
             features=training.get("features", {}),
-            validation=training.get("validation", {})
+            validation=training.get("validation", {}),
         )
 
     @staticmethod
-    def _create_prediction_config(prediction: Dict[str, Any]) -> PredictionConfig:
+    def _create_prediction_config(prediction: dict[str, Any]) -> PredictionConfig:
         """创建预测配置对象"""
         return PredictionConfig(
             output_dir=prediction.get("output_dir", "predictions"),
             output_format=prediction.get("output_format", "pkl"),
             save_details=prediction.get("save_details", True),
-            top_k=prediction.get("top_k", 50)
+            top_k=prediction.get("top_k", 50),
         )
 
     @staticmethod
-    def _create_signal_config(signals: Dict[str, Any]) -> SignalConfig:
+    def _create_signal_config(signals: dict[str, Any]) -> SignalConfig:
         """创建信号配置对象"""
         return SignalConfig(
             output_dir=signals.get("output_dir", "signals"),
             output_format=signals.get("output_format", "csv"),
             strategy=signals.get("strategy", {}),
-            strength_mapping=signals.get("strength_mapping", {})
+            strength_mapping=signals.get("strength_mapping", {}),
         )
 
     @staticmethod
-    def _create_backtest_config(backtest: Dict[str, Any]) -> BacktestConfig:
+    def _create_backtest_config(backtest: dict[str, Any]) -> BacktestConfig:
         """创建回测配置对象"""
         return BacktestConfig(
             engine=backtest.get("engine", "hikyuu"),
@@ -260,21 +261,21 @@ class UnifiedConfig:
             slippage=backtest.get("slippage", 0.001),
             position=backtest.get("position", {}),
             risk_control=backtest.get("risk_control", {}),
-            output=backtest.get("output", {})
+            output=backtest.get("output", {}),
         )
 
     @staticmethod
-    def _create_experiment_config(experiment: Dict[str, Any]) -> ExperimentConfig:
+    def _create_experiment_config(experiment: dict[str, Any]) -> ExperimentConfig:
         """创建实验配置对象"""
         return ExperimentConfig(
             enabled=experiment.get("enabled", True),
             directory=experiment.get("directory", "experiments"),
             name_template=experiment.get("name_template", "{model_type}_{timestamp}"),
-            auto_log=experiment.get("auto_log", [])
+            auto_log=experiment.get("auto_log", []),
         )
 
     @staticmethod
-    def _create_logging_config(logging: Dict[str, Any]) -> LoggingConfig:
+    def _create_logging_config(logging: dict[str, Any]) -> LoggingConfig:
         """创建日志配置对象"""
         return LoggingConfig(
             level=logging.get("level", "INFO"),
@@ -282,10 +283,10 @@ class UnifiedConfig:
             format=logging.get("format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"),
             console=logging.get("console", True),
             file=logging.get("file", True),
-            rotation=logging.get("rotation", {})
+            rotation=logging.get("rotation", {}),
         )
 
-    def get_scenario(self, scenario_name: str) -> Optional[Dict[str, Any]]:
+    def get_scenario(self, scenario_name: str) -> dict[str, Any] | None:
         """
         获取场景配置
 
@@ -298,7 +299,7 @@ class UnifiedConfig:
         scenarios = self._raw_config.get("scenarios", {})
         return scenarios.get(scenario_name)
 
-    def get_hyperparameters(self, model_type: Optional[str] = None) -> Dict[str, Any]:
+    def get_hyperparameters(self, model_type: str | None = None) -> dict[str, Any]:
         """
         获取模型超参数
 
@@ -321,7 +322,7 @@ class UnifiedConfig:
         # 如果没有，返回默认值
         return {}
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """
         验证配置的有效性
 
@@ -356,7 +357,7 @@ class UnifiedConfig:
 
         return errors
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         转换为字典格式
 
@@ -370,15 +371,15 @@ class UnifiedConfig:
             "signals": self.signals.__dict__,
             "backtest": self.backtest.__dict__,
             "experiment": self.experiment.__dict__,
-            "logging": self.logging.__dict__
+            "logging": self.logging.__dict__,
         }
 
 
 # 全局配置实例
-_global_config: Optional[UnifiedConfig] = None
+_global_config: UnifiedConfig | None = None
 
 
-def load_config(config_path: str = "config.yaml", preset: Optional[str] = None) -> UnifiedConfig:
+def load_config(config_path: str = "config.yaml", preset: str | None = None) -> UnifiedConfig:
     """
     加载全局配置
 
@@ -395,12 +396,12 @@ def load_config(config_path: str = "config.yaml", preset: Optional[str] = None) 
     # 验证配置
     errors = _global_config.validate()
     if errors:
-        raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
+        raise ValueError("Configuration validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
 
     return _global_config
 
 
-def get_config() -> Optional[UnifiedConfig]:
+def get_config() -> UnifiedConfig | None:
     """
     获取全局配置实例
 

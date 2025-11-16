@@ -4,7 +4,6 @@ LoadStockDataUseCase - 加载股票数据用例
 UC-001: Load Stock Data (加载股票数据)
 """
 
-from typing import List
 
 from domain.entities.kline_data import KLineData
 from domain.ports.stock_data_provider import IStockDataProvider
@@ -41,7 +40,7 @@ class LoadStockDataUseCase:
         stock_code: StockCode,
         date_range: DateRange,
         kline_type: KLineType,
-    ) -> List[KLineData]:
+    ) -> list[KLineData]:
         """
         执行加载股票数据
 
@@ -60,7 +59,7 @@ class LoadStockDataUseCase:
 
         # 2. 调用数据提供者Port加载数据
         kline_data_list = await self.provider.load_stock_data(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
 
         # 3. 返回领域对象列表(可能为空列表)

@@ -8,8 +8,8 @@ Tests:
 - Singleton pattern
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 
 from controllers.cli.di.container import Container
 from infrastructure.config.settings import Settings

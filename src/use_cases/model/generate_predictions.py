@@ -4,11 +4,10 @@ GeneratePredictionsUseCase - 生成预测用例
 UC-003: Generate Predictions (生成预测)
 """
 
+import pickle
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-import pandas as pd
-import pickle
+
 
 from domain.entities.model import Model
 from domain.entities.prediction import Prediction, PredictionBatch
@@ -39,7 +38,7 @@ class GeneratePredictionsUseCase:
     def __init__(
         self,
         repository: IModelRepository,
-        data_provider: IStockDataProvider
+        data_provider: IStockDataProvider,
     ):
         """
         初始化用例
@@ -54,10 +53,10 @@ class GeneratePredictionsUseCase:
     async def execute(
         self,
         model_id: str,
-        stock_codes: List[StockCode],
+        stock_codes: list[StockCode],
         date_range: DateRange,
         kline_type: KLineType = KLineType.DAY,
-        output_path: Optional[str] = None,
+        output_path: str | None = None,
         output_format: str = "pkl",
         save_details: bool = True,
     ) -> PredictionBatch:
@@ -89,15 +88,15 @@ class GeneratePredictionsUseCase:
         if not model.is_trained():
             raise ValueError(
                 f"Model {model_id} is not trained. "
-                f"Status: {model.status.value}"
+                f"Status: {model.status.value}",
             )
 
         if model.trained_model is None:
             raise ValueError(f"Model {model_id} has no trained model object")
 
         # 3. 收集所有股票的预测数据
-        all_predictions: List[Prediction] = []
-        failed_stocks: List[str] = []
+        all_predictions: list[Prediction] = []
+        failed_stocks: list[str] = []
 
         print(f"\n开始为 {len(stock_codes)} 只股票生成预测...")
         print(f"日期范围: {date_range.start_date.date()} ~ {date_range.end_date.date()}")
@@ -111,11 +110,11 @@ class GeneratePredictionsUseCase:
                 kline_data = await self.data_provider.load_stock_data(
                     stock_code=stock_code,
                     date_range=date_range,
-                    kline_type=kline_type
+                    kline_type=kline_type,
                 )
 
                 if not kline_data:
-                    print(f"  ⚠️  无可用数据，跳过")
+                    print("  ⚠️  无可用数据，跳过")
                     failed_stocks.append(stock_code.value)
                     continue
 
@@ -126,11 +125,11 @@ class GeneratePredictionsUseCase:
                     kline_data,
                     add_features=True,
                     add_labels=False,  # 预测时不需要标签
-                    label_horizon=1
+                    label_horizon=1,
                 )
 
                 if feature_data.empty:
-                    print(f"  ⚠️  特征数据为空，跳过")
+                    print("  ⚠️  特征数据为空，跳过")
                     failed_stocks.append(stock_code.value)
                     continue
 
@@ -151,14 +150,14 @@ class GeneratePredictionsUseCase:
                         timestamp=timestamp,
                         predicted_value=float(predictions_array[i]),
                         confidence=None,  # LightGBM默认不提供置信度
-                        model_id=model.id
+                        model_id=model.id,
                     )
                     all_predictions.append(prediction)
 
                 print(f"  ✓ 生成了 {len(predictions_array)} 个预测值")
 
             except Exception as e:
-                print(f"  ✗ 预测失败: {str(e)}")
+                print(f"  ✗ 预测失败: {e!s}")
                 failed_stocks.append(stock_code.value)
                 continue
 
@@ -166,12 +165,12 @@ class GeneratePredictionsUseCase:
         prediction_batch = PredictionBatch(
             model_id=model.id,
             predictions=all_predictions,
-            generated_at=datetime.now()
+            generated_at=datetime.now(),
         )
 
         # 5. 打印汇总
         print("\n" + "=" * 70)
-        print(f"预测生成完成!")
+        print("预测生成完成!")
         print(f"  成功: {len(stock_codes) - len(failed_stocks)}/{len(stock_codes)} 只股票")
         print(f"  总预测数: {len(all_predictions)} 条")
         if failed_stocks:
@@ -186,7 +185,7 @@ class GeneratePredictionsUseCase:
                 output_path=output_path,
                 output_format=output_format,
                 save_details=save_details,
-                model=model
+                model=model,
             )
 
         return prediction_batch
@@ -197,7 +196,7 @@ class GeneratePredictionsUseCase:
         output_path: str,
         output_format: str,
         save_details: bool,
-        model: Optional[Model] = None
+        model: Model | None = None,
     ):
         """
         保存预测结果到文件

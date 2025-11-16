@@ -5,11 +5,9 @@ Market Value Object
 """
 
 from dataclasses import dataclass
-from typing import Dict
-
 
 # 市场名称映射(模块级常量)
-_MARKET_NAMES: Dict[str, str] = {
+_MARKET_NAMES: dict[str, str] = {
     "SH": "上海证券交易所",
     "SZ": "深圳证券交易所",
     "BJ": "北京证券交易所",
@@ -42,7 +40,7 @@ class Market:
         if normalized_code not in _MARKET_NAMES:
             raise ValueError(
                 f"Invalid market code: {self.code}. "
-                f"Supported markets: {', '.join(_MARKET_NAMES.keys())}"
+                f"Supported markets: {', '.join(_MARKET_NAMES.keys())}",
             )
 
         # 使用 object.__setattr__ 绕过 frozen 限制,标准化 code

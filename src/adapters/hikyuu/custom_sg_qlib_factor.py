@@ -6,20 +6,18 @@ CustomSG_QlibFactor Adapter
 """
 
 from datetime import datetime
-from decimal import Decimal
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import pandas as pd
 
 try:
-    from hikyuu import SignalBase, Datetime, Stock
+    from hikyuu import Datetime, SignalBase, Stock
 except ImportError:
     # 如果Hikyuu未安装,提供Mock类用于测试
     class SignalBase:
         def __init__(self, name: str):
             self.name = name
-            self._params: Dict = {}
+            self._params: dict = {}
 
         def setParam(self, name: str, value):
             self._params[name] = value
@@ -77,7 +75,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         pred_pkl_path: str,
         buy_threshold: float = 0.02,
         sell_threshold: float = -0.02,
-        top_k: Optional[int] = None,
+        top_k: int | None = None,
         name: str = "SG_QlibFactor",
     ):
         """
@@ -93,12 +91,12 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         super().__init__(name)
 
         # 私有属性(用于Hikyuu _calculate)
-        self._pred_df: Optional[pd.DataFrame] = None
-        self._stock_predictions: Dict[str, pd.Series] = {}
-        self._top_k_stocks_by_date: Dict[pd.Timestamp, List[str]] = {}
+        self._pred_df: pd.DataFrame | None = None
+        self._stock_predictions: dict[str, pd.Series] = {}
+        self._top_k_stocks_by_date: dict[pd.Timestamp, list[str]] = {}
 
         # 缓存信号批次(用于ISignalProvider接口)
-        self._cached_signal_batch: Optional[SignalBatch] = None
+        self._cached_signal_batch: SignalBatch | None = None
 
         # 配置参数
         self.setParam("pred_pkl_path", pred_pkl_path)
@@ -151,7 +149,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
 
         if len(self._pred_df.index.levels) != 2:
             raise ValueError(
-                f"pred.pkl must have 2-level MultiIndex, got {len(self._pred_df.index.levels)} levels"
+                f"pred.pkl must have 2-level MultiIndex, got {len(self._pred_df.index.levels)} levels",
             )
 
         # 获取分数列名
@@ -176,7 +174,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
                 return col
 
         raise ValueError(
-            f"Score column not found in pred.pkl. Available columns: {self._pred_df.columns.tolist()}"
+            f"Score column not found in pred.pkl. Available columns: {self._pred_df.columns.tolist()}",
         )
 
     def _preprocess_predictions(self, score_col: str):
@@ -198,7 +196,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
                 top_stocks = group.nlargest(top_k, score_col)
                 # 记录该日期的Top-K股票
                 self._top_k_stocks_by_date[date] = top_stocks.index.get_level_values(
-                    1
+                    1,
                 ).tolist()
 
                 # 只存储Top-K股票的预测
@@ -341,7 +339,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         prediction_batch: PredictionBatch,
         buy_threshold: float = 0.02,
         sell_threshold: float = -0.02,
-        top_k: Optional[int] = None,
+        top_k: int | None = None,
     ) -> SignalBatch:
         """
         从预测批次生成交易信号批次
@@ -362,7 +360,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         )
 
         # 按日期分组预测
-        predictions_by_date: Dict[datetime, List[Prediction]] = {}
+        predictions_by_date: dict[datetime, list[Prediction]] = {}
         for pred in prediction_batch.predictions:
             date_key = pred.timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
             if date_key not in predictions_by_date:
@@ -427,7 +425,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         self,
         stock_code: StockCode,
         signal_date: datetime,
-    ) -> Optional[TradingSignal]:
+    ) -> TradingSignal | None:
         """
         获取指定股票在指定日期的交易信号
 
@@ -478,7 +476,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         self,
         prediction_batch: PredictionBatch,
         k: int,
-    ) -> List[StockCode]:
+    ) -> list[StockCode]:
         """
         从预测批次中选出Top-K股票
 

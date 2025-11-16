@@ -7,10 +7,11 @@ Tests:
 - model delete command
 """
 
-import pytest
+from unittest.mock import AsyncMock, patch
+
 import click
+import pytest
 from click.testing import CliRunner
-from unittest.mock import AsyncMock, Mock, patch
 
 from controllers.cli.commands.model import model_group
 
@@ -113,11 +114,11 @@ class TestModelTrainHyperparameters:
         mock_load.return_value = mock_training_data
 
         # Mock trained model
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
         trained_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={"n_estimators": 100, "learning_rate": 0.05, "max_depth": 7, "num_leaves": 31},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         # Mock container components
@@ -171,11 +172,11 @@ class TestModelTrainHyperparameters:
         mock_load.return_value = mock_training_data
 
         # Mock trained model
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
         trained_model = Model(
             model_type=ModelType.MLP,
             hyperparameters={"hidden_layers": [64, 32], "activation": "relu", "learning_rate": 0.001},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         # Mock container components
@@ -228,11 +229,11 @@ class TestModelTrainHyperparameters:
         mock_load.return_value = mock_training_data
 
         # Mock trained model
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
         trained_model = Model(
             model_type=ModelType.LSTM,
             hyperparameters={"hidden_size": 64, "num_layers": 2, "sequence_length": 20},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         # Mock container components
@@ -285,14 +286,14 @@ class TestModelTrainHyperparameters:
         mock_load.return_value = mock_training_data
 
         # Mock trained model
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
         # CLI hyperparameters should merge with defaults
         cli_hyperparams = {"n_estimators": 200, "learning_rate": 0.1}
         expected_hyperparams = {"n_estimators": 200, "learning_rate": 0.1, "max_depth": 7, "num_leaves": 31}
         trained_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters=expected_hyperparams,
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         # Mock container components
@@ -353,14 +354,14 @@ class TestModelTrainHyperparameters:
         mock_load.return_value = mock_training_data
 
         # Mock trained model
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
         # Config hyperparameters should merge with defaults
         config_hyperparams = {"n_estimators": 150, "max_depth": 10}
         expected_hyperparams = {"n_estimators": 150, "learning_rate": 0.05, "max_depth": 10, "num_leaves": 31}
         trained_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters=expected_hyperparams,
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         # Mock container components
@@ -422,7 +423,7 @@ class TestModelTrainHyperparameters:
         mock_load.return_value = mock_training_data
 
         # Mock trained model
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
         config_hyperparams = {"n_estimators": 150, "max_depth": 10}
         cli_hyperparams = {"n_estimators": 250, "learning_rate": 0.2}
         expected_hyperparams = {**config_hyperparams, **cli_hyperparams}  # CLI overrides config
@@ -430,7 +431,7 @@ class TestModelTrainHyperparameters:
         trained_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters=expected_hyperparams,
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         # Mock container components
@@ -525,12 +526,12 @@ class TestModelTrainHyperparameters:
         mock_load.return_value = mock_training_data
 
         # Mock trained model
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
         hyperparams = {"n_estimators": 100, "learning_rate": 0.05, "max_depth": 7, "num_leaves": 31}
         trained_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters=hyperparams,
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         # Mock container components
@@ -605,8 +606,9 @@ class TestModelListCommand:
         """Test listing models in table format (default)."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
         from datetime import datetime
+
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         # Create test models
         model1 = Model(
@@ -614,14 +616,14 @@ class TestModelListCommand:
             hyperparameters={"learning_rate": 0.1},
             status=ModelStatus.TRAINED,
             training_date=datetime(2024, 1, 1),
-            metrics={"train_r2": 0.85, "test_r2": 0.75}
+            metrics={"train_r2": 0.85, "test_r2": 0.75},
         )
         model2 = Model(
             model_type=ModelType.MLP,
             hyperparameters={"hidden_layers": 3},
             status=ModelStatus.DEPLOYED,
             training_date=datetime(2024, 1, 2),
-            metrics={"train_r2": 0.90, "test_r2": 0.80}
+            metrics={"train_r2": 0.90, "test_r2": 0.80},
         )
 
         mock_repo = AsyncMock()
@@ -658,17 +660,18 @@ class TestModelListCommand:
         """Test listing models in JSON format."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
-        from datetime import datetime
         import json
         import re
+        from datetime import datetime
+
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={"learning_rate": 0.1},
             status=ModelStatus.TRAINED,
             training_date=datetime(2024, 1, 1),
-            metrics={"train_r2": 0.85}
+            metrics={"train_r2": 0.85},
         )
 
         mock_repo = AsyncMock()
@@ -706,15 +709,16 @@ class TestModelListCommand:
         """Test listing models in CSV format."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
         from datetime import datetime
+
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={"learning_rate": 0.1},
             status=ModelStatus.TRAINED,
             training_date=datetime(2024, 1, 1),
-            metrics={"train_r2": 0.85}
+            metrics={"train_r2": 0.85},
         )
 
         mock_repo = AsyncMock()
@@ -745,12 +749,12 @@ class TestModelListCommand:
         """Test listing models with status filter."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         trained_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         mock_repo = AsyncMock()
@@ -782,12 +786,12 @@ class TestModelListCommand:
         """Test listing models with type filter."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         lgbm_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         mock_repo = AsyncMock()
@@ -819,12 +823,12 @@ class TestModelListCommand:
         """Test listing models with limit."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         mock_repo = AsyncMock()
@@ -856,12 +860,12 @@ class TestModelListCommand:
         """Test listing models with combined filters."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
         mock_repo = AsyncMock()
@@ -880,7 +884,7 @@ class TestModelListCommand:
         # Act
         result = runner.invoke(
             model_group,
-            ["list", "--status", "TRAINED", "--type", "LGBM", "--limit", "5"]
+            ["list", "--status", "TRAINED", "--type", "LGBM", "--limit", "5"],
         )
 
         # Assert
@@ -902,12 +906,12 @@ class TestModelDeleteCommand:
         """Test deleting model with force flag."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         existing_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
         object.__setattr__(existing_model, "id", "test-model-123")
 
@@ -944,12 +948,12 @@ class TestModelDeleteCommand:
         """Test deleting model with confirmation (user confirms)."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         existing_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
         object.__setattr__(existing_model, "id", "test-model-123")
 
@@ -985,12 +989,12 @@ class TestModelDeleteCommand:
         """Test deleting model with confirmation (user cancels)."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         existing_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
         object.__setattr__(existing_model, "id", "test-model-123")
 
@@ -1056,12 +1060,12 @@ class TestModelDeleteCommand:
         """Test delete model with repository error."""
         # Arrange
         runner = CliRunner()
-        from domain.entities.model import Model, ModelType, ModelStatus
+        from domain.entities.model import Model, ModelStatus, ModelType
 
         existing_model = Model(
             model_type=ModelType.LGBM,
             hyperparameters={},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
         object.__setattr__(existing_model, "id", "test-model-123")
 

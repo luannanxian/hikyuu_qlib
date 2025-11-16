@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 
 
 @dataclass
@@ -52,7 +52,7 @@ class KLineData:
         # 最高价必须 >= 最低价
         if self.high < self.low:
             raise ValueError(
-                f"high must be >= low, got high={self.high}, low={self.low}"
+                f"high must be >= low, got high={self.high}, low={self.low}",
             )
 
         # 成交量必须 >= 0
@@ -67,7 +67,7 @@ class KLineData:
             Decimal: 涨跌幅 = (收盘价 - 开盘价) / 开盘价
         """
         if self.open == 0:
-            return Decimal("0")
+            return Decimal(0)
         return (self.close - self.open) / self.open
 
     def amplitude(self) -> Decimal:
@@ -78,7 +78,7 @@ class KLineData:
             Decimal: 振幅 = (最高价 - 最低价) / 开盘价
         """
         if self.open == 0:
-            return Decimal("0")
+            return Decimal(0)
         return (self.high - self.low) / self.open
 
     def average_price(self) -> Decimal:
@@ -89,7 +89,7 @@ class KLineData:
             Decimal: 均价 = 成交额 / 成交量
         """
         if self.volume == 0:
-            return Decimal("0")
+            return Decimal(0)
         return self.amount / Decimal(self.volume)
 
     def __eq__(self, other: object) -> bool:

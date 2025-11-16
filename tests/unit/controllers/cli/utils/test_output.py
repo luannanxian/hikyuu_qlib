@@ -8,7 +8,6 @@ Tests:
 - Success/Error messages
 """
 
-import pytest
 from rich.console import Console
 from rich.table import Table
 

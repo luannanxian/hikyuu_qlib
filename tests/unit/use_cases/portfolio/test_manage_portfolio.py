@@ -4,9 +4,10 @@ ManagePortfolioUseCase 单元测试
 测试 UC-007: Manage Portfolio (管理投资组合) 用例
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
+
+import pytest
 
 from domain.entities.portfolio import Portfolio, Position
 from domain.value_objects.stock_code import StockCode
@@ -20,7 +21,7 @@ class TestAddPosition:
     async def test_add_position_success(self):
         """测试成功添加持仓"""
         # Arrange: 创建组合和持仓
-        portfolio = Portfolio(name="测试组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="测试组合", initial_cash=Decimal(100000))
 
         position = Position(
             stock_code=StockCode("sh600000"),
@@ -34,7 +35,7 @@ class TestAddPosition:
 
         # Act: 添加持仓
         updated_portfolio = await use_case.add_position(
-            portfolio=portfolio, position=position
+            portfolio=portfolio, position=position,
         )
 
         # Assert: 验证持仓已添加
@@ -46,7 +47,7 @@ class TestAddPosition:
     async def test_add_duplicate_position_raises_error(self):
         """测试添加重复持仓抛出异常"""
         # Arrange: 创建组合并添加一个持仓
-        portfolio = Portfolio(name="测试组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="测试组合", initial_cash=Decimal(100000))
 
         position1 = Position(
             stock_code=StockCode("sh600000"),
@@ -78,7 +79,7 @@ class TestRemovePosition:
     async def test_remove_position_success(self):
         """测试成功移除持仓"""
         # Arrange: 创建组合并添加持仓
-        portfolio = Portfolio(name="测试组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="测试组合", initial_cash=Decimal(100000))
 
         position = Position(
             stock_code=StockCode("sh600000"),
@@ -92,7 +93,7 @@ class TestRemovePosition:
 
         # Act: 移除持仓
         updated_portfolio = await use_case.remove_position(
-            portfolio=portfolio, stock_code=StockCode("sh600000")
+            portfolio=portfolio, stock_code=StockCode("sh600000"),
         )
 
         # Assert: 验证持仓已移除
@@ -107,7 +108,7 @@ class TestUpdatePosition:
     async def test_update_position_price(self):
         """测试更新持仓价格"""
         # Arrange: 创建组合并添加持仓
-        portfolio = Portfolio(name="测试组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="测试组合", initial_cash=Decimal(100000))
 
         position = Position(
             stock_code=StockCode("sh600000"),
@@ -135,7 +136,7 @@ class TestUpdatePosition:
     async def test_update_nonexistent_position_raises_error(self):
         """测试更新不存在的持仓抛出异常"""
         # Arrange: 创建空组合
-        portfolio = Portfolio(name="测试组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="测试组合", initial_cash=Decimal(100000))
 
         use_case = ManagePortfolioUseCase()
 
@@ -155,7 +156,7 @@ class TestCalculateMetrics:
     async def test_calculate_portfolio_metrics(self):
         """测试计算组合指标"""
         # Arrange: 创建组合并添加多个持仓
-        portfolio = Portfolio(name="测试组合", initial_cash=Decimal("100000"))
+        portfolio = Portfolio(name="测试组合", initial_cash=Decimal(100000))
 
         position1 = Position(
             stock_code=StockCode("sh600000"),
@@ -185,12 +186,12 @@ class TestCalculateMetrics:
         # 可用现金 = 100000
         # 总资产 = 121500
 
-        assert metrics["total_market_value"] == Decimal("21500")
-        assert metrics["total_value"] == Decimal("121500")
-        assert metrics["available_cash"] == Decimal("100000")
+        assert metrics["total_market_value"] == Decimal(21500)
+        assert metrics["total_value"] == Decimal(121500)
+        assert metrics["available_cash"] == Decimal(100000)
         assert metrics["position_count"] == 2
 
         # position1 盈亏 = (10.50 - 10.00) * 1000 = 500
         # position2 盈亏 = (22.00 - 20.00) * 500 = 1000
         # 总盈亏 = 1500
-        assert metrics["total_profit_loss"] == Decimal("1500")
+        assert metrics["total_profit_loss"] == Decimal(1500)

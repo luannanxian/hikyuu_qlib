@@ -10,11 +10,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from domain.entities.model import Model, ModelType, ModelStatus
-from domain.value_objects.stock_code import StockCode
-from domain.value_objects.kline_type import KLineType
-from domain.value_objects.date_range import DateRange
+from domain.entities.model import Model, ModelType
 from domain.value_objects.configuration import BacktestConfig
+from domain.value_objects.date_range import DateRange
+from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 
 
 @pytest.mark.asyncio
@@ -29,7 +29,7 @@ async def test_data_provider_error_propagation(mock_stock_data_provider):
 
     # Mock 数据提供者抛出异常
     mock_stock_data_provider.load_stock_data.side_effect = RuntimeError(
-        "Database connection failed"
+        "Database connection failed",
     )
     use_case = LoadStockDataUseCase(provider=mock_stock_data_provider)
 
@@ -39,7 +39,7 @@ async def test_data_provider_error_propagation(mock_stock_data_provider):
     # Act & Assert
     with pytest.raises(RuntimeError, match="Database connection failed"):
         await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
         )
 
 
@@ -56,7 +56,7 @@ async def test_model_training_error_propagation(mock_model_trainer, mock_model_r
     # Mock 训练器抛出异常
     mock_model_trainer.train.side_effect = ValueError("Invalid training data format")
     use_case = TrainModelUseCase(
-        trainer=mock_model_trainer, repository=mock_model_repository
+        trainer=mock_model_trainer, repository=mock_model_repository,
     )
 
     model = Model(model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01})
@@ -78,12 +78,12 @@ async def test_backtest_engine_error_propagation(mock_backtest_engine, sample_si
     场景: 回测引擎错误应该传播到 UseCase 层
     """
     # Arrange
-    from use_cases.backtest.run_backtest import RunBacktestUseCase
     from domain.entities.trading_signal import SignalBatch
+    from use_cases.backtest.run_backtest import RunBacktestUseCase
 
     # Mock 回测引擎抛出异常
     mock_backtest_engine.run_backtest.side_effect = Exception(
-        "Insufficient capital for trading"
+        "Insufficient capital for trading",
     )
     use_case = RunBacktestUseCase(engine=mock_backtest_engine)
 
@@ -91,7 +91,7 @@ async def test_backtest_engine_error_propagation(mock_backtest_engine, sample_si
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))  # 资金不足
+    config = BacktestConfig(initial_capital=Decimal(100), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))  # 资金不足
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act & Assert
@@ -116,7 +116,7 @@ async def test_validation_error_in_value_objects():
 
     # Test 3: 无效配置
     with pytest.raises(ValueError):
-        BacktestConfig(initial_capital=Decimal("-1000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))  # 负数资金
+        BacktestConfig(initial_capital=Decimal(-1000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))  # 负数资金
 
 
 @pytest.mark.asyncio
@@ -173,7 +173,7 @@ async def test_error_handling_with_partial_failure(integration_container):
     for stock_code in stock_codes:
         try:
             result = await integration_container.load_stock_data_use_case.execute(
-                stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+                stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
             )
             results.append(result)
         except Exception as e:
@@ -197,7 +197,7 @@ async def test_error_context_preservation():
 
     provider = AsyncMock()
     provider.load_stock_data.side_effect = Exception(
-        "Failed to load data for sh600000 on 2023-01-01"
+        "Failed to load data for sh600000 on 2023-01-01",
     )
     use_case = LoadStockDataUseCase(provider=provider)
 
@@ -207,7 +207,7 @@ async def test_error_context_preservation():
     # Act & Assert
     try:
         await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
         )
         pytest.fail("Should have raised an exception")
     except Exception as e:
@@ -245,10 +245,10 @@ async def test_error_recovery_strategy(integration_container, mock_model_trainer
     for i in range(max_retries):
         try:
             trained_model = await integration_container.train_model_use_case.execute(
-                model=model, training_data=[]
+                model=model, training_data=[],
             )
             break  # 成功则退出
-        except Exception as e:
+        except Exception:
             if i == max_retries - 1:
                 raise  # 最后一次重试仍失败则抛出
             continue
@@ -271,13 +271,13 @@ async def test_cascading_errors(integration_container, mock_model_trainer):
 
     # Step 1: 数据加载失败
     integration_container.load_stock_data_use_case.provider.load_stock_data.side_effect = Exception(
-        "Data loading failed"
+        "Data loading failed",
     )
 
     # Act & Assert - 数据加载失败
     with pytest.raises(Exception, match="Data loading failed"):
-        kline_data = await integration_container.load_stock_data_use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+        _kline_data = await integration_container.load_stock_data_use_case.execute(
+            stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
         )
 
     # 由于数据加载失败，后续步骤无法执行
@@ -302,7 +302,7 @@ async def test_error_logging_integration(integration_container, mock_model_train
     with caplog.at_level(logging.ERROR):
         try:
             await integration_container.train_model_use_case.execute(
-                model=model, training_data=[]
+                model=model, training_data=[],
             )
         except Exception:
             pass  # 预期的异常
@@ -349,6 +349,7 @@ async def test_timeout_error_handling(mock_stock_data_provider):
     场景: 长时间运行的操作应该能够超时
     """
     import asyncio
+
     from use_cases.data.load_stock_data import LoadStockDataUseCase
 
     # Arrange - Mock 一个永远不返回的操作
@@ -365,7 +366,7 @@ async def test_timeout_error_handling(mock_stock_data_provider):
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(
             use_case.execute(
-                stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY
+                stock_code=stock_code, date_range=date_range, kline_type=KLineType.DAY,
             ),
             timeout=0.1,  # 100ms 超时
         )
@@ -389,15 +390,15 @@ async def test_multiple_error_types(integration_container):
     for error_type, error_message in error_cases:
         # Arrange
         integration_container.train_model_use_case.trainer.train.side_effect = error_type(
-            error_message
+            error_message,
         )
 
         model = Model(
-            model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01}
+            model_type=ModelType.LGBM, hyperparameters={"learning_rate": 0.01},
         )
 
         # Act & Assert
         with pytest.raises(error_type, match=error_message):
             await integration_container.train_model_use_case.execute(
-                model=model, training_data=[]
+                model=model, training_data=[],
             )

@@ -1,7 +1,8 @@
 """Performance monitoring decorators."""
 import functools
 import time
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from ..app_logging import get_logger
 

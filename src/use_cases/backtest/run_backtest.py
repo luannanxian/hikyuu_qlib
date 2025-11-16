@@ -34,7 +34,7 @@ class RunBacktestUseCase:
         self.engine = engine
 
     async def execute(
-        self, signals: SignalBatch, config: BacktestConfig, date_range: DateRange
+        self, signals: SignalBatch, config: BacktestConfig, date_range: DateRange,
     ) -> BacktestResult:
         """
         执行运行回测
@@ -54,7 +54,7 @@ class RunBacktestUseCase:
 
         # 2. 调用回测引擎运行回测
         result = await self.engine.run_backtest(
-            signals=signals, config=config, date_range=date_range
+            signals=signals, config=config, date_range=date_range,
         )
 
         # 3. 返回回测结果

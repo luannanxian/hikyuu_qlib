@@ -4,9 +4,7 @@ HikyuuDataAdapter - Hikyuu 数据适配器
 适配 Hikyuu 框架实现 IStockDataProvider 接口
 """
 
-from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
 from pathlib import Path
 
 # 条件导入 Hikyuu - 便于测试和开发
@@ -20,11 +18,11 @@ except ImportError:
     hikyuu_init = None
     HIKYUU_AVAILABLE = False
 
+from domain.entities.kline_data import KLineData
 from domain.ports.stock_data_provider import IStockDataProvider
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
-from domain.entities.kline_data import KLineData
+from domain.value_objects.stock_code import StockCode
 
 
 class HikyuuDataAdapter(IStockDataProvider):
@@ -34,7 +32,7 @@ class HikyuuDataAdapter(IStockDataProvider):
     实现 IStockDataProvider 接口,适配 Hikyuu 框架
     """
 
-    def __init__(self, hikyuu_module=None, config_file: Optional[str] = None):
+    def __init__(self, hikyuu_module=None, config_file: str | None = None):
         """
         初始化适配器
 
@@ -58,13 +56,13 @@ class HikyuuDataAdapter(IStockDataProvider):
                     "  • pip install hikyuu\n"
                     "  • conda install -c conda-forge hikyuu\n"
                     "\n"
-                    "For more information, visit: https://hikyuu.org"
+                    "For more information, visit: https://hikyuu.org",
                 )
 
             if hku is None:
                 raise RuntimeError(
                     "Hikyuu import succeeded but module is None. "
-                    "This may indicate a broken installation."
+                    "This may indicate a broken installation.",
                 )
 
             self.hku = hku
@@ -127,7 +125,7 @@ class HikyuuDataAdapter(IStockDataProvider):
         return query
 
     def _convert_krecord_to_domain(
-        self, krecord, stock_code: StockCode, kline_type: KLineType
+        self, krecord, stock_code: StockCode, kline_type: KLineType,
     ) -> KLineData:
         """
         将 Hikyuu KRecord 转换为 Domain KLineData
@@ -153,8 +151,8 @@ class HikyuuDataAdapter(IStockDataProvider):
         )
 
     async def load_stock_data(
-        self, stock_code: StockCode, date_range: DateRange, kline_type: str
-    ) -> List[KLineData]:
+        self, stock_code: StockCode, date_range: DateRange, kline_type: str,
+    ) -> list[KLineData]:
         """
         加载股票数据
 
@@ -195,7 +193,7 @@ class HikyuuDataAdapter(IStockDataProvider):
             result = []
             for krecord in kdata:
                 domain_kline = self._convert_krecord_to_domain(
-                    krecord, stock_code, kline_type
+                    krecord, stock_code, kline_type,
                 )
                 result.append(domain_kline)
 
@@ -203,10 +201,10 @@ class HikyuuDataAdapter(IStockDataProvider):
 
         except Exception as e:
             raise Exception(
-                f"Failed to load stock data from Hikyuu: {stock_code.value}, {e}"
+                f"Failed to load stock data from Hikyuu: {stock_code.value}, {e}",
             ) from e
 
-    async def get_stock_list(self, market: str) -> List[StockCode]:
+    async def get_stock_list(self, market: str) -> list[StockCode]:
         """
         获取股票列表
 
@@ -235,5 +233,5 @@ class HikyuuDataAdapter(IStockDataProvider):
 
         except Exception as e:
             raise Exception(
-                f"Failed to get stock list from Hikyuu: {market}, {e}"
+                f"Failed to get stock list from Hikyuu: {market}, {e}",
             ) from e

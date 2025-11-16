@@ -5,15 +5,16 @@ YAMLConfigRepository 单元测试
 使用 YAML 文件存储配置
 """
 
-import pytest
 import tempfile
-from pathlib import Path
 from decimal import Decimal
+from pathlib import Path
+
+import pytest
 
 from domain.value_objects.configuration import (
+    BacktestConfig,
     DataSourceConfig,
     ModelConfig,
-    BacktestConfig,
 )
 
 
@@ -33,8 +34,8 @@ class TestYAMLConfigRepository:
     @pytest.fixture
     def temp_data_dir(self):
         """临时数据目录 fixture"""
-        import tempfile
         import shutil
+        import tempfile
 
         temp_dir = Path(tempfile.mkdtemp())
         yield temp_dir
@@ -72,7 +73,7 @@ backtest:
 
     @pytest.mark.asyncio
     async def test_get_data_source_config(
-        self, temp_config_file, sample_yaml_config, temp_data_dir
+        self, temp_config_file, sample_yaml_config, temp_data_dir,
     ):
         """
         测试获取数据源配置
@@ -142,7 +143,7 @@ backtest:
 
         # 验证
         assert isinstance(config, BacktestConfig)
-        assert config.initial_capital == Decimal("100000")
+        assert config.initial_capital == Decimal(100000)
         assert config.commission_rate == Decimal("0.0003")
         assert config.slippage_rate == Decimal("0.0001")
 

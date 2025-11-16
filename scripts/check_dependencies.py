@@ -6,10 +6,9 @@
 """
 
 import sys
-from typing import List, Tuple
 
 
-def check_dependency(name: str, import_name: str = None) -> Tuple[bool, str]:
+def check_dependency(name: str, import_name: str = None) -> tuple[bool, str]:
     """
     检查单个依赖是否安装
 
@@ -62,7 +61,6 @@ def main():
 
     missing = []
     installed = []
-    warnings = []
 
     print("检查依赖...")
     print("-" * 70)

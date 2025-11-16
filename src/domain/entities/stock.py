@@ -6,10 +6,9 @@ Stock Entity
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional
 
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.market import Market
+from domain.value_objects.stock_code import StockCode
 
 
 @dataclass
@@ -31,8 +30,8 @@ class Stock:
 
     code: StockCode
     market: Market
-    name: Optional[str] = None
-    list_date: Optional[str] = None
+    name: str | None = None
+    list_date: str | None = None
 
     # 实体唯一标识 (自动生成)
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -46,7 +45,7 @@ class Stock:
         if code_market != market_code:
             raise ValueError(
                 f"Stock code and market mismatch: "
-                f"code={self.code.value}, market={market_code}"
+                f"code={self.code.value}, market={market_code}",
             )
 
     @property

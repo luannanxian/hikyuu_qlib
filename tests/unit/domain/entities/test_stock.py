@@ -5,9 +5,10 @@ Stock Entity 单元测试
 """
 
 import pytest
+
 from domain.entities.stock import Stock
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.market import Market
+from domain.value_objects.stock_code import StockCode
 
 
 class TestStockCreation:
@@ -65,7 +66,7 @@ class TestStockIdentity:
         """验证股票相等性基于股票代码"""
         stock1 = Stock(code=StockCode("sh600000"), market=Market("SH"), name="浦发银行")
         stock2 = Stock(
-            code=StockCode("sh600000"), market=Market("SH"), name="浦发银行 A"  # 名称不同
+            code=StockCode("sh600000"), market=Market("SH"), name="浦发银行 A",  # 名称不同
         )
         stock3 = Stock(code=StockCode("sz000001"), market=Market("SZ"))
 
@@ -125,7 +126,7 @@ class TestStockProperties:
         """测试股票有效性验证"""
         # 有上市日期的股票是有效的
         valid_stock = Stock(
-            code=StockCode("sh600000"), market=Market("SH"), list_date="2000-01-01"
+            code=StockCode("sh600000"), market=Market("SH"), list_date="2000-01-01",
         )
         assert valid_stock.is_valid() is True
 

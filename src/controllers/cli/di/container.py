@@ -9,7 +9,6 @@ Provides centralized management of dependencies:
 """
 
 from functools import cached_property
-from typing import Optional
 
 from adapters.hikyuu.hikyuu_backtest_adapter import HikyuuBacktestAdapter
 from adapters.hikyuu.hikyuu_data_adapter import HikyuuDataAdapter
@@ -37,7 +36,7 @@ class Container:
     Uses lazy initialization with cached properties.
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """
         Initialize container.
 
@@ -95,7 +94,7 @@ class Container:
     def train_model_use_case(self) -> TrainModelUseCase:
         """Get TrainModelUseCase instance."""
         return TrainModelUseCase(
-            trainer=self.model_trainer, repository=self.model_repository
+            trainer=self.model_trainer, repository=self.model_repository,
         )
 
     @cached_property

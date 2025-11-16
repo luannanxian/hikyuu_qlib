@@ -31,7 +31,7 @@ class DateRange:
         if self.start_date > self.end_date:
             raise ValueError(
                 f"start_date must be <= end_date, "
-                f"got start_date={self.start_date}, end_date={self.end_date}"
+                f"got start_date={self.start_date}, end_date={self.end_date}",
             )
 
     def contains(self, target_date: date) -> bool:

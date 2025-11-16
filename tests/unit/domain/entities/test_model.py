@@ -4,9 +4,11 @@ Model Entity 单元测试
 测试 DR-004: Model (模型) 领域模型
 """
 
-import pytest
 from datetime import datetime
-from domain.entities.model import Model, ModelType, ModelStatus
+
+import pytest
+
+from domain.entities.model import Model, ModelStatus, ModelType
 
 
 class TestModelCreation:

@@ -4,9 +4,10 @@ AnalyzeBacktestResultUseCase 单元测试
 测试 UC-010: Analyze Backtest Result (分析回测结果) 用例
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
+
+import pytest
 
 from domain.entities.backtest import BacktestResult, Trade
 from domain.value_objects.stock_code import StockCode
@@ -24,14 +25,14 @@ class TestAnalyzeResultSuccess:
             strategy_name="测试策略",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("120000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(120000),
             equity_curve=[
-                Decimal("100000"),
-                Decimal("105000"),
-                Decimal("110000"),
-                Decimal("115000"),
-                Decimal("120000"),
+                Decimal(100000),
+                Decimal(105000),
+                Decimal(110000),
+                Decimal(115000),
+                Decimal(120000),
             ],
         )
 
@@ -43,8 +44,8 @@ class TestAnalyzeResultSuccess:
                 quantity=1000,
                 price=Decimal("10.00"),
                 trade_date=datetime(2024, 1, 10),
-                commission=Decimal("5"),
-            )
+                commission=Decimal(5),
+            ),
         )
         result.add_trade(
             Trade(
@@ -53,8 +54,8 @@ class TestAnalyzeResultSuccess:
                 quantity=1000,
                 price=Decimal("12.00"),
                 trade_date=datetime(2024, 6, 10),
-                commission=Decimal("6"),
-            )
+                commission=Decimal(6),
+            ),
         )
 
         use_case = AnalyzeBacktestResultUseCase()
@@ -87,9 +88,9 @@ class TestCalculateSharpeRatio:
             strategy_name="测试策略",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("120000"),
-            equity_curve=[Decimal("100000"), Decimal("120000")],
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(120000),
+            equity_curve=[Decimal(100000), Decimal(120000)],
         )
 
         use_case = AnalyzeBacktestResultUseCase()
@@ -113,13 +114,13 @@ class TestCalculateMaxDrawdown:
             strategy_name="测试策略",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("90000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(90000),
             equity_curve=[
-                Decimal("100000"),  # 起点
-                Decimal("120000"),  # 最高点
-                Decimal("90000"),  # 回撤到 90000
-                Decimal("95000"),
+                Decimal(100000),  # 起点
+                Decimal(120000),  # 最高点
+                Decimal(90000),  # 回撤到 90000
+                Decimal(95000),
             ],
         )
 
@@ -144,9 +145,9 @@ class TestAnalyzeEmptyResult:
             strategy_name="测试策略",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("100000"),
-            equity_curve=[Decimal("100000")],
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(100000),
+            equity_curve=[Decimal(100000)],
         )
 
         use_case = AnalyzeBacktestResultUseCase()
@@ -155,9 +156,9 @@ class TestAnalyzeEmptyResult:
         analysis = await use_case.execute(backtest_result=result)
 
         # Assert: 应该返回默认值
-        assert analysis["total_return"] == Decimal("0")
+        assert analysis["total_return"] == Decimal(0)
         assert analysis["total_trades"] == 0
-        assert analysis["win_rate"] == Decimal("0")
+        assert analysis["win_rate"] == Decimal(0)
 
     @pytest.mark.asyncio
     async def test_analyze_empty_equity_curve(self):
@@ -167,8 +168,8 @@ class TestAnalyzeEmptyResult:
             strategy_name="测试策略",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
-            initial_capital=Decimal("100000"),
-            final_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
+            final_capital=Decimal(100000),
             equity_curve=[],  # 空权益曲线
         )
 
@@ -178,4 +179,4 @@ class TestAnalyzeEmptyResult:
         analysis = await use_case.execute(backtest_result=result)
 
         # Assert: 最大回撤应该为 0
-        assert analysis["max_drawdown"] == Decimal("0")
+        assert analysis["max_drawdown"] == Decimal(0)

@@ -4,17 +4,15 @@ Batch Training Utilities
 提供批量训练指数成分股的工具函数
 """
 
-import asyncio
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import Any
+
 import pandas as pd
 
 from domain.entities.model import Model, ModelType
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
-from utils.index_constituents import get_index_constituents
 from utils.data_conversion import convert_kline_to_training_data
+from utils.index_constituents import get_index_constituents
 
 
 async def load_index_training_data(
@@ -25,8 +23,8 @@ async def load_index_training_data(
     add_features: bool = True,
     add_labels: bool = True,
     label_horizon: int = 1,
-    max_stocks: Optional[int] = None,
-    skip_errors: bool = True
+    max_stocks: int | None = None,
+    skip_errors: bool = True,
 ) -> pd.DataFrame:
     """
     加载指数成分股的训练数据（合并为一个大DataFrame）
@@ -86,7 +84,7 @@ async def load_index_training_data(
             kline_data = await data_provider.load_stock_data(
                 stock_code=stock_code,
                 date_range=date_range,
-                kline_type=kline_type
+                kline_type=kline_type,
             )
 
             if not kline_data:
@@ -101,7 +99,7 @@ async def load_index_training_data(
                 kline_data,
                 add_features=add_features,
                 add_labels=add_labels,
-                label_horizon=label_horizon
+                label_horizon=label_horizon,
             )
 
             if training_data.empty:
@@ -141,9 +139,9 @@ async def load_index_training_data_by_stock(
     add_features: bool = True,
     add_labels: bool = True,
     label_horizon: int = 1,
-    max_stocks: Optional[int] = None,
-    skip_errors: bool = True
-) -> Dict[str, pd.DataFrame]:
+    max_stocks: int | None = None,
+    skip_errors: bool = True,
+) -> dict[str, pd.DataFrame]:
     """
     加载指数成分股的训练数据（按股票分别存储）
 
@@ -182,7 +180,7 @@ async def load_index_training_data_by_stock(
             kline_data = await data_provider.load_stock_data(
                 stock_code=stock_code,
                 date_range=date_range,
-                kline_type=kline_type
+                kline_type=kline_type,
             )
 
             if not kline_data:
@@ -195,7 +193,7 @@ async def load_index_training_data_by_stock(
                 kline_data,
                 add_features=add_features,
                 add_labels=add_labels,
-                label_horizon=label_horizon
+                label_horizon=label_horizon,
             )
 
             if training_data.empty:
@@ -208,7 +206,7 @@ async def load_index_training_data_by_stock(
             if i % 50 == 0:
                 print(f"  进度: {i}/{len(stocks)} ({success_count} 成功, {error_count} 失败)")
 
-        except Exception as e:
+        except Exception:
             error_count += 1
             if not skip_errors:
                 raise
@@ -227,10 +225,10 @@ async def train_model_on_index(
     data_provider,
     model_trainer,
     model_repository,
-    hyperparameters: Optional[Dict[str, Any]] = None,
-    max_stocks: Optional[int] = None,
+    hyperparameters: dict[str, Any] | None = None,
+    max_stocks: int | None = None,
     skip_errors: bool = True,
-    metrics_threshold: float = 0.1
+    metrics_threshold: float = 0.1,
 ) -> Model:
     """
     在指数成分股上训练模型
@@ -278,9 +276,9 @@ async def train_model_on_index(
         ...     metrics_threshold=0.1  # 多股票混合使用较低阈值
         ... )
     """
-    print(f"=" * 70)
+    print("=" * 70)
     print(f"在 {index_name} 成分股上训练 {model_type.value} 模型")
-    print(f"=" * 70)
+    print("=" * 70)
 
     # 1. 加载训练数据
     training_data = await load_index_training_data(
@@ -289,17 +287,17 @@ async def train_model_on_index(
         kline_type=kline_type,
         data_provider=data_provider,
         max_stocks=max_stocks,
-        skip_errors=skip_errors
+        skip_errors=skip_errors,
     )
 
     # 2. 创建模型
     model = Model(
         model_type=model_type,
-        hyperparameters=hyperparameters or {}
+        hyperparameters=hyperparameters or {},
     )
 
     # 3. 训练模型
-    print(f"\n开始训练模型...")
+    print("\n开始训练模型...")
     print(f"  训练数据量: {len(training_data)} 条")
     print(f"  特征数: {len(training_data.columns)} 列")
 
@@ -311,19 +309,20 @@ async def train_model_on_index(
             # 尝试用训练器训练（使用默认阈值0.3）
             trained_model = await model_trainer.train(
                 model=model,
-                training_data=training_data
+                training_data=training_data,
             )
         except Exception as e:
             # 如果因为阈值失败，且我们设置了更低的自定义阈值
             error_msg = str(e)
             if "Model metrics below threshold" in error_msg:
-                print(f"\n⚠️  训练完成但默认阈值(0.3)验证失败")
+                print("\n⚠️  训练完成但默认阈值(0.3)验证失败")
                 print(f"  使用自定义阈值({metrics_threshold})重新验证...")
 
                 # 模型训练成功但验证失败，metrics已经通过update_metrics设置
                 if model.metrics and model.validate_metrics(model.metrics, metrics_threshold):
-                    from domain.entities.model import ModelStatus
                     from datetime import datetime
+
+                    from domain.entities.model import ModelStatus
 
                     object.__setattr__(model, 'status', ModelStatus.TRAINED)
                     object.__setattr__(model, 'training_date', datetime.now())
@@ -334,7 +333,7 @@ async def train_model_on_index(
                     # 连自定义阈值都没通过
                     raise ValueError(
                         f"Model metrics below custom threshold. Required: {metrics_threshold}, "
-                        f"got: {model.metrics}"
+                        f"got: {model.metrics}",
                     )
             else:
                 raise
@@ -342,7 +341,7 @@ async def train_model_on_index(
         # 保存模型
         await model_repository.save(trained_model)
 
-        print(f"\n模型训练成功!")
+        print("\n模型训练成功!")
         print(f"  模型ID: {trained_model.id}")
         print(f"  状态: {trained_model.status.value}")
         print(f"  指标: {trained_model.metrics}")
@@ -360,16 +359,16 @@ async def train_model_on_index(
 
 
 async def train_models_for_multiple_indices(
-    indices: List[str],
+    indices: list[str],
     model_type: ModelType,
     date_range: DateRange,
     kline_type: KLineType,
     data_provider,
     model_trainer,
     model_repository,
-    hyperparameters: Optional[Dict[str, Any]] = None,
-    max_stocks_per_index: Optional[int] = None
-) -> Dict[str, Model]:
+    hyperparameters: dict[str, Any] | None = None,
+    max_stocks_per_index: int | None = None,
+) -> dict[str, Model]:
     """
     为多个指数分别训练模型
 
@@ -409,7 +408,7 @@ async def train_models_for_multiple_indices(
                 model_trainer=model_trainer,
                 model_repository=model_repository,
                 hyperparameters=hyperparameters,
-                max_stocks=max_stocks_per_index
+                max_stocks=max_stocks_per_index,
             )
             models[index_name] = model
         except Exception as e:

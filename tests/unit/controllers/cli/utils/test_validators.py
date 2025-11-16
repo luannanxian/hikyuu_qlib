@@ -8,15 +8,16 @@ Tests:
 - Numeric validation
 """
 
-import pytest
 from datetime import date
+
+import pytest
 
 from controllers.cli.utils.validators import (
     validate_date,
-    validate_stock_code,
     validate_file_path,
     validate_positive_float,
     validate_rate,
+    validate_stock_code,
 )
 
 

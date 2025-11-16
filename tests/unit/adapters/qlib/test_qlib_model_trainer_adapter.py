@@ -5,13 +5,13 @@ QlibModelTrainerAdapter 单元测试
 使用 Mock 隔离 Qlib 框架依赖
 """
 
-import pytest
-import tempfile
 import os
-from decimal import Decimal
-from unittest.mock import MagicMock, patch, mock_open
-from typing import Any
+import tempfile
 from datetime import datetime
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from domain.entities.model import Model, ModelStatus, ModelType
 
@@ -35,9 +35,9 @@ class TestQlibModelTrainerAdapterPredict:
     @pytest.fixture
     def adapter_with_trained_model(self, untrained_model):
         """带有已训练模型的适配器 fixture"""
-        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
-        import pandas as pd
         import numpy as np
+
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
 
         adapter = QlibModelTrainerAdapter()
 
@@ -69,8 +69,9 @@ class TestQlibModelTrainerAdapterPredict:
         1. 未调用train()前predict()应抛出异常
         2. 异常消息包含"not trained"
         """
-        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
         import pandas as pd
+
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
 
         adapter = QlibModelTrainerAdapter()
 
@@ -91,7 +92,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_with_empty_dataframe_should_return_empty_list(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试空DataFrame输入应返回空列表
@@ -116,7 +117,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_missing_required_columns_should_fail(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试缺少必要列应失败
@@ -140,7 +141,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_single_stock_single_date(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试单股票单日期预测
@@ -151,8 +152,10 @@ class TestQlibModelTrainerAdapterPredict:
         3. Prediction包含predicted_value
         4. Prediction包含confidence
         """
-        import pandas as pd
         from datetime import datetime
+
+        import pandas as pd
+
         from domain.entities.prediction import Prediction
         from domain.value_objects.stock_code import StockCode
 
@@ -180,7 +183,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_multiple_stocks_batch(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试多股票多日期批量预测
@@ -190,8 +193,10 @@ class TestQlibModelTrainerAdapterPredict:
         2. 每个股票都有对应的预测
         3. 预测数量与输入行数一致
         """
-        import pandas as pd
         from datetime import datetime
+
+        import pandas as pd
+
         from domain.entities.prediction import Prediction
 
         adapter, model = adapter_with_trained_model
@@ -220,7 +225,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_values_are_floats(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试预测值类型和范围
@@ -229,8 +234,9 @@ class TestQlibModelTrainerAdapterPredict:
         1. predicted_value是float类型
         2. 预测值在合理范围内（例如 -1到1之间）
         """
-        import pandas as pd
         from datetime import datetime
+
+        import pandas as pd
 
         adapter, model = adapter_with_trained_model
 
@@ -254,7 +260,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_confidence_calculation(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试置信度计算正确性
@@ -264,8 +270,9 @@ class TestQlibModelTrainerAdapterPredict:
         2. 极端预测值有较高置信度
         3. 中等预测值有较低置信度
         """
-        import pandas as pd
         from datetime import datetime
+
+        import pandas as pd
 
         adapter, model = adapter_with_trained_model
 
@@ -289,7 +296,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_output_includes_timestamp(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试输出包含时间戳
@@ -298,8 +305,9 @@ class TestQlibModelTrainerAdapterPredict:
         1. Prediction实体包含timestamp字段
         2. timestamp与输入的date对应
         """
-        import pandas as pd
         from datetime import datetime
+
+        import pandas as pd
 
         adapter, model = adapter_with_trained_model
 
@@ -323,7 +331,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_output_includes_model_id(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试输出包含model_id
@@ -332,8 +340,9 @@ class TestQlibModelTrainerAdapterPredict:
         1. Prediction实体包含model_id字段
         2. model_id与输入模型的id一致
         """
-        import pandas as pd
         from datetime import datetime
+
+        import pandas as pd
 
         adapter, model = adapter_with_trained_model
 
@@ -354,7 +363,7 @@ class TestQlibModelTrainerAdapterPredict:
 
     @pytest.mark.asyncio
     async def test_predict_handles_missing_date_column(
-        self, adapter_with_trained_model
+        self, adapter_with_trained_model,
     ):
         """
         测试处理缺少date列的情况
@@ -363,8 +372,9 @@ class TestQlibModelTrainerAdapterPredict:
         1. 如果没有date列，使用当前时间
         2. 不会抛出异常
         """
-        import pandas as pd
         from datetime import datetime
+
+        import pandas as pd
 
         adapter, model = adapter_with_trained_model
 
@@ -392,8 +402,9 @@ class TestQlibModelTrainerAdapterSaveLoad:
     @pytest.fixture
     def adapter_with_trained_model(self):
         """带有已训练模型的适配器 fixture"""
-        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
         import numpy as np
+
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
 
         adapter = QlibModelTrainerAdapter()
 
@@ -409,7 +420,7 @@ class TestQlibModelTrainerAdapterSaveLoad:
         """模型实体 fixture"""
         return Model(
             model_type=ModelType.LGBM,
-            hyperparameters={"learning_rate": 0.01}
+            hyperparameters={"learning_rate": 0.01},
         )
 
     def test_save_model_success(self, adapter_with_trained_model, model_entity):
@@ -426,12 +437,12 @@ class TestQlibModelTrainerAdapterSaveLoad:
             file_path = os.path.join(tmpdir, "model.pkl")
 
             # Mock pickle.dump 以避免序列化 MagicMock
-            with patch('pickle.dump') as mock_dump:
+            with patch('pickle.dump') as _mock_dump:
                 # 执行
                 adapter.save_model(model_entity, file_path)
 
                 # 验证 pickle.dump 被调用
-                assert mock_dump.called
+                assert _mock_dump.called
                 # 验证 model.file_path 被更新
                 assert model_entity.file_path == file_path
 
@@ -449,7 +460,7 @@ class TestQlibModelTrainerAdapterSaveLoad:
             file_path = os.path.join(tmpdir, "models", "subfolder", "model.pkl")
 
             # Mock pickle.dump 以避免序列化 MagicMock
-            with patch('pickle.dump') as mock_dump:
+            with patch('pickle.dump') as _mock_dump:
                 # 执行
                 adapter.save_model(model_entity, file_path)
 
@@ -533,8 +544,9 @@ class TestQlibModelTrainerAdapterPredictBatch:
     @pytest.fixture
     def adapter_with_trained_model(self):
         """带有已训练模型的适配器 fixture"""
-        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
         import numpy as np
+
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
 
         adapter = QlibModelTrainerAdapter()
 
@@ -557,12 +569,12 @@ class TestQlibModelTrainerAdapterPredictBatch:
         return Model(
             model_type=ModelType.LGBM,
             hyperparameters={"learning_rate": 0.01},
-            status=ModelStatus.TRAINED
+            status=ModelStatus.TRAINED,
         )
 
     @pytest.mark.asyncio
     async def test_predict_batch_with_memory_model(
-        self, adapter_with_trained_model, model_entity
+        self, adapter_with_trained_model, model_entity,
     ):
         """
         测试使用内存中的模型进行批量预测
@@ -573,6 +585,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         3. 预测包含正确的 model_id
         """
         import pandas as pd
+
         from domain.entities.prediction import PredictionBatch
 
         adapter = adapter_with_trained_model
@@ -589,7 +602,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         # 执行
         batch = await adapter.predict_batch(
             model=model_entity,
-            input_data=input_data
+            input_data=input_data,
         )
 
         # 验证
@@ -600,7 +613,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
 
     @pytest.mark.asyncio
     async def test_predict_batch_with_file_path(
-        self, adapter_with_trained_model, model_entity
+        self, adapter_with_trained_model, model_entity,
     ):
         """
         测试从文件路径加载模型进行预测
@@ -610,6 +623,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         2. 返回正确的 PredictionBatch
         """
         import pandas as pd
+
         from domain.entities.prediction import PredictionBatch
 
         adapter = adapter_with_trained_model
@@ -631,7 +645,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
             # 执行
             batch = await adapter.predict_batch(
                 model=model_entity,
-                input_data=input_data
+                input_data=input_data,
             )
 
             # 验证
@@ -640,7 +654,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
 
     @pytest.mark.asyncio
     async def test_predict_batch_with_prediction_date(
-        self, adapter_with_trained_model, model_entity
+        self, adapter_with_trained_model, model_entity,
     ):
         """
         测试使用指定的 prediction_date
@@ -668,7 +682,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         batch = await adapter.predict_batch(
             model=model_entity,
             input_data=input_data,
-            prediction_date=prediction_date
+            prediction_date=prediction_date,
         )
 
         # 验证
@@ -676,7 +690,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
 
     @pytest.mark.asyncio
     async def test_predict_batch_with_empty_dataframe(
-        self, adapter_with_trained_model, model_entity
+        self, adapter_with_trained_model, model_entity,
     ):
         """
         测试空 DataFrame 输入
@@ -686,6 +700,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         2. 不抛出异常
         """
         import pandas as pd
+
         from domain.entities.prediction import PredictionBatch
 
         adapter = adapter_with_trained_model
@@ -696,7 +711,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         # 执行
         batch = await adapter.predict_batch(
             model=model_entity,
-            input_data=input_data
+            input_data=input_data,
         )
 
         # 验证
@@ -713,8 +728,9 @@ class TestQlibModelTrainerAdapterPredictBatch:
         1. 抛出 ValueError
         2. 错误消息包含相关信息
         """
-        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
         import pandas as pd
+
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
 
         adapter = QlibModelTrainerAdapter()
 
@@ -730,7 +746,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         with pytest.raises(Exception) as exc_info:
             await adapter.predict_batch(
                 model=model_entity,
-                input_data=input_data
+                input_data=input_data,
             )
 
         assert "not trained" in str(exc_info.value).lower() or "no file path" in str(exc_info.value).lower()
@@ -743,8 +759,9 @@ class TestQlibModelTrainerAdapterPredictBatch:
         验证:
         1. 抛出 FileNotFoundError
         """
-        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
         import pandas as pd
+
+        from adapters.qlib.qlib_model_trainer_adapter import QlibModelTrainerAdapter
 
         adapter = QlibModelTrainerAdapter()
 
@@ -763,12 +780,12 @@ class TestQlibModelTrainerAdapterPredictBatch:
         with pytest.raises(Exception):
             await adapter.predict_batch(
                 model=model_entity,
-                input_data=input_data
+                input_data=input_data,
             )
 
     @pytest.mark.asyncio
     async def test_predict_batch_average_confidence(
-        self, adapter_with_trained_model, model_entity
+        self, adapter_with_trained_model, model_entity,
     ):
         """
         测试 PredictionBatch 的平均置信度计算
@@ -793,7 +810,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         # 执行
         batch = await adapter.predict_batch(
             model=model_entity,
-            input_data=input_data
+            input_data=input_data,
         )
 
         # 验证
@@ -803,7 +820,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
 
     @pytest.mark.asyncio
     async def test_predict_batch_to_dataframe(
-        self, adapter_with_trained_model, model_entity
+        self, adapter_with_trained_model, model_entity,
     ):
         """
         测试 PredictionBatch 转换为 DataFrame
@@ -828,7 +845,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         # 执行
         batch = await adapter.predict_batch(
             model=model_entity,
-            input_data=input_data
+            input_data=input_data,
         )
 
         # 转换为 DataFrame
@@ -845,7 +862,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
 
     @pytest.mark.asyncio
     async def test_predict_batch_predictions_have_correct_attributes(
-        self, adapter_with_trained_model, model_entity
+        self, adapter_with_trained_model, model_entity,
     ):
         """
         测试预测结果包含正确的属性
@@ -858,6 +875,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         5. 每个预测包含 model_id
         """
         import pandas as pd
+
         from domain.value_objects.stock_code import StockCode
 
         adapter = adapter_with_trained_model
@@ -875,7 +893,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         # 执行
         batch = await adapter.predict_batch(
             model=model_entity,
-            input_data=input_data
+            input_data=input_data,
         )
 
         # 验证

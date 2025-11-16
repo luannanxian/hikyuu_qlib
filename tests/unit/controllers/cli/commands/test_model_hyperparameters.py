@@ -8,17 +8,17 @@ Tests:
 - hyperparameter parsing and type inference
 """
 
-import pytest
 import json
-from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 from click.testing import CliRunner
-from unittest.mock import AsyncMock, Mock, patch
 
 from controllers.cli.commands.model import model_group
 from controllers.cli.utils.hyperparameters import (
-    parse_param_list,
-    load_hyperparameters,
     _infer_value_type,
+    load_hyperparameters,
+    parse_param_list,
 )
 from domain.entities.model import ModelType
 

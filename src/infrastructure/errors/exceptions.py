@@ -12,7 +12,7 @@ All exceptions support:
 - Timestamps for tracking when errors occurred
 """
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class BaseInfrastructureException(Exception):
@@ -30,8 +30,8 @@ class BaseInfrastructureException(Exception):
         self,
         message: str,
         code: str,
-        context: Optional[Dict[str, Any]] = None,
-        original_exception: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_exception: Exception | None = None,
     ):
         """Initialize the exception.
 
@@ -65,7 +65,7 @@ class BaseInfrastructureException(Exception):
             f"context={self.context})"
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert exception to dictionary for serialization.
 
         Returns:
@@ -83,46 +83,38 @@ class BaseInfrastructureException(Exception):
 class DataException(BaseInfrastructureException):
     """Base exception for data-related errors."""
 
-    pass
 
 
 class DataLoadException(DataException):
     """Exception raised when data loading fails."""
 
-    pass
 
 
 class DataValidationException(DataException):
     """Exception raised when data validation fails."""
 
-    pass
 
 
 class ModelException(BaseInfrastructureException):
     """Base exception for model-related errors."""
 
-    pass
 
 
 class ModelTrainingException(ModelException):
     """Exception raised when model training fails."""
 
-    pass
 
 
 class ModelPredictionException(ModelException):
     """Exception raised when model prediction fails."""
 
-    pass
 
 
 class BacktestException(BaseInfrastructureException):
     """Base exception for backtest-related errors."""
 
-    pass
 
 
 class ConfigurationException(BaseInfrastructureException):
     """Base exception for configuration-related errors."""
 
-    pass

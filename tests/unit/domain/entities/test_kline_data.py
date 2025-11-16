@@ -4,9 +4,10 @@ KLineData Entity 单元测试
 测试 DR-003: KLineData (K线数据) 领域模型
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
+
+import pytest
 
 from domain.entities.kline_data import KLineData
 from domain.value_objects.kline_type import KLineType
@@ -52,7 +53,7 @@ class TestKLineDataCreation:
                 low=Decimal("11.50"),
                 close=Decimal("11.45"),
                 volume=1000000,
-                amount=Decimal("11700000"),
+                amount=Decimal(11700000),
             )
 
         # volume 必须 >= 0
@@ -66,7 +67,7 @@ class TestKLineDataCreation:
                 low=Decimal("11.40"),
                 close=Decimal("11.75"),
                 volume=-1000,  # 负数成交量
-                amount=Decimal("11700000"),
+                amount=Decimal(11700000),
             )
 
 
@@ -84,7 +85,7 @@ class TestKLineDataIdentity:
             low=Decimal("11.40"),
             close=Decimal("11.75"),
             volume=1000000,
-            amount=Decimal("11700000"),
+            amount=Decimal(11700000),
         )
         kline2 = KLineData(
             kline_type=KLineType.DAY,
@@ -95,7 +96,7 @@ class TestKLineDataIdentity:
             low=Decimal("11.40"),
             close=Decimal("11.75"),
             volume=1000000,
-            amount=Decimal("11700000"),
+            amount=Decimal(11700000),
         )
 
         # 每个实体有唯一 ID
@@ -114,7 +115,7 @@ class TestKLineDataIdentity:
             low=Decimal("11.40"),
             close=Decimal("11.75"),
             volume=1000000,
-            amount=Decimal("11700000"),
+            amount=Decimal(11700000),
         )
         kline2 = KLineData(
             kline_type=KLineType.DAY,
@@ -125,7 +126,7 @@ class TestKLineDataIdentity:
             low=Decimal("11.50"),
             close=Decimal("11.85"),
             volume=2000000,
-            amount=Decimal("23400000"),
+            amount=Decimal(23400000),
         )
         kline3 = KLineData(
             kline_type=KLineType.DAY,
@@ -136,7 +137,7 @@ class TestKLineDataIdentity:
             low=Decimal("11.40"),
             close=Decimal("11.75"),
             volume=1000000,
-            amount=Decimal("11700000"),
+            amount=Decimal(11700000),
         )
 
         # 相同股票相同时间视为相等
@@ -160,7 +161,7 @@ class TestKLineDataCalculations:
             low=Decimal("9.50"),
             close=Decimal("10.50"),
             volume=1000000,
-            amount=Decimal("10250000"),
+            amount=Decimal(10250000),
         )
 
         # 涨跌幅 = (close - open) / open
@@ -178,7 +179,7 @@ class TestKLineDataCalculations:
             low=Decimal("9.00"),
             close=Decimal("10.50"),
             volume=1000000,
-            amount=Decimal("10250000"),
+            amount=Decimal(10250000),
         )
 
         # 振幅 = (high - low) / open
@@ -196,7 +197,7 @@ class TestKLineDataCalculations:
             low=Decimal("9.00"),
             close=Decimal("10.50"),
             volume=1000000,
-            amount=Decimal("10000000"),  # 1000000 * 10.00
+            amount=Decimal(10000000),  # 1000000 * 10.00
         )
 
         # 均价 = amount / volume
@@ -217,7 +218,7 @@ class TestKLineDataStringRepresentation:
             low=Decimal("11.40"),
             close=Decimal("11.75"),
             volume=1000000,
-            amount=Decimal("11700000"),
+            amount=Decimal(11700000),
         )
 
         kline_str = str(kline)

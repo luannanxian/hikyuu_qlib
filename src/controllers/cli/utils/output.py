@@ -8,7 +8,6 @@ Provides formatted console output:
 - Color formatting
 """
 
-from typing import List, Optional
 
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -98,7 +97,7 @@ class CLIOutput:
 
 
 def create_table(
-    title: Optional[str], columns: List[str], show_header: bool = True
+    title: str | None, columns: list[str], show_header: bool = True,
 ) -> Table:
     """
     Create a Rich table with specified columns.

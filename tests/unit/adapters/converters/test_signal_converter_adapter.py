@@ -5,12 +5,13 @@ SignalConverterAdapter 单元测试
 将模型预测转换为交易信号
 """
 
-import pytest
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 
-from domain.entities.prediction import PredictionBatch, Prediction
-from domain.entities.trading_signal import SignalType, SignalStrength
+import pytest
+
+from domain.entities.prediction import Prediction, PredictionBatch
+from domain.entities.trading_signal import SignalStrength, SignalType
 from domain.value_objects.stock_code import StockCode
 
 
@@ -20,46 +21,50 @@ class TestSignalConverterAdapter:
     @pytest.fixture
     def prediction_batch(self) -> PredictionBatch:
         """预测批次 fixture"""
-        batch = PredictionBatch(model_id="test_model", batch_date=datetime(2024, 1, 1))
+        batch = PredictionBatch(model_id="test_model", generated_at=datetime(2024, 1, 1))
 
         # 添加强烈看涨预测（predicted_value > 0.05, confidence > 0.8）
         batch.add_prediction(
             Prediction(
+                model_id="test_model",
                 stock_code=StockCode("sz000001"),
-                prediction_date=datetime(2024, 1, 2),
+                timestamp=datetime(2024, 1, 2),
                 predicted_value=Decimal("0.08"),  # 8%涨幅
                 confidence=Decimal("0.9"),
-            )
+            ),
         )
 
         # 添加看涨预测（predicted_value > 0.02, confidence > 0.6）
         batch.add_prediction(
             Prediction(
+                model_id="test_model",
                 stock_code=StockCode("sz000002"),
-                prediction_date=datetime(2024, 1, 2),
+                timestamp=datetime(2024, 1, 2),
                 predicted_value=Decimal("0.03"),  # 3%涨幅
                 confidence=Decimal("0.7"),
-            )
+            ),
         )
 
         # 添加看跌预测（predicted_value < -0.05, confidence > 0.8）
         batch.add_prediction(
             Prediction(
+                model_id="test_model",
                 stock_code=StockCode("sz000003"),
-                prediction_date=datetime(2024, 1, 2),
+                timestamp=datetime(2024, 1, 2),
                 predicted_value=Decimal("-0.07"),  # -7%跌幅
                 confidence=Decimal("0.85"),
-            )
+            ),
         )
 
         # 添加持有预测（predicted_value 接近 0）
         batch.add_prediction(
             Prediction(
+                model_id="test_model",
                 stock_code=StockCode("sz000004"),
-                prediction_date=datetime(2024, 1, 2),
+                timestamp=datetime(2024, 1, 2),
                 predicted_value=Decimal("0.01"),  # 1%涨幅（不够买入阈值）
                 confidence=Decimal("0.5"),
-            )
+            ),
         )
 
         return batch
@@ -77,7 +82,7 @@ class TestSignalConverterAdapter:
 
     @pytest.mark.asyncio
     async def test_convert_predictions_to_signals(
-        self, prediction_batch, strategy_params
+        self, prediction_batch, strategy_params,
     ):
         """
         测试成功转换预测为信号
@@ -91,7 +96,7 @@ class TestSignalConverterAdapter:
 
         adapter = SignalConverterAdapter()
         signal_batch = await adapter.convert_to_signals(
-            predictions=prediction_batch, strategy_params=strategy_params
+            predictions=prediction_batch, strategy_params=strategy_params,
         )
 
         # 验证
@@ -131,24 +136,24 @@ class TestSignalConverterAdapter:
 
         adapter = SignalConverterAdapter()
         signal_batch = await adapter.convert_to_signals(
-            predictions=prediction_batch, strategy_params=strategy_params
+            predictions=prediction_batch, strategy_params=strategy_params,
         )
 
         # 检查具体股票的信号
         signal_001 = signal_batch.get_signal(
-            StockCode("sz000001"), datetime(2024, 1, 2)
+            StockCode("sz000001"), datetime(2024, 1, 2),
         )
         assert signal_001 is not None
         assert signal_001.signal_type == SignalType.BUY
 
         signal_003 = signal_batch.get_signal(
-            StockCode("sz000003"), datetime(2024, 1, 2)
+            StockCode("sz000003"), datetime(2024, 1, 2),
         )
         assert signal_003 is not None
         assert signal_003.signal_type == SignalType.SELL
 
         signal_004 = signal_batch.get_signal(
-            StockCode("sz000004"), datetime(2024, 1, 2)
+            StockCode("sz000004"), datetime(2024, 1, 2),
         )
         assert signal_004 is not None
         assert signal_004.signal_type == SignalType.HOLD
@@ -167,18 +172,18 @@ class TestSignalConverterAdapter:
 
         adapter = SignalConverterAdapter()
         signal_batch = await adapter.convert_to_signals(
-            predictions=prediction_batch, strategy_params=strategy_params
+            predictions=prediction_batch, strategy_params=strategy_params,
         )
 
         # 强烈买入信号（predicted_value=0.08, confidence=0.9）
         signal_001 = signal_batch.get_signal(
-            StockCode("sz000001"), datetime(2024, 1, 2)
+            StockCode("sz000001"), datetime(2024, 1, 2),
         )
         assert signal_001.signal_strength == SignalStrength.STRONG
 
         # 中等买入信号（predicted_value=0.03, confidence=0.7）
         signal_002 = signal_batch.get_signal(
-            StockCode("sz000002"), datetime(2024, 1, 2)
+            StockCode("sz000002"), datetime(2024, 1, 2),
         )
         assert signal_002.signal_strength == SignalStrength.MEDIUM
 
@@ -195,20 +200,21 @@ class TestSignalConverterAdapter:
 
         # 创建低置信度预测批次
         low_confidence_batch = PredictionBatch(
-            model_id="test_model", batch_date=datetime(2024, 1, 1)
+            model_id="test_model", generated_at=datetime(2024, 1, 1),
         )
         low_confidence_batch.add_prediction(
             Prediction(
+                model_id="test_model",
                 stock_code=StockCode("sz000005"),
-                prediction_date=datetime(2024, 1, 2),
+                timestamp=datetime(2024, 1, 2),
                 predicted_value=Decimal("0.08"),  # 高涨幅
                 confidence=Decimal("0.3"),  # 低置信度（< 0.6）
-            )
+            ),
         )
 
         adapter = SignalConverterAdapter()
         signal_batch = await adapter.convert_to_signals(
-            predictions=low_confidence_batch, strategy_params=strategy_params
+            predictions=low_confidence_batch, strategy_params=strategy_params,
         )
 
         # 验证：低置信度应该生成 HOLD 信号
@@ -228,12 +234,12 @@ class TestSignalConverterAdapter:
         from adapters.converters.signal_converter_adapter import SignalConverterAdapter
 
         empty_batch = PredictionBatch(
-            model_id="test_model", batch_date=datetime(2024, 1, 1)
+            model_id="test_model", generated_at=datetime(2024, 1, 1),
         )
 
         adapter = SignalConverterAdapter()
         signal_batch = await adapter.convert_to_signals(
-            predictions=empty_batch, strategy_params=strategy_params
+            predictions=empty_batch, strategy_params=strategy_params,
         )
 
         # 验证
@@ -253,7 +259,7 @@ class TestSignalConverterAdapter:
 
         adapter = SignalConverterAdapter()
         signal_batch = await adapter.convert_to_signals(
-            predictions=prediction_batch, strategy_params=strategy_params
+            predictions=prediction_batch, strategy_params=strategy_params,
         )
 
         # 检查信号原因

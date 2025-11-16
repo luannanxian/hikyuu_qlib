@@ -9,11 +9,11 @@ Tests error message formatting:
 
 def test_format_error_for_user():
     """Test formatting error for end users."""
-    from src.infrastructure.errors.formatters import format_error_for_user
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.formatters import format_error_for_user
 
     exc = DataException(
-        "Failed to load data", code="DATA_001", context={"stock_code": "000001"}
+        "Failed to load data", code="DATA_001", context={"stock_code": "000001"},
     )
 
     formatted = format_error_for_user(exc)
@@ -27,8 +27,8 @@ def test_format_error_for_user():
 
 def test_format_error_for_developer():
     """Test formatting error for developers with full details."""
-    from src.infrastructure.errors.formatters import format_error_for_developer
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.formatters import format_error_for_developer
 
     exc = DataException(
         "Failed to load data",
@@ -46,12 +46,13 @@ def test_format_error_for_developer():
 
 def test_format_error_as_json():
     """Test formatting error as JSON."""
-    from src.infrastructure.errors.formatters import format_error_as_json
-    from src.infrastructure.errors.exceptions import DataException
     import json
 
+    from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.formatters import format_error_as_json
+
     exc = DataException(
-        "Failed to load data", code="DATA_001", context={"stock_code": "000001"}
+        "Failed to load data", code="DATA_001", context={"stock_code": "000001"},
     )
 
     json_str = format_error_as_json(exc)
@@ -80,11 +81,11 @@ def test_format_validation_errors():
 
 def test_format_error_response():
     """Test formatting error as HTTP response."""
-    from src.infrastructure.errors.formatters import format_error_response
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.formatters import format_error_response
 
     exc = DataException(
-        "Failed to load data", code="DATA_001", context={"stock_code": "000001"}
+        "Failed to load data", code="DATA_001", context={"stock_code": "000001"},
     )
 
     response = format_error_response(exc)
@@ -98,11 +99,11 @@ def test_format_error_response():
 
 def test_format_error_with_suggestions():
     """Test formatting error with helpful suggestions."""
-    from src.infrastructure.errors.formatters import format_error_with_suggestions
     from src.infrastructure.errors.exceptions import ConfigurationException
+    from src.infrastructure.errors.formatters import format_error_with_suggestions
 
     exc = ConfigurationException(
-        "Invalid configuration", code="CONFIG_001", context={"config_key": "data_path"}
+        "Invalid configuration", code="CONFIG_001", context={"config_key": "data_path"},
     )
 
     formatted = format_error_with_suggestions(exc)
@@ -115,8 +116,8 @@ def test_format_error_with_suggestions():
 
 def test_format_exception_chain():
     """Test formatting exception chain."""
-    from src.infrastructure.errors.formatters import format_exception_chain
     from src.infrastructure.errors.exceptions import DataException
+    from src.infrastructure.errors.formatters import format_exception_chain
 
     original = ValueError("Original error")
     exc = DataException("Wrapped error", code="DATA_001", original_exception=original)
@@ -131,8 +132,8 @@ def test_format_exception_chain():
 
 def test_format_error_for_logging():
     """Test formatting error for logging."""
-    from src.infrastructure.errors.formatters import format_error_for_logging
     from src.infrastructure.errors.exceptions import ModelException
+    from src.infrastructure.errors.formatters import format_error_for_logging
 
     exc = ModelException(
         "Training failed",

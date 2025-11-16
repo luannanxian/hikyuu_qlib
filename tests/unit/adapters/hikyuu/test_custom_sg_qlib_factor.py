@@ -8,9 +8,7 @@ Unit Tests for CustomSG_QlibFactor Adapter
 - 边缘情况处理
 """
 
-import tempfile
 from datetime import datetime
-from decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
@@ -22,7 +20,7 @@ from adapters.hikyuu.custom_sg_qlib_factor import (
     Stock,
 )
 from domain.entities.prediction import Prediction, PredictionBatch
-from domain.entities.trading_signal import SignalType, SignalStrength
+from domain.entities.trading_signal import SignalStrength, SignalType
 from domain.value_objects.stock_code import StockCode
 
 
@@ -110,7 +108,7 @@ class TestLoadPredictions:
 
         # 创建MultiIndex
         index = pd.MultiIndex.from_product(
-            [dates, instruments], names=["datetime", "instrument"]
+            [dates, instruments], names=["datetime", "instrument"],
         )
 
         # 创建预测分数(递增,方便测试Top-K)
@@ -158,7 +156,7 @@ class TestLoadPredictions:
         dates = pd.date_range("2018-09-21", periods=2)
         instruments = ["SH600000", "SZ000001"]
         index = pd.MultiIndex.from_product(
-            [dates, instruments], names=["datetime", "instrument"]
+            [dates, instruments], names=["datetime", "instrument"],
         )
 
         # 使用错误的列名
@@ -176,7 +174,7 @@ class TestLoadPredictions:
         dates = pd.date_range("2018-09-21", periods=2)
         instruments = ["SH600000"]
         index = pd.MultiIndex.from_product(
-            [dates, instruments], names=["datetime", "instrument"]
+            [dates, instruments], names=["datetime", "instrument"],
         )
 
         # 测试不同的列名
@@ -203,7 +201,7 @@ class TestTopKCalculation:
         scores = [0.05, 0.03, 0.08, 0.02, 0.10]  # SH600519最高, SZ000001第二, SH600000第三
 
         index = pd.MultiIndex.from_arrays(
-            [[date] * 5, instruments], names=["datetime", "instrument"]
+            [[date] * 5, instruments], names=["datetime", "instrument"],
         )
 
         pred_df = pd.DataFrame({"score": scores}, index=index)
@@ -250,7 +248,7 @@ class TestTopKCalculation:
 
         # 第一天: SZ000001最高, 第二天: SH600157最高
         index = pd.MultiIndex.from_product(
-            [dates, instruments], names=["datetime", "instrument"]
+            [dates, instruments], names=["datetime", "instrument"],
         )
         scores = [
             0.05,
@@ -290,7 +288,7 @@ class TestCalculateSignals:
         # 创建预测数据: SH600000有高预测值
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": [0.05]}, index=index)  # > 0.02 buy_threshold
 
@@ -298,7 +296,7 @@ class TestCalculateSignals:
         pred_df.to_pickle(pred_file)
 
         sg = CustomSG_QlibFactor(
-            pred_pkl_path=str(pred_file), buy_threshold=0.02, sell_threshold=-0.02
+            pred_pkl_path=str(pred_file), buy_threshold=0.02, sell_threshold=-0.02,
         )
 
         # 模拟KData
@@ -321,8 +319,8 @@ class TestCalculateSignals:
         buy_signals = []
         sell_signals = []
 
-        original_add_buy = sg._addBuySignal
-        original_add_sell = sg._addSellSignal
+        _original_add_buy = sg._addBuySignal
+        _original_add_sell = sg._addSellSignal
 
         sg._addBuySignal = lambda dt: buy_signals.append(dt)
         sg._addSellSignal = lambda dt: sell_signals.append(dt)
@@ -337,17 +335,17 @@ class TestCalculateSignals:
         """测试生成卖出信号"""
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame(
-            {"score": [-0.05]}, index=index
+            {"score": [-0.05]}, index=index,
         )  # < -0.02 sell_threshold
 
         pred_file = tmp_path / "sell_signal.pkl"
         pred_df.to_pickle(pred_file)
 
         sg = CustomSG_QlibFactor(
-            pred_pkl_path=str(pred_file), buy_threshold=0.02, sell_threshold=-0.02
+            pred_pkl_path=str(pred_file), buy_threshold=0.02, sell_threshold=-0.02,
         )
 
         class MockKData:
@@ -380,17 +378,17 @@ class TestCalculateSignals:
         """测试持有区间不生成信号"""
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame(
-            {"score": [0.01]}, index=index
+            {"score": [0.01]}, index=index,
         )  # 在[-0.02, 0.02]区间内
 
         pred_file = tmp_path / "hold_signal.pkl"
         pred_df.to_pickle(pred_file)
 
         sg = CustomSG_QlibFactor(
-            pred_pkl_path=str(pred_file), buy_threshold=0.02, sell_threshold=-0.02
+            pred_pkl_path=str(pred_file), buy_threshold=0.02, sell_threshold=-0.02,
         )
 
         class MockKData:
@@ -423,7 +421,7 @@ class TestCalculateSignals:
         """测试股票无预测数据时不生成信号"""
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": [0.05]}, index=index)
 
@@ -478,7 +476,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.05,  # 买入
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -486,7 +484,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=-0.05,  # 卖出
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -494,12 +492,12 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.01,  # 持有
                 model_id="test_model",
-            )
+            ),
         )
 
         # 生成信号
         signal_batch = sg.generate_signals_from_predictions(
-            batch, buy_threshold=0.02, sell_threshold=-0.02
+            batch, buy_threshold=0.02, sell_threshold=-0.02,
         )
 
         assert signal_batch.size() == 3
@@ -533,7 +531,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.08,
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -541,7 +539,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.05,
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -549,11 +547,11 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.03,  # 应该被过滤
                 model_id="test_model",
-            )
+            ),
         )
 
         signal_batch = sg.generate_signals_from_predictions(
-            batch, buy_threshold=0.02, top_k=2
+            batch, buy_threshold=0.02, top_k=2,
         )
 
         # 只有Top-2应该生成买入信号
@@ -579,7 +577,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.10,  # > 0.02 * 2
                 model_id="test_model",
-            )
+            ),
         )
 
         # 中等买入信号
@@ -589,7 +587,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.035,  # > 0.02 * 1.5
                 model_id="test_model",
-            )
+            ),
         )
 
         # 弱买入信号
@@ -599,11 +597,11 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.025,  # > 0.02
                 model_id="test_model",
-            )
+            ),
         )
 
         signal_batch = sg.generate_signals_from_predictions(
-            batch, buy_threshold=0.02
+            batch, buy_threshold=0.02,
         )
 
         # 验证信号强度
@@ -624,7 +622,7 @@ class TestISignalProviderInterface:
         # 创建预测文件
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": [0.05]}, index=index)
 
@@ -632,12 +630,12 @@ class TestISignalProviderInterface:
         pred_df.to_pickle(pred_file)
 
         sg = CustomSG_QlibFactor(
-            pred_pkl_path=str(pred_file), buy_threshold=0.02
+            pred_pkl_path=str(pred_file), buy_threshold=0.02,
         )
 
         # 查询信号
         signal = sg.get_signal_for_stock(
-            StockCode("sh600000"), datetime(2018, 9, 21)
+            StockCode("sh600000"), datetime(2018, 9, 21),
         )
 
         assert signal is not None
@@ -648,7 +646,7 @@ class TestISignalProviderInterface:
         """测试查询不存在的股票信号"""
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": [0.05]}, index=index)
 
@@ -659,7 +657,7 @@ class TestISignalProviderInterface:
 
         # 查询不存在的股票
         signal = sg.get_signal_for_stock(
-            StockCode("sz000001"), datetime(2018, 9, 21)
+            StockCode("sz000001"), datetime(2018, 9, 21),
         )
 
         assert signal is None
@@ -678,7 +676,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.05,
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -686,7 +684,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.08,
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -694,7 +692,7 @@ class TestISignalProviderInterface:
                 timestamp=date1,
                 predicted_value=0.03,
                 model_id="test_model",
-            )
+            ),
         )
 
         # 获取Top-2
@@ -717,7 +715,7 @@ class TestISignalProviderInterface:
                 timestamp=datetime(2018, 9, 21),
                 predicted_value=0.05,
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -725,7 +723,7 @@ class TestISignalProviderInterface:
                 timestamp=datetime(2018, 9, 22),
                 predicted_value=0.06,
                 model_id="test_model",
-            )
+            ),
         )
         batch.add_prediction(
             Prediction(
@@ -733,7 +731,7 @@ class TestISignalProviderInterface:
                 timestamp=datetime(2018, 9, 21),
                 predicted_value=0.03,
                 model_id="test_model",
-            )
+            ),
         )
 
         # 应该只返回2个唯一股票
@@ -751,7 +749,7 @@ class TestResetAndClone:
         """测试复位功能"""
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": [0.05]}, index=index)
 
@@ -777,7 +775,7 @@ class TestResetAndClone:
         """测试克隆功能"""
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": [0.05]}, index=index)
 
@@ -785,7 +783,7 @@ class TestResetAndClone:
         pred_df.to_pickle(pred_file)
 
         sg = CustomSG_QlibFactor(
-            pred_pkl_path=str(pred_file), buy_threshold=0.03, top_k=5
+            pred_pkl_path=str(pred_file), buy_threshold=0.03, top_k=5,
         )
         sg._load_predictions()
 
@@ -809,7 +807,7 @@ class TestEdgeCases:
         """测试空预测文件"""
         # 创建空DataFrame
         index = pd.MultiIndex.from_arrays(
-            [[], []], names=["datetime", "instrument"]
+            [[], []], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": []}, index=index)
 
@@ -826,7 +824,7 @@ class TestEdgeCases:
         """测试单股票单日期"""
         date = pd.Timestamp("2018-09-21")
         index = pd.MultiIndex.from_arrays(
-            [[date], ["SH600000"]], names=["datetime", "instrument"]
+            [[date], ["SH600000"]], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame({"score": [0.05]}, index=index)
 
@@ -845,10 +843,10 @@ class TestEdgeCases:
         instruments = ["SH600000"]
 
         index = pd.MultiIndex.from_product(
-            [dates, instruments], names=["datetime", "instrument"]
+            [dates, instruments], names=["datetime", "instrument"],
         )
         pred_df = pd.DataFrame(
-            {"score": [0.01, 0.02, 0.03, 0.04, 0.05]}, index=index
+            {"score": [0.01, 0.02, 0.03, 0.04, 0.05]}, index=index,
         )
 
         pred_file = tmp_path / "multidate_single_stock.pkl"

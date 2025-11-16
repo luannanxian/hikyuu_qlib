@@ -5,7 +5,6 @@ IIndicatorCalculator Port - 指标计算器接口
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List
 
 from domain.entities.kline_data import KLineData
 
@@ -20,9 +19,9 @@ class IIndicatorCalculator(ABC):
     @abstractmethod
     async def calculate_indicators(
         self,
-        kline_data: List[KLineData],
-        indicator_names: List[str],
-    ) -> Dict[str, List[float]]:
+        kline_data: list[KLineData],
+        indicator_names: list[str],
+    ) -> dict[str, list[float]]:
         """
         计算技术指标
 
@@ -37,4 +36,3 @@ class IIndicatorCalculator(ABC):
             ValueError: 当输入数据无效时
             Exception: 当计算错误时
         """
-        pass

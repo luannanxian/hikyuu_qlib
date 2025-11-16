@@ -7,17 +7,15 @@ QlibDataAdapter 单元测试
 
 from datetime import date, datetime
 from decimal import Decimal
-from unittest.mock import MagicMock, patch, PropertyMock
-from typing import List
-import pandas as pd
-import numpy as np
+from unittest.mock import MagicMock
 
+import pandas as pd
 import pytest
 
-from domain.value_objects.stock_code import StockCode
+from domain.entities.kline_data import KLineData
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
-from domain.entities.kline_data import KLineData
+from domain.value_objects.stock_code import StockCode
 
 
 class TestQlibDataAdapter:
@@ -59,15 +57,15 @@ class TestQlibDataAdapter:
             '$low': [10.0, 10.5, 10.8, 10.7, 11.0],
             '$close': [10.8, 11.0, 11.2, 11.1, 11.4],
             '$volume': [1000000, 1100000, 1200000, 1050000, 1300000],
-            '$amount': [10800000.0, 12100000.0, 13440000.0, 11655000.0, 14820000.0]
+            '$amount': [10800000.0, 12100000.0, 13440000.0, 11655000.0, 14820000.0],
         }
-        
+
         # 创建多层索引
         multi_index = pd.MultiIndex.from_product(
             [dates, ['SH600000']],
-            names=['datetime', 'instrument']
+            names=['datetime', 'instrument'],
         )
-        
+
         df = pd.DataFrame(data, index=multi_index)
         return df
 
@@ -77,7 +75,7 @@ class TestQlibDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_calls_qlib_api(
-        self, mock_qlib, adapter, sample_stock_code, sample_date_range, mock_qlib_dataframe
+        self, mock_qlib, adapter, sample_stock_code, sample_date_range, mock_qlib_dataframe,
     ):
         """
         测试: load_stock_data 正确调用 Qlib API
@@ -93,17 +91,17 @@ class TestQlibDataAdapter:
         result = await adapter.load_stock_data(
             stock_code=sample_stock_code,
             date_range=sample_date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert
         mock_qlib.data.D.features.assert_called_once()
         call_args = mock_qlib.data.D.features.call_args
-        
+
         # 验证 instruments 参数
         assert 'SH600000' in call_args.kwargs['instruments'] or \
                'SH600000' in str(call_args.kwargs['instruments'])
-        
+
         # 验证 fields 参数
         fields = call_args.kwargs['fields']
         assert '$open' in fields
@@ -111,7 +109,7 @@ class TestQlibDataAdapter:
         assert '$low' in fields
         assert '$close' in fields
         assert '$volume' in fields
-        
+
         # 验证结果
         assert isinstance(result, list)
 
@@ -121,7 +119,7 @@ class TestQlibDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_converts_to_domain(
-        self, mock_qlib, adapter, sample_stock_code, sample_date_range, mock_qlib_dataframe
+        self, mock_qlib, adapter, sample_stock_code, sample_date_range, mock_qlib_dataframe,
     ):
         """
         测试: load_stock_data 将 Qlib DataFrame 正确转换为 Domain KLineData
@@ -139,7 +137,7 @@ class TestQlibDataAdapter:
         result = await adapter.load_stock_data(
             stock_code=sample_stock_code,
             date_range=sample_date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert
@@ -155,7 +153,7 @@ class TestQlibDataAdapter:
         assert isinstance(first_kline.low, Decimal)
         assert isinstance(first_kline.close, Decimal)
         assert isinstance(first_kline.timestamp, datetime)
-        
+
         # 验证数值正确性
         assert first_kline.open == Decimal('10.5')
         assert first_kline.high == Decimal('11.0')
@@ -169,7 +167,7 @@ class TestQlibDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_handles_qlib_error(
-        self, mock_qlib, adapter, sample_stock_code, sample_date_range
+        self, mock_qlib, adapter, sample_stock_code, sample_date_range,
     ):
         """
         测试: load_stock_data 正确处理 Qlib 异常
@@ -186,7 +184,7 @@ class TestQlibDataAdapter:
             await adapter.load_stock_data(
                 stock_code=sample_stock_code,
                 date_range=sample_date_range,
-                kline_type=KLineType.DAY
+                kline_type=KLineType.DAY,
             )
 
         assert "Failed to load stock data from Qlib" in str(exc_info.value)
@@ -197,7 +195,7 @@ class TestQlibDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_handles_empty_data(
-        self, mock_qlib, adapter, sample_stock_code, sample_date_range
+        self, mock_qlib, adapter, sample_stock_code, sample_date_range,
     ):
         """
         测试: load_stock_data 正确处理空数据
@@ -214,7 +212,7 @@ class TestQlibDataAdapter:
         result = await adapter.load_stock_data(
             stock_code=sample_stock_code,
             date_range=sample_date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert
@@ -244,7 +242,7 @@ class TestQlibDataAdapter:
         mock_qlib.data.D.instruments.assert_called_once()
         assert isinstance(result, list)
         assert all(isinstance(code, StockCode) for code in result)
-        
+
         # 验证只返回 SH 市场股票
         for stock_code in result:
             assert stock_code.value.startswith('SH') or stock_code.value.startswith('sh')
@@ -255,7 +253,7 @@ class TestQlibDataAdapter:
 
     @pytest.mark.asyncio
     async def test_load_stock_data_with_different_kline_types(
-        self, mock_qlib, adapter, sample_stock_code, sample_date_range, mock_qlib_dataframe
+        self, mock_qlib, adapter, sample_stock_code, sample_date_range, mock_qlib_dataframe,
     ):
         """
         测试: load_stock_data 正确处理不同的 K 线类型
@@ -271,7 +269,7 @@ class TestQlibDataAdapter:
         result_day = await adapter.load_stock_data(
             stock_code=sample_stock_code,
             date_range=sample_date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert
@@ -284,7 +282,7 @@ class TestQlibDataAdapter:
 
     @pytest.mark.asyncio
     async def test_stock_code_format_conversion(
-        self, mock_qlib, adapter, mock_qlib_dataframe
+        self, mock_qlib, adapter, mock_qlib_dataframe,
     ):
         """
         测试: 股票代码在 Domain 和 Qlib 之间正确转换
@@ -299,15 +297,15 @@ class TestQlibDataAdapter:
         mock_qlib.data.D.features.return_value = mock_qlib_dataframe
 
         # Act
-        result = await adapter.load_stock_data(
+        _result = await adapter.load_stock_data(
             stock_code=stock_code,
             date_range=date_range,
-            kline_type=KLineType.DAY
+            kline_type=KLineType.DAY,
         )
 
         # Assert
         call_args = mock_qlib.data.D.features.call_args
         instruments = call_args.kwargs['instruments']
-        
+
         # 验证转换为 Qlib 格式 (SH600000)
         assert 'SH600000' in instruments or 'SH600000' in str(instruments)

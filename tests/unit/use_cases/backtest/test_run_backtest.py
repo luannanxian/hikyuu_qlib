@@ -4,10 +4,11 @@ RunBacktestUseCase 单元测试
 测试 UC-005: Run Backtest (运行回测) 用例
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
+
+import pytest
 
 from domain.entities.backtest import BacktestResult
 from domain.entities.trading_signal import SignalBatch, SignalType, TradingSignal
@@ -36,20 +37,20 @@ class TestRunBacktestSuccess:
                     stock_code=StockCode("sh600000"),
                     signal_date=datetime(2024, 1, 10),
                     signal_type=SignalType.BUY,
-                )
+                ),
             ],
         )
 
         # 创建回测配置
         config = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
             slippage_rate=Decimal("0.0001"),
         )
 
         # 创建日期范围
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31),
         )
 
         # Mock engine 返回回测结果
@@ -58,7 +59,7 @@ class TestRunBacktestSuccess:
             start_date=date_range.start_date,
             end_date=date_range.end_date,
             initial_capital=config.initial_capital,
-            final_capital=Decimal("120000"),
+            final_capital=Decimal(120000),
             trades=[],
         )
         engine_mock.run_backtest.return_value = mock_result
@@ -68,7 +69,7 @@ class TestRunBacktestSuccess:
 
         # Act: 执行用例
         result = await use_case.execute(
-            signals=signals, config=config, date_range=date_range
+            signals=signals, config=config, date_range=date_range,
         )
 
         # Assert: 验证结果
@@ -78,7 +79,7 @@ class TestRunBacktestSuccess:
 
         # 验证 engine 被正确调用
         engine_mock.run_backtest.assert_called_once_with(
-            signals=signals, config=config, date_range=date_range
+            signals=signals, config=config, date_range=date_range,
         )
 
     @pytest.mark.asyncio
@@ -88,17 +89,17 @@ class TestRunBacktestSuccess:
         engine_mock = AsyncMock(spec=IBacktestEngine)
 
         signals = SignalBatch(
-            strategy_name="test_strategy", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="test_strategy", batch_date=datetime(2024, 1, 10), signals=[],
         )
 
         config = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
             slippage_rate=Decimal("0.0001"),
         )
 
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31),
         )
 
         # Mock 返回包含完整指标的结果
@@ -107,7 +108,7 @@ class TestRunBacktestSuccess:
             start_date=date_range.start_date,
             end_date=date_range.end_date,
             initial_capital=config.initial_capital,
-            final_capital=Decimal("115000"),
+            final_capital=Decimal(115000),
             trades=[],
         )
         engine_mock.run_backtest.return_value = mock_result
@@ -116,12 +117,12 @@ class TestRunBacktestSuccess:
 
         # Act
         result = await use_case.execute(
-            signals=signals, config=config, date_range=date_range
+            signals=signals, config=config, date_range=date_range,
         )
 
         # Assert: 验证指标计算
         assert result.total_return() == Decimal("0.15")
-        assert result.final_capital == Decimal("115000")
+        assert result.final_capital == Decimal(115000)
 
 
 class TestRunBacktestValidation:
@@ -134,11 +135,11 @@ class TestRunBacktestValidation:
         engine_mock = AsyncMock(spec=IBacktestEngine)
 
         signals = SignalBatch(
-            strategy_name="test_strategy", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="test_strategy", batch_date=datetime(2024, 1, 10), signals=[],
         )
 
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31),
         )
 
         use_case = RunBacktestUseCase(engine=engine_mock)
@@ -146,12 +147,12 @@ class TestRunBacktestValidation:
         # Act & Assert: 无效配置(initial_capital <= 0)应该抛出异常
         with pytest.raises(ValueError, match="initial_capital|must be positive"):
             invalid_config = BacktestConfig(
-                initial_capital=Decimal("0"),  # 无效
+                initial_capital=Decimal(0),  # 无效
                 commission_rate=Decimal("0.0003"),
                 slippage_rate=Decimal("0.0001"),
             )
             await use_case.execute(
-                signals=signals, config=invalid_config, date_range=date_range
+                signals=signals, config=invalid_config, date_range=date_range,
             )
 
 
@@ -166,17 +167,17 @@ class TestRunBacktestErrorHandling:
         engine_mock.run_backtest.side_effect = Exception("回测引擎错误")
 
         signals = SignalBatch(
-            strategy_name="test_strategy", batch_date=datetime(2024, 1, 10), signals=[]
+            strategy_name="test_strategy", batch_date=datetime(2024, 1, 10), signals=[],
         )
 
         config = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
             slippage_rate=Decimal("0.0001"),
         )
 
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31),
         )
 
         use_case = RunBacktestUseCase(engine=engine_mock)
@@ -184,7 +185,7 @@ class TestRunBacktestErrorHandling:
         # Act & Assert: 应该传播异常
         with pytest.raises(Exception, match="回测引擎错误"):
             await use_case.execute(
-                signals=signals, config=config, date_range=date_range
+                signals=signals, config=config, date_range=date_range,
             )
 
     @pytest.mark.asyncio
@@ -200,13 +201,13 @@ class TestRunBacktestErrorHandling:
         )
 
         config = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.0003"),
             slippage_rate=Decimal("0.0001"),
         )
 
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 12, 31),
         )
 
         # Mock 返回无交易的结果
@@ -224,9 +225,9 @@ class TestRunBacktestErrorHandling:
 
         # Act
         result = await use_case.execute(
-            signals=signals, config=config, date_range=date_range
+            signals=signals, config=config, date_range=date_range,
         )
 
         # Assert: 空信号也是有效的
-        assert result.total_return() == Decimal("0")
+        assert result.total_return() == Decimal(0)
         assert len(result.trades) == 0

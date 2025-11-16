@@ -4,15 +4,14 @@
 提供K线数据到训练数据格式的转换功能
 """
 
-from typing import List, Any
-from decimal import Decimal
+
 import pandas as pd
 
 from domain.entities.kline_data import KLineData
 
 
 def convert_kline_to_training_data(
-    kline_data: List[KLineData],
+    kline_data: list[KLineData],
     add_features: bool = True,
     add_labels: bool = True,
     label_horizon: int = 1,
@@ -60,7 +59,7 @@ def convert_kline_to_training_data(
     return df
 
 
-def kline_data_to_dataframe(kline_data: List[KLineData]) -> pd.DataFrame:
+def kline_data_to_dataframe(kline_data: list[KLineData]) -> pd.DataFrame:
     """
     将K线数据转换为DataFrame基础格式
 
@@ -244,7 +243,7 @@ def save_to_file(df: pd.DataFrame, file_path: str) -> None:
 
 
 def prepare_features_and_labels(
-    df: pd.DataFrame, feature_cols: List[str] = None, label_col: str = "label_return"
+    df: pd.DataFrame, feature_cols: list[str] = None, label_col: str = "label_return",
 ) -> tuple[pd.DataFrame, pd.Series]:
     """
     准备特征和标签用于模型训练

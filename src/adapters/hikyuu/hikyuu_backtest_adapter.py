@@ -4,9 +4,8 @@ HikyuuBacktestAdapter - Hikyuu 回测适配器
 适配 Hikyuu 框架实现 IBacktestEngine 接口
 """
 
-from decimal import Decimal
 from datetime import datetime
-from typing import List, Optional
+from decimal import Decimal
 
 # 为了便于测试，使用条件导入
 try:
@@ -17,11 +16,11 @@ except ImportError:
     hku = None
     HIKYUU_AVAILABLE = False
 
-from domain.ports.backtest_engine import IBacktestEngine
 from domain.entities.backtest import BacktestResult, Trade
 from domain.entities.trading_signal import SignalBatch, SignalType
-from domain.value_objects.date_range import DateRange
+from domain.ports.backtest_engine import IBacktestEngine
 from domain.value_objects.configuration import BacktestConfig
+from domain.value_objects.date_range import DateRange
 from domain.value_objects.stock_code import StockCode
 
 
@@ -62,19 +61,19 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                     "  • pip install hikyuu\n"
                     "  • conda install -c conda-forge hikyuu\n"
                     "\n"
-                    "For more information, visit: https://hikyuu.org"
+                    "For more information, visit: https://hikyuu.org",
                 )
 
             if hku is None:
                 raise RuntimeError(
                     "Hikyuu import succeeded but module is None. "
-                    "This may indicate a broken installation."
+                    "This may indicate a broken installation.",
                 )
 
             self.hku = hku
 
     async def run_backtest(
-        self, signals: SignalBatch, config: BacktestConfig, date_range: DateRange
+        self, signals: SignalBatch, config: BacktestConfig, date_range: DateRange,
     ) -> BacktestResult:
         """
         运行回测
@@ -94,7 +93,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
             # 1. 创建 Hikyuu TradeManager (资金管理器)
             tm = self.hku.crtTM(
                 init_cash=float(config.initial_capital),
-                cost_func=self._create_cost_func(config)
+                cost_func=self._create_cost_func(config),
             )
 
             # 2. 创建投资组合策略
@@ -115,7 +114,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                         tm=tm,
                         sg=sg,
                         mm=self.hku.MM_FixedCount(100),  # 固定每次买入100股
-                        pf=pf
+                        pf=pf,
                     )
 
                     # 对每只股票运行回测
@@ -125,7 +124,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                         if hku_stock is not None:
                             sys.run(hku_stock, self.hku.Query(
                                 start=self.hku.Datetime(date_range.start_date),
-                                end=self.hku.Datetime(date_range.end_date)
+                                end=self.hku.Datetime(date_range.end_date),
                             ))
                 except AttributeError:
                     # 如果是mock环境，这些方法可能不存在，继续执行
@@ -150,14 +149,14 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 
             # 5. 转换为 Domain 模型
             result = self._convert_to_domain_result(
-                signals, config, date_range, result_source, funds_history, trades_history
+                signals, config, date_range, result_source, funds_history, trades_history,
             )
 
             return result
 
         except Exception as e:
             raise Exception(
-                f"Failed to run backtest with Hikyuu: {signals.strategy_name}, {e}"
+                f"Failed to run backtest with Hikyuu: {signals.strategy_name}, {e}",
             ) from e
 
     def _create_cost_func(self, config: BacktestConfig):
@@ -184,7 +183,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                 commission=float(config.commission_rate),
                 min_commission=5.0,  # 最低佣金5元
                 stamptax=0.001,      # 印花税0.1% (仅卖出收取)
-                transferfee=0.00002  # 过户费0.002% (双向收取)
+                transferfee=0.00002,  # 过户费0.002% (双向收取)
             )
             return cost_func
         except AttributeError:
@@ -219,7 +218,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
             try:
                 sg.addBuySignal(
                     datetime=self.hku.Datetime(signal.signal_date),
-                    stock=signal.stock_code.value.upper()
+                    stock=signal.stock_code.value.upper(),
                 )
             except Exception as e:
                 print(f"Warning: Failed to add buy signal for {signal.stock_code.value}: {e}")
@@ -229,14 +228,14 @@ class HikyuuBacktestAdapter(IBacktestEngine):
             try:
                 sg.addSellSignal(
                     datetime=self.hku.Datetime(signal.signal_date),
-                    stock=signal.stock_code.value.upper()
+                    stock=signal.stock_code.value.upper(),
                 )
             except Exception as e:
                 print(f"Warning: Failed to add sell signal for {signal.stock_code.value}: {e}")
 
         return sg
 
-    def _extract_unique_stocks(self, signals: SignalBatch) -> List[StockCode]:
+    def _extract_unique_stocks(self, signals: SignalBatch) -> list[StockCode]:
         """
         从信号批次中提取唯一的股票代码列表
 
@@ -291,8 +290,8 @@ class HikyuuBacktestAdapter(IBacktestEngine):
         config: BacktestConfig,
         date_range: DateRange,
         result_source,
-        funds_history: List,
-        trades_history: List
+        funds_history: list,
+        trades_history: list,
     ) -> BacktestResult:
         """
         转换 Hikyuu 回测结果到 Domain BacktestResult
@@ -359,7 +358,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
             elif equity_curve:
                 # 使用权益曲线的最后一个值
                 final_capital = equity_curve[-1]
-        except (ValueError, TypeError, AttributeError) as e:
+        except (ValueError, TypeError, AttributeError):
             # 转换失败时使用默认值
             pass
 
@@ -371,12 +370,12 @@ class HikyuuBacktestAdapter(IBacktestEngine):
             initial_capital=config.initial_capital,
             final_capital=final_capital,
             trades=trades,
-            equity_curve=equity_curve
+            equity_curve=equity_curve,
         )
 
         return result
 
-    def _convert_hikyuu_trade_to_domain(self, hikyuu_trade) -> Optional[Trade]:
+    def _convert_hikyuu_trade_to_domain(self, hikyuu_trade) -> Trade | None:
         """
         转换 Hikyuu 交易记录到 Domain Trade
 
@@ -426,11 +425,11 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                 direction = "SELL" if business_val == 1 else "BUY"
             else:
                 # 如果没有 business 属性，尝试其他方式
-                print(f"Warning: Trade has no business attribute")
+                print("Warning: Trade has no business attribute")
                 direction = "BUY"  # 默认买入
 
             # 获取交易价格 (优先使用实际价格)
-            price = Decimal("0")
+            price = Decimal(0)
             price_found = False
 
             # 尝试获取 realPrice
@@ -464,7 +463,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                     pass
 
             if not price_found:
-                print(f"Warning: No valid price found for trade")
+                print("Warning: No valid price found for trade")
                 return None
 
             # 获取交易数量
@@ -473,10 +472,10 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                 try:
                     quantity = int(hikyuu_trade.number)
                 except (ValueError, TypeError):
-                    print(f"Warning: Invalid quantity value")
+                    print("Warning: Invalid quantity value")
                     return None
             else:
-                print(f"Warning: No quantity found for trade")
+                print("Warning: No quantity found for trade")
                 return None
 
             if quantity <= 0:
@@ -496,18 +495,18 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                             hku_dt.day(),
                             hku_dt.hour() if hasattr(hku_dt, 'hour') else 0,
                             hku_dt.minute() if hasattr(hku_dt, 'minute') else 0,
-                            hku_dt.second() if hasattr(hku_dt, 'second') else 0
+                            hku_dt.second() if hasattr(hku_dt, 'second') else 0,
                         )
                 except Exception as dt_error:
                     print(f"Warning: Failed to convert datetime: {dt_error}")
 
             # 获取手续费
-            commission = Decimal("0")
+            commission = Decimal(0)
             if hasattr(hikyuu_trade, 'cost'):
                 try:
                     commission = Decimal(str(hikyuu_trade.cost))
                 except (ValueError, TypeError):
-                    commission = Decimal("0")
+                    commission = Decimal(0)
 
             # 创建 Trade 实体
             trade = Trade(
@@ -516,7 +515,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
                 quantity=quantity,
                 price=price,
                 trade_date=trade_date,
-                commission=commission
+                commission=commission,
             )
 
             return trade

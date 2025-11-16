@@ -73,9 +73,10 @@ def test_validate_config_types_invalid():
 
 def test_validate_path_exists():
     """Test validating that paths exist."""
-    from src.infrastructure.config.validator import validate_path_exists
-    import tempfile
     import os
+    import tempfile
+
+    from src.infrastructure.config.validator import validate_path_exists
 
     # Create temporary file
     with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -138,8 +139,8 @@ def test_validate_url_format():
 
 def test_validate_settings_object():
     """Test validating a Settings object."""
-    from src.infrastructure.config.validator import validate_settings
     from src.infrastructure.config.settings import Settings
+    from src.infrastructure.config.validator import validate_settings
 
     settings = Settings(
         ENVIRONMENT="test",

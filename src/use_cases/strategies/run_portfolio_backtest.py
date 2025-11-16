@@ -4,19 +4,17 @@ RunPortfolioBacktestUseCase - 运行投资组合回测用例
 UC-PORTFOLIO-BT: Run Portfolio Backtest (运行Hikyuu投资组合回测)
 """
 
-from dataclasses import dataclass
-from typing import List, Optional
 import pickle
+from dataclasses import dataclass
 from pathlib import Path
 
-from domain.entities.prediction import PredictionBatch, Prediction
-from domain.entities.trading_signal import SignalBatch
+from domain.entities.prediction import Prediction, PredictionBatch
 from domain.ports.backtest_engine import IBacktestEngine
 from domain.ports.signal_provider import ISignalProvider
+from domain.value_objects.configuration import BacktestConfig
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.rebalance_period import RebalancePeriod
 from domain.value_objects.stock_code import StockCode
-from domain.value_objects.configuration import BacktestConfig
 
 
 @dataclass
@@ -34,7 +32,7 @@ class RunPortfolioBacktestRequest:
     """
 
     pred_pkl_path: str
-    stock_pool: List[StockCode]
+    stock_pool: list[StockCode]
     date_range: DateRange
     top_k: int = 10
     rebalance_period: RebalancePeriod = RebalancePeriod.WEEK
@@ -45,7 +43,7 @@ class RunPortfolioBacktestRequest:
         # 验证路径存在
         if not Path(self.pred_pkl_path).exists():
             raise ValueError(
-                f"Prediction file not found: {self.pred_pkl_path}"
+                f"Prediction file not found: {self.pred_pkl_path}",
             )
 
         # 验证 top_k
@@ -59,7 +57,7 @@ class RunPortfolioBacktestRequest:
         # 验证初始资金
         if self.initial_cash <= 0:
             raise ValueError(
-                f"initial_cash must be > 0, got initial_cash={self.initial_cash}"
+                f"initial_cash must be > 0, got initial_cash={self.initial_cash}",
             )
 
 
@@ -82,7 +80,7 @@ class RunPortfolioBacktestResponse:
     max_drawdown: float = 0.0
     trade_count: int = 0
     success: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class RunPortfolioBacktestUseCase:
@@ -123,7 +121,7 @@ class RunPortfolioBacktestUseCase:
         self.signal_provider = signal_provider
 
     async def execute(
-        self, request: RunPortfolioBacktestRequest
+        self, request: RunPortfolioBacktestRequest,
     ) -> RunPortfolioBacktestResponse:
         """
         执行运行投资组合回测
@@ -154,7 +152,7 @@ class RunPortfolioBacktestUseCase:
 
             # 2. 过滤股票池内的预测
             filtered_batch = self._filter_by_stock_pool(
-                prediction_batch, request.stock_pool
+                prediction_batch, request.stock_pool,
             )
 
             if filtered_batch.size() == 0:
@@ -208,19 +206,19 @@ class RunPortfolioBacktestUseCase:
         except FileNotFoundError as e:
             return RunPortfolioBacktestResponse(
                 success=False,
-                error=f"Prediction file not found: {str(e)}",
+                error=f"Prediction file not found: {e!s}",
             )
 
         except ValueError as e:
             return RunPortfolioBacktestResponse(
                 success=False,
-                error=f"Validation error: {str(e)}",
+                error=f"Validation error: {e!s}",
             )
 
         except Exception as e:
             return RunPortfolioBacktestResponse(
                 success=False,
-                error=f"Backtest execution failed: {str(e)}",
+                error=f"Backtest execution failed: {e!s}",
             )
 
     def _load_predictions(self, pkl_path: str) -> PredictionBatch:
@@ -272,10 +270,10 @@ class RunPortfolioBacktestUseCase:
             raise
 
         except Exception as e:
-            raise Exception(f"Failed to load predictions: {str(e)}")
+            raise Exception(f"Failed to load predictions: {e!s}")
 
     def _filter_by_stock_pool(
-        self, batch: PredictionBatch, stock_pool: List[StockCode]
+        self, batch: PredictionBatch, stock_pool: list[StockCode],
     ) -> PredictionBatch:
         """
         过滤股票池内的预测

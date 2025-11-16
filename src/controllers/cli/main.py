@@ -32,7 +32,6 @@ def cli():
         hikyuu-qlib model train --type LGBM --name my_model
         hikyuu-qlib config show
     """
-    pass
 
 
 # Register command groups

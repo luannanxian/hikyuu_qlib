@@ -7,12 +7,12 @@ This module provides utilities for working with environment variables:
 - Loading from .env files
 """
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..errors import ConfigurationException
 
 
-def get_env(name: str, default: Optional[str] = None, required: bool = False) -> str:
+def get_env(name: str, default: str | None = None, required: bool = False) -> str:
     """Get environment variable value.
 
     Args:
@@ -39,7 +39,7 @@ def get_env(name: str, default: Optional[str] = None, required: bool = False) ->
 
 
 def get_env_as_int(
-    name: str, default: Optional[int] = None, required: bool = False
+    name: str, default: int | None = None, required: bool = False,
 ) -> int:
     """Get environment variable as integer.
 
@@ -71,7 +71,7 @@ def get_env_as_int(
 
 
 def get_env_as_float(
-    name: str, default: Optional[float] = None, required: bool = False
+    name: str, default: float | None = None, required: bool = False,
 ) -> float:
     """Get environment variable as float.
 
@@ -134,10 +134,10 @@ def get_env_as_bool(name: str, default: bool = False, required: bool = False) ->
 
 def get_env_as_list(
     name: str,
-    default: Optional[List[str]] = None,
+    default: list[str] | None = None,
     separator: str = ",",
     required: bool = False,
-) -> List[str]:
+) -> list[str]:
     """Get environment variable as list.
 
     Args:
@@ -157,7 +157,7 @@ def get_env_as_list(
     return [item.strip() for item in value.split(separator)]
 
 
-def get_all_env_with_prefix(prefix: str) -> Dict[str, str]:
+def get_all_env_with_prefix(prefix: str) -> dict[str, str]:
     """Get all environment variables with a specific prefix.
 
     Args:
@@ -194,7 +194,7 @@ def load_env_file(file_path: str) -> None:
         )
 
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             for line in f:
                 line = line.strip()
 
@@ -209,9 +209,7 @@ def load_env_file(file_path: str) -> None:
                     value = value.strip()
 
                     # Remove quotes if present
-                    if value.startswith('"') and value.endswith('"'):
-                        value = value[1:-1]
-                    elif value.startswith("'") and value.endswith("'"):
+                    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
                         value = value[1:-1]
 
                     os.environ[key] = value
@@ -226,8 +224,8 @@ def load_env_file(file_path: str) -> None:
 
 
 def env_to_settings_dict(
-    prefix: str = "", keys: Optional[List[str]] = None
-) -> Dict[str, Any]:
+    prefix: str = "", keys: list[str] | None = None,
+) -> dict[str, Any]:
     """Convert environment variables to settings dictionary.
 
     Args:

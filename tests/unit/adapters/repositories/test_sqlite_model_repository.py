@@ -7,7 +7,7 @@ SQLiteModelRepository 单元测试
 
 import pytest
 
-from domain.entities.model import Model, ModelType, ModelStatus
+from domain.entities.model import Model, ModelStatus, ModelType
 
 
 class TestSQLiteModelRepository:

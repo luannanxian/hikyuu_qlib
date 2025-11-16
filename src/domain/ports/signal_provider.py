@@ -6,7 +6,6 @@ Signal Provider Port Interface
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional
 
 from domain.entities.prediction import PredictionBatch
 from domain.entities.trading_signal import SignalBatch, TradingSignal
@@ -33,7 +32,7 @@ class ISignalProvider(ABC):
         prediction_batch: PredictionBatch,
         buy_threshold: float = 0.02,
         sell_threshold: float = -0.02,
-        top_k: Optional[int] = None,
+        top_k: int | None = None,
     ) -> SignalBatch:
         """
         从预测批次生成交易信号批次
@@ -47,14 +46,13 @@ class ISignalProvider(ABC):
         Returns:
             SignalBatch: 交易信号批次
         """
-        pass
 
     @abstractmethod
     def get_signal_for_stock(
         self,
         stock_code: StockCode,
         signal_date: datetime,
-    ) -> Optional[TradingSignal]:
+    ) -> TradingSignal | None:
         """
         获取指定股票在指定日期的交易信号
 
@@ -65,14 +63,13 @@ class ISignalProvider(ABC):
         Returns:
             Optional[TradingSignal]: 交易信号,如果不存在则返回None
         """
-        pass
 
     @abstractmethod
     def get_top_k_stocks(
         self,
         prediction_batch: PredictionBatch,
         k: int,
-    ) -> List[StockCode]:
+    ) -> list[StockCode]:
         """
         从预测批次中选出Top-K股票
 
@@ -83,4 +80,3 @@ class ISignalProvider(ABC):
         Returns:
             List[StockCode]: Top-K股票代码列表(按预测值降序)
         """
-        pass

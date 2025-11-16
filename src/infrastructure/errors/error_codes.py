@@ -8,7 +8,6 @@ This module defines standardized error codes for different categories:
 
 Error codes follow the format: CATEGORY_###
 """
-from typing import Dict, Optional
 
 
 class ErrorCode:
@@ -50,7 +49,7 @@ class ErrorCode:
 
 
 # Error code descriptions
-ERROR_DESCRIPTIONS: Dict[str, str] = {
+ERROR_DESCRIPTIONS: dict[str, str] = {
     # Data errors
     ErrorCode.DATA_LOAD_FAILED: "Failed to load data from source",
     ErrorCode.DATA_VALIDATION_FAILED: "Data validation failed",
@@ -108,7 +107,7 @@ def is_valid_error_code(code: str) -> bool:
     return code in ERROR_DESCRIPTIONS
 
 
-def get_error_category(code: str) -> Optional[str]:
+def get_error_category(code: str) -> str | None:
     """Extract the category from an error code.
 
     Args:

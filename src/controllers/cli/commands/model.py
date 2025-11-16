@@ -10,17 +10,16 @@ Commands:
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Optional
 
 import click
 
 from controllers.cli.di.container import Container
-from controllers.cli.utils.output import CLIOutput, create_table, format_model_status
+from controllers.cli.utils.output import CLIOutput
 from controllers.cli.utils.validators import validate_file_path, validate_model_type
 from domain.entities.model import Model, ModelType
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 from utils.data_conversion import (
     convert_kline_to_training_data,
     load_from_file,
@@ -50,7 +49,6 @@ async def get_repository(ctx):
 @click.group(name="model")
 def model_group():
     """Model management commands."""
-    pass
 
 
 @model_group.command(name="train")
@@ -112,13 +110,13 @@ def model_group():
 def train_command(
     model_type: str,
     name: str,
-    training_data_path: Optional[str],
-    stock_code: Optional[str],
-    start_date: Optional[str],
-    end_date: Optional[str],
+    training_data_path: str | None,
+    stock_code: str | None,
+    start_date: str | None,
+    end_date: str | None,
     kline_type: str,
-    config_file: Optional[str],
-    hyperparameters_json: Optional[str],
+    config_file: str | None,
+    hyperparameters_json: str | None,
     param_list: tuple,
 ):
     """
@@ -182,23 +180,23 @@ def train_command(
                 hyperparameters_json,
                 param_list,
                 output,
-            )
+            ),
         )
     except Exception as e:
-        output.error(f"Failed to train model: {str(e)}")
+        output.error(f"Failed to train model: {e!s}")
         raise click.Abort()
 
 
 async def _train_model(
     model_type_str: str,
     name: str,
-    training_data_path: Optional[str],
-    stock_code: Optional[str],
-    start_date: Optional[str],
-    end_date: Optional[str],
+    training_data_path: str | None,
+    stock_code: str | None,
+    start_date: str | None,
+    end_date: str | None,
     kline_type: str,
-    config_file: Optional[str],
-    hyperparameters_json: Optional[str],
+    config_file: str | None,
+    hyperparameters_json: str | None,
     param_list: tuple,
     output: CLIOutput,
 ):
@@ -234,7 +232,7 @@ async def _train_model(
         elif stock_code and start_date and end_date:
             # Integrated approach: load from Hikyuu
             output.info(
-                f"Loading data from Hikyuu: {stock_code} ({start_date} ~ {end_date})"
+                f"Loading data from Hikyuu: {stock_code} ({start_date} ~ {end_date})",
             )
 
             # Parse dates
@@ -251,7 +249,7 @@ async def _train_model(
 
             if not kline_data:
                 output.error(
-                    f"No data found for {stock_code} in the specified date range"
+                    f"No data found for {stock_code} in the specified date range",
                 )
                 raise click.Abort()
 
@@ -266,7 +264,7 @@ async def _train_model(
                 label_horizon=1,
             )
             output.success(
-                f"Converted to training data: {len(training_data)} records with features"
+                f"Converted to training data: {len(training_data)} records with features",
             )
 
         else:
@@ -283,10 +281,10 @@ async def _train_model(
                 model_type=model_type,
                 cli_json=hyperparameters_json,
                 config_file=config_file,
-                param_list=param_list
+                param_list=param_list,
             )
         except ValueError as e:
-            output.error(f"Invalid hyperparameters: {str(e)}")
+            output.error(f"Invalid hyperparameters: {e!s}")
             raise click.Abort()
 
         # Display hyperparameters being used
@@ -306,7 +304,7 @@ async def _train_model(
 
         train_use_case = container.train_model_use_case
         trained_model = await train_use_case.execute(
-            model=model, training_data=training_data
+            model=model, training_data=training_data,
         )
 
         # Close repository after training
@@ -321,7 +319,7 @@ async def _train_model(
             output.info(f"Metrics: {trained_model.metrics}")
 
     except Exception as e:
-        output.error(f"Error training model: {str(e)}")
+        output.error(f"Error training model: {e!s}")
         raise
 
 
@@ -350,7 +348,7 @@ async def _train_model(
     help="Limit number of results",
 )
 @click.pass_context
-def list_command(ctx, output_format: str, status: Optional[str], model_type: Optional[str], limit: Optional[int]):
+def list_command(ctx, output_format: str, status: str | None, model_type: str | None, limit: int | None):
     """
     List all models.
 
@@ -363,7 +361,7 @@ def list_command(ctx, output_format: str, status: Optional[str], model_type: Opt
     asyncio.run(_list_models(ctx, output_format, status, model_type, limit))
 
 
-async def _list_models(ctx, output_format: str, status: Optional[str], model_type: Optional[str], limit: Optional[int]):
+async def _list_models(ctx, output_format: str, status: str | None, model_type: str | None, limit: int | None):
     """
     List models (async implementation).
 
@@ -388,7 +386,7 @@ async def _list_models(ctx, output_format: str, status: Optional[str], model_typ
             models = await repository.list_models(
                 status=status_filter,
                 model_type=type_filter,
-                limit=limit
+                limit=limit,
             )
 
             # Handle empty results
@@ -405,7 +403,7 @@ async def _list_models(ctx, output_format: str, status: Optional[str], model_typ
                 _output_table(models, output)
 
     except Exception as e:
-        output.error(f"Failed to list models: {str(e)}")
+        output.error(f"Failed to list models: {e!s}")
         raise click.Abort()
 
 
@@ -435,7 +433,7 @@ def _output_table(models, output: CLIOutput):
             "Type": model.model_type.value,
             "Status": model.status.value,
             "Training Date": date_str,
-            "Metrics": metrics_str or "N/A"
+            "Metrics": metrics_str or "N/A",
         })
 
     # Create DataFrame and output
@@ -456,7 +454,7 @@ def _output_json(models, output: CLIOutput):
             "status": model.status.value,
             "training_date": model.training_date.isoformat() if model.training_date else None,
             "metrics": model.metrics,
-            "hyperparameters": model.hyperparameters
+            "hyperparameters": model.hyperparameters,
         })
 
     output.info(f"Found {len(models)} model(s):")
@@ -530,7 +528,7 @@ async def _delete_model(ctx, model_id: str, force: bool):
                 raise click.exceptions.Exit(1)
 
             # Display model info
-            output.info(f"Model to delete:")
+            output.info("Model to delete:")
             output.info(f"  ID: {model.id}")
             output.info(f"  Type: {model.model_type.value}")
             output.info(f"  Status: {model.status.value}")
@@ -539,7 +537,7 @@ async def _delete_model(ctx, model_id: str, force: bool):
 
             # Confirm deletion if not forced
             if not force:
-                confirm = click.confirm(f"\nAre you sure you want to delete this model?")
+                confirm = click.confirm("\nAre you sure you want to delete this model?")
                 if not confirm:
                     output.info("Deletion cancelled")
                     return
@@ -552,7 +550,7 @@ async def _delete_model(ctx, model_id: str, force: bool):
         # Re-raise Exit exception to preserve exit code
         raise
     except Exception as e:
-        output.error(f"Failed to delete model: {str(e)}")
+        output.error(f"Failed to delete model: {e!s}")
         raise click.exceptions.Exit(1)
 
 
@@ -611,8 +609,8 @@ def train_index_command(
     start_date: str,
     end_date: str,
     kline_type: str,
-    max_stocks: Optional[int],
-    output_file: Optional[str],
+    max_stocks: int | None,
+    output_file: str | None,
 ):
     """
     Train a model on index constituents.
@@ -657,10 +655,10 @@ def train_index_command(
                 max_stocks=max_stocks,
                 output_file=output_file,
                 output=output,
-            )
+            ),
         )
     except Exception as e:
-        output.error(f"Failed to train model on index: {str(e)}")
+        output.error(f"Failed to train model on index: {e!s}")
         raise click.Abort()
 
 
@@ -671,8 +669,8 @@ async def _train_model_on_index(
     start_dt: datetime,
     end_dt: datetime,
     kline_type: str,
-    max_stocks: Optional[int],
-    output_file: Optional[str],
+    max_stocks: int | None,
+    output_file: str | None,
     output: CLIOutput,
 ):
     """
@@ -708,7 +706,7 @@ async def _train_model_on_index(
             data_provider=container.data_provider,
             model_trainer=container.model_trainer,
             model_repository=container.model_repository,
-            max_stocks=max_stocks
+            max_stocks=max_stocks,
         )
 
         # Display results
@@ -722,5 +720,5 @@ async def _train_model_on_index(
                 output.info(f"  {key}: {value}")
 
     except Exception as e:
-        output.error(f"训练失败: {str(e)}")
+        output.error(f"训练失败: {e!s}")
         raise

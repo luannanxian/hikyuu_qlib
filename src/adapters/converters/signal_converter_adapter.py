@@ -9,7 +9,6 @@ import logging
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -34,7 +33,7 @@ class SignalConverterAdapter(ISignalConverter):
     """
 
     def _determine_signal_type(
-        self, prediction: Prediction, strategy_params: dict
+        self, prediction: Prediction, strategy_params: dict,
     ) -> SignalType:
         """
         根据预测值和策略参数确定信号类型
@@ -63,7 +62,7 @@ class SignalConverterAdapter(ISignalConverter):
             return SignalType.HOLD
 
     def _determine_signal_strength(
-        self, prediction: Prediction, strategy_params: dict
+        self, prediction: Prediction, strategy_params: dict,
     ) -> SignalStrength:
         """
         根据预测值大小和置信度确定信号强度
@@ -87,7 +86,7 @@ class SignalConverterAdapter(ISignalConverter):
 
         # 中等信号: 预测值或置信度较高
         if abs_predicted_value >= strong_threshold * Decimal(
-            "0.6"
+            "0.6",
         ) or prediction.confidence >= Decimal("0.7"):
             return SignalStrength.MEDIUM
 
@@ -95,7 +94,7 @@ class SignalConverterAdapter(ISignalConverter):
         return SignalStrength.WEAK
 
     def _generate_signal_reason(
-        self, prediction: Prediction, signal_type: SignalType
+        self, prediction: Prediction, signal_type: SignalType,
     ) -> str:
         """
         生成信号原因描述
@@ -118,7 +117,7 @@ class SignalConverterAdapter(ISignalConverter):
             return f"预测变化 {predicted_pct:.2f}%, 置信度 {confidence_pct:.0f}%"
 
     def _convert_prediction_to_signal(
-        self, prediction: Prediction, strategy_params: dict
+        self, prediction: Prediction, strategy_params: dict,
     ) -> TradingSignal:
         """
         将单个预测转换为交易信号
@@ -144,7 +143,7 @@ class SignalConverterAdapter(ISignalConverter):
         )
 
     async def convert_to_signals(
-        self, predictions: PredictionBatch, strategy_params: dict
+        self, predictions: PredictionBatch, strategy_params: dict,
     ) -> SignalBatch:
         """
         将预测批次转换为交易信号批次
@@ -159,7 +158,7 @@ class SignalConverterAdapter(ISignalConverter):
         # 创建信号批次
         strategy_name = strategy_params.get("strategy_name", "default_strategy")
         signal_batch = SignalBatch(
-            strategy_name=strategy_name, batch_date=predictions.batch_date
+            strategy_name=strategy_name, batch_date=predictions.batch_date,
         )
 
         # 转换每个预测为信号
@@ -240,7 +239,7 @@ class QlibToHikyuuSignalConverter:
     def _apply_selection_strategy(
         self,
         df: pd.DataFrame,
-        strategy_config: Dict
+        strategy_config: dict,
     ) -> pd.DataFrame:
         """
         应用选股策略过滤预测结果
@@ -263,7 +262,7 @@ class QlibToHikyuuSignalConverter:
             top_k = strategy_config.get("top_k", 30)
             # 对每个日期选择top_k只股票
             selected = df.groupby(level=0).apply(
-                lambda x: x.nlargest(top_k, x.columns[0])
+                lambda x: x.nlargest(top_k, x.columns[0]),
             )
             self.logger.info(f"Applied top_k strategy: selecting top {top_k} stocks per date")
 
@@ -277,7 +276,7 @@ class QlibToHikyuuSignalConverter:
             percentile = strategy_config.get("percentile", 0.2)
             # 对每个日期选择预测值在指定百分位以上的股票
             threshold_value = df.groupby(level=0).apply(
-                lambda x: x.iloc[:, 0].quantile(1 - percentile)
+                lambda x: x.iloc[:, 0].quantile(1 - percentile),
             )
             # 过滤每个日期的预测值
             selected_list = []
@@ -339,7 +338,7 @@ class QlibToHikyuuSignalConverter:
         self,
         stock_code: str,
         timestamp: datetime,
-        predicted_value: float
+        predicted_value: float,
     ) -> TradingSignal:
         """
         创建交易信号实体
@@ -375,15 +374,15 @@ class QlibToHikyuuSignalConverter:
             signal_type=signal_type,
             signal_strength=signal_strength,
             price=None,  # 价格需要从行情数据获取
-            reason=reason
+            reason=reason,
         )
 
     def convert_predictions_to_signals(
         self,
         pred_path: Path,
-        strategy_config: Dict,
-        output_path: Optional[Path] = None
-    ) -> List[TradingSignal]:
+        strategy_config: dict,
+        output_path: Path | None = None,
+    ) -> list[TradingSignal]:
         """
         将Qlib预测结果转换为Hikyuu交易信号
 
@@ -416,7 +415,7 @@ class QlibToHikyuuSignalConverter:
                 signal = self._create_trading_signal(
                     stock_code=instrument,
                     timestamp=timestamp,
-                    predicted_value=predicted_value
+                    predicted_value=predicted_value,
                 )
                 signals.append(signal)
             except (ValueError, Exception) as e:
@@ -426,7 +425,7 @@ class QlibToHikyuuSignalConverter:
 
         self.logger.info(
             f"Created {len(signals)} trading signals "
-            f"({skipped_count} skipped due to invalid codes)"
+            f"({skipped_count} skipped due to invalid codes)",
         )
 
         # 导出信号到文件
@@ -437,9 +436,9 @@ class QlibToHikyuuSignalConverter:
 
     def _export_signals(
         self,
-        signals: List[TradingSignal],
+        signals: list[TradingSignal],
         output_path: Path,
-        strategy_config: Dict
+        strategy_config: dict,
     ) -> None:
         """
         导出信号到文件
@@ -462,7 +461,7 @@ class QlibToHikyuuSignalConverter:
 
         self.logger.info(f"Exported {len(signals)} signals to {output_path}")
 
-    def _export_to_csv(self, signals: List[TradingSignal], output_path: Path) -> None:
+    def _export_to_csv(self, signals: list[TradingSignal], output_path: Path) -> None:
         """
         导出信号到CSV文件
 
@@ -485,7 +484,7 @@ class QlibToHikyuuSignalConverter:
                 "action": signal.signal_type.value,
                 "strength": signal.signal_strength.value,
                 "predicted_value": f"{predicted_value:.6f}",
-                "reason": signal.reason
+                "reason": signal.reason,
             })
 
         df = pd.DataFrame(records)
@@ -493,9 +492,9 @@ class QlibToHikyuuSignalConverter:
 
     def _export_to_json(
         self,
-        signals: List[TradingSignal],
+        signals: list[TradingSignal],
         output_path: Path,
-        strategy_config: Dict
+        strategy_config: dict,
     ) -> None:
         """
         导出信号到JSON文件
@@ -531,20 +530,20 @@ class QlibToHikyuuSignalConverter:
                 "strength": signal.signal_strength.value,
                 "predicted_value": predicted_value,
                 "reason": signal.reason,
-                "signal_id": signal.id
+                "signal_id": signal.id,
             })
 
         output_data = {
             "strategy": strategy_config,
             "generated_at": datetime.now().isoformat(),
             "total_signals": len(signals),
-            "signals": records
+            "signals": records,
         }
 
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(output_data, f, ensure_ascii=False, indent=2)
 
-    def _extract_predicted_value_from_reason(self, reason: Optional[str]) -> float:
+    def _extract_predicted_value_from_reason(self, reason: str | None) -> float:
         """
         从信号原因中提取预测值
 

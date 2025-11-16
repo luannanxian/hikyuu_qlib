@@ -5,6 +5,7 @@ Market Value Object 单元测试
 """
 
 import pytest
+
 from domain.value_objects.market import Market
 
 

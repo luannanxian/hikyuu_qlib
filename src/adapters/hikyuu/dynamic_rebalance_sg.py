@@ -4,11 +4,12 @@ Dynamic Rebalance Signal Generator for Hikyuu
 动态调仓信号器,根据 Qlib Top-K 预测结果生成买卖信号
 """
 
-from typing import Set, Protocol
+from typing import Protocol
+
 import pandas as pd
 
 try:
-    from hikyuu import SignalBase, Datetime
+    from hikyuu import Datetime, SignalBase
 except ImportError:
     # For testing without Hikyuu installed
     class SignalBase:
@@ -18,15 +19,12 @@ except ImportError:
 
         def _addBuySignal(self, datetime):
             """Mock buy signal"""
-            pass
 
         def _addSellSignal(self, datetime):
             """Mock sell signal"""
-            pass
 
         def _reset(self):
             """Mock reset"""
-            pass
 
     class Datetime:
         """Mock Datetime for testing"""
@@ -46,7 +44,7 @@ class PortfolioAdapterProtocol(Protocol):
 
     def get_dynamic_stock_pool(
         self,
-        date_range: DateRange
+        date_range: DateRange,
     ) -> dict[pd.Timestamp, list[str]]:
         """
         获取动态股票池
@@ -61,7 +59,7 @@ class PortfolioAdapterProtocol(Protocol):
 
     def _get_rebalance_dates(
         self,
-        date_range: DateRange
+        date_range: DateRange,
     ) -> list[pd.Timestamp]:
         """
         获取调仓日期列表
@@ -103,7 +101,7 @@ class DynamicRebalanceSG(SignalBase):
     def __init__(
         self,
         portfolio_adapter: PortfolioAdapterProtocol,
-        name: str = "SG_DynamicRebalance"
+        name: str = "SG_DynamicRebalance",
     ):
         """
         初始化动态调仓信号器
@@ -114,7 +112,7 @@ class DynamicRebalanceSG(SignalBase):
         """
         super().__init__(name)
         self.portfolio_adapter = portfolio_adapter
-        self._current_holdings: Set[str] = set()
+        self._current_holdings: set[str] = set()
 
     def _calculate(self, kdata) -> None:
         """
@@ -139,8 +137,8 @@ class DynamicRebalanceSG(SignalBase):
         rebalance_dates = self.portfolio_adapter._get_rebalance_dates(
             DateRange(
                 start_date=kdata[0].datetime.date(),
-                end_date=kdata[-1].datetime.date()
-            )
+                end_date=kdata[-1].datetime.date(),
+            ),
         )
 
         # 转换为集合以加速查找
@@ -157,7 +155,7 @@ class DynamicRebalanceSG(SignalBase):
 
             # 获取该日期的 Top-K 股票池
             top_k_stocks = self.portfolio_adapter.get_dynamic_stock_pool(
-                DateRange(pd_datetime.date(), pd_datetime.date())
+                DateRange(pd_datetime.date(), pd_datetime.date()),
             ).get(pd_datetime, [])
 
             # 买入信号: 进入 Top-K 且当前未持有
@@ -188,7 +186,7 @@ class DynamicRebalanceSG(SignalBase):
         """
         return DynamicRebalanceSG(
             portfolio_adapter=self.portfolio_adapter,
-            name=self._name
+            name=self._name,
         )
 
     def _hikyuu_to_pandas_datetime(self, hq_datetime: Datetime) -> pd.Timestamp:
@@ -220,7 +218,7 @@ class DynamicRebalanceSG(SignalBase):
         # 返回日期级别的时间戳(00:00:00)
         return pd.Timestamp(year=year, month=month, day=day)
 
-    def get_current_holdings(self) -> Set[str]:
+    def get_current_holdings(self) -> set[str]:
         """
         获取当前持仓
 

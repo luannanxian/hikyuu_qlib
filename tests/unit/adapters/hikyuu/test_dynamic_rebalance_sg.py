@@ -13,13 +13,11 @@ DynamicRebalanceSG 单元测试
 """
 
 from datetime import date
-from unittest.mock import MagicMock, call
-from typing import List
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
-from domain.value_objects.date_range import DateRange
 from adapters.hikyuu.dynamic_rebalance_sg import DynamicRebalanceSG
 
 
@@ -51,7 +49,7 @@ class MockKRecord:
 
 class MockKData:
     """Mock Hikyuu KData"""
-    def __init__(self, stock: MockStock, records: List[MockKRecord]):
+    def __init__(self, stock: MockStock, records: list[MockKRecord]):
         self._stock = stock
         self._records = records
 
@@ -86,7 +84,7 @@ class TestDynamicRebalanceSG:
         # Arrange & Act
         sg = DynamicRebalanceSG(
             portfolio_adapter=mock_portfolio_adapter,
-            name="TestSG"
+            name="TestSG",
         )
 
         # Assert
@@ -182,7 +180,7 @@ class TestDynamicRebalanceSG:
 
         mock_portfolio_adapter._get_rebalance_dates.return_value = [rebalance_date]
         mock_portfolio_adapter.get_dynamic_stock_pool.return_value = {
-            rebalance_date: ["SH600000", "SH600001"]
+            rebalance_date: ["SH600000", "SH600001"],
         }
 
         # Mock _addBuySignal
@@ -211,7 +209,7 @@ class TestDynamicRebalanceSG:
 
         mock_portfolio_adapter._get_rebalance_dates.return_value = [
             rebalance_date1,
-            rebalance_date2
+            rebalance_date2,
         ]
         mock_portfolio_adapter.get_dynamic_stock_pool.side_effect = [
             {rebalance_date1: ["SH600000", "SH600001"]},  # First call: in Top-K
@@ -245,7 +243,7 @@ class TestDynamicRebalanceSG:
 
         mock_portfolio_adapter._get_rebalance_dates.return_value = [
             rebalance_date1,
-            rebalance_date2
+            rebalance_date2,
         ]
         mock_portfolio_adapter.get_dynamic_stock_pool.side_effect = [
             {rebalance_date1: ["SH600000", "SH600001"]},  # In Top-K
@@ -279,7 +277,7 @@ class TestDynamicRebalanceSG:
 
         mock_portfolio_adapter._get_rebalance_dates.return_value = [
             rebalance_date1,
-            rebalance_date2
+            rebalance_date2,
         ]
         mock_portfolio_adapter.get_dynamic_stock_pool.side_effect = [
             {rebalance_date1: ["SH600001", "SH600002"]},  # Not in Top-K
@@ -408,7 +406,7 @@ class TestDynamicRebalanceSG:
 
         mock_portfolio_adapter._get_rebalance_dates.return_value = [rebalance_date]
         mock_portfolio_adapter.get_dynamic_stock_pool.return_value = {
-            rebalance_date: ["SH600000"]
+            rebalance_date: ["SH600000"],
         }
 
         signal_generator._addBuySignal = MagicMock()
@@ -437,7 +435,7 @@ class TestDynamicRebalanceSG:
 
         mock_portfolio_adapter._get_rebalance_dates.return_value = [rebalance_date]
         mock_portfolio_adapter.get_dynamic_stock_pool.return_value = {
-            rebalance_date: []  # Empty pool
+            rebalance_date: [],  # Empty pool
         }
 
         signal_generator._addSellSignal = MagicMock()
@@ -465,7 +463,7 @@ class TestDynamicRebalanceSG:
 
         mock_portfolio_adapter._get_rebalance_dates.return_value = [rebalance_date]
         mock_portfolio_adapter.get_dynamic_stock_pool.return_value = {
-            rebalance_date: ["SH600000"]
+            rebalance_date: ["SH600000"],
         }
 
         signal_generator._addBuySignal = MagicMock()

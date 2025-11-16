@@ -1,10 +1,10 @@
 """Metrics collection module."""
-from typing import Dict, Any
+from typing import Any
 
-_metrics: Dict[str, Any] = {}
+_metrics: dict[str, Any] = {}
 
 
-def get_metrics() -> Dict[str, Any]:
+def get_metrics() -> dict[str, Any]:
     """Get collected metrics.
 
     Returns:

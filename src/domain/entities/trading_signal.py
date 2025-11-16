@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Optional
 
 from domain.value_objects.stock_code import StockCode
 
@@ -52,8 +51,8 @@ class TradingSignal:
     signal_date: datetime
     signal_type: SignalType
     signal_strength: SignalStrength = SignalStrength.MEDIUM
-    price: Optional[Decimal] = None
-    reason: Optional[str] = None
+    price: Decimal | None = None
+    reason: str | None = None
 
     # 实体唯一标识
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -108,7 +107,7 @@ class SignalBatch:
 
     strategy_name: str
     batch_date: datetime
-    signals: List[TradingSignal] = field(default_factory=list)
+    signals: list[TradingSignal] = field(default_factory=list)
 
     # 聚合根唯一标识
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -127,7 +126,7 @@ class SignalBatch:
         existing = self.get_signal(signal.stock_code, signal.signal_date)
         if existing is not None:
             raise ValueError(
-                f"Signal already exists for {signal.stock_code.value} on {signal.signal_date}"
+                f"Signal already exists for {signal.stock_code.value} on {signal.signal_date}",
             )
 
         self.signals.append(signal)
@@ -147,8 +146,8 @@ class SignalBatch:
         ]
 
     def get_signal(
-        self, stock_code: StockCode, signal_date: datetime
-    ) -> Optional[TradingSignal]:
+        self, stock_code: StockCode, signal_date: datetime,
+    ) -> TradingSignal | None:
         """
         根据股票代码和日期获取信号
 
@@ -164,7 +163,7 @@ class SignalBatch:
                 return signal
         return None
 
-    def filter_by_type(self, signal_type: SignalType) -> List[TradingSignal]:
+    def filter_by_type(self, signal_type: SignalType) -> list[TradingSignal]:
         """
         按信号类型过滤
 
@@ -176,7 +175,7 @@ class SignalBatch:
         """
         return [s for s in self.signals if s.signal_type == signal_type]
 
-    def filter_by_strength(self, strength: SignalStrength) -> List[TradingSignal]:
+    def filter_by_strength(self, strength: SignalStrength) -> list[TradingSignal]:
         """
         按信号强度过滤
 
@@ -197,7 +196,7 @@ class SignalBatch:
         """
         return len(self.signals)
 
-    def count_by_type(self) -> Dict[SignalType, int]:
+    def count_by_type(self) -> dict[SignalType, int]:
         """
         按类型统计信号数量
 

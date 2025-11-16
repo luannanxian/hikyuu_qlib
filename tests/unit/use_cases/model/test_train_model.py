@@ -4,9 +4,10 @@ TrainModelUseCase 单元测试
 测试 UC-002: Train Model (训练模型) 用例
 """
 
-import pytest
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from domain.entities.model import Model, ModelStatus, ModelType
 from domain.ports.model_repository import IModelRepository
@@ -53,7 +54,7 @@ class TestTrainModelSuccess:
 
         # 验证 trainer 被正确调用
         trainer_mock.train.assert_called_once_with(
-            model=model, training_data=training_data
+            model=model, training_data=training_data,
         )
 
         # 验证模型被保存到 repository
@@ -108,7 +109,7 @@ class TestTrainModelValidation:
 
         # Act & Assert: 指标不达标应该抛出异常
         with pytest.raises(
-            ValueError, match="Model metrics below threshold|accuracy.*0.5"
+            ValueError, match="Model metrics below threshold|accuracy.*0.5",
         ):
             model.mark_as_trained(low_metrics)
             await use_case.execute(model=model, training_data=MagicMock())

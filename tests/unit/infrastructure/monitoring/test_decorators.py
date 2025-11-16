@@ -17,8 +17,9 @@ def test_monitor_performance_decorator():
 
 def test_monitor_performance_with_async():
     """Test performance monitoring with async function."""
-    from src.infrastructure.monitoring.decorators import monitor_performance
     import asyncio
+
+    from src.infrastructure.monitoring.decorators import monitor_performance
 
     @monitor_performance
     async def async_function():

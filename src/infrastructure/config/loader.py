@@ -9,7 +9,7 @@ This module provides utilities for loading configuration from:
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     import yaml
@@ -21,7 +21,7 @@ except ImportError:
 from ..errors import ConfigurationException
 
 
-def load_config_from_file(file_path: str) -> Dict[str, Any]:
+def load_config_from_file(file_path: str) -> dict[str, Any]:
     """Load configuration from a file.
 
     Supports .env, .yaml, .yml, and .json files.
@@ -60,7 +60,7 @@ def load_config_from_file(file_path: str) -> Dict[str, Any]:
         else:
             raise ValueError(
                 f"Unsupported configuration file format: {suffix}. "
-                "Supported formats: .env, .yaml, .yml, .json"
+                "Supported formats: .env, .yaml, .yml, .json",
             )
     except Exception as e:
         if isinstance(e, (FileNotFoundError, ValueError, ConfigurationException)):
@@ -73,11 +73,11 @@ def load_config_from_file(file_path: str) -> Dict[str, Any]:
         ) from e
 
 
-def _load_env_file(file_path: str) -> Dict[str, Any]:
+def _load_env_file(file_path: str) -> dict[str, Any]:
     """Load configuration from .env file."""
     config = {}
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         for line in f:
             line = line.strip()
 
@@ -92,9 +92,7 @@ def _load_env_file(file_path: str) -> Dict[str, Any]:
                 value = value.strip()
 
                 # Remove quotes if present
-                if value.startswith('"') and value.endswith('"'):
-                    value = value[1:-1]
-                elif value.startswith("'") and value.endswith("'"):
+                if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
                     value = value[1:-1]
 
                 config[key] = value
@@ -102,17 +100,17 @@ def _load_env_file(file_path: str) -> Dict[str, Any]:
     return config
 
 
-def _load_yaml_file(file_path: str) -> Dict[str, Any]:
+def _load_yaml_file(file_path: str) -> dict[str, Any]:
     """Load configuration from YAML file."""
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         config = yaml.safe_load(f)
 
     return config or {}
 
 
-def _load_json_file(file_path: str) -> Dict[str, Any]:
+def _load_json_file(file_path: str) -> dict[str, Any]:
     """Load configuration from JSON file."""
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         config = json.load(f)
 
     return config or {}
@@ -128,9 +126,9 @@ class ConfigLoader:
             enable_cache: If True, cache loaded configurations
         """
         self.enable_cache = enable_cache
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
 
-    def load_config(self, file_path: str) -> Dict[str, Any]:
+    def load_config(self, file_path: str) -> dict[str, Any]:
         """Load configuration from file with optional caching.
 
         Args:
@@ -149,7 +147,7 @@ class ConfigLoader:
 
         return config
 
-    def load_from_env(self, prefix: str = "") -> Dict[str, Any]:
+    def load_from_env(self, prefix: str = "") -> dict[str, Any]:
         """Load configuration from environment variables.
 
         Args:
@@ -168,7 +166,7 @@ class ConfigLoader:
 
         return config
 
-    def merge_configs(self, configs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def merge_configs(self, configs: list[dict[str, Any]]) -> dict[str, Any]:
         """Merge multiple configuration dictionaries.
 
         Later configs override earlier ones.
@@ -187,8 +185,8 @@ class ConfigLoader:
         return merged
 
     def load_with_overrides(
-        self, base_config: Dict[str, Any], prefix: str = ""
-    ) -> Dict[str, Any]:
+        self, base_config: dict[str, Any], prefix: str = "",
+    ) -> dict[str, Any]:
         """Load configuration with environment variable overrides.
 
         Args:
@@ -207,7 +205,7 @@ class ConfigLoader:
 
 
 # Singleton instance
-_config_loader: Optional[ConfigLoader] = None
+_config_loader: ConfigLoader | None = None
 
 
 def get_config_loader(enable_cache: bool = True) -> ConfigLoader:

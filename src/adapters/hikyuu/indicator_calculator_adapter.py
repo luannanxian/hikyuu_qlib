@@ -4,7 +4,6 @@ IndicatorCalculatorAdapter - Hikyuu 指标计算适配器
 适配 Hikyuu 技术指标计算,实现 IIndicatorCalculator 接口
 """
 
-from typing import Dict, List
 import re
 
 # 为了便于测试，使用条件导入
@@ -16,8 +15,8 @@ except ImportError:
     hikyuu = None
     HIKYUU_AVAILABLE = False
 
-from domain.ports.indicator_calculator import IIndicatorCalculator
 from domain.entities.kline_data import KLineData
+from domain.ports.indicator_calculator import IIndicatorCalculator
 
 
 class IndicatorCalculatorAdapter(IIndicatorCalculator):
@@ -49,13 +48,13 @@ class IndicatorCalculatorAdapter(IIndicatorCalculator):
                     "  • pip install hikyuu\n"
                     "  • conda install -c conda-forge hikyuu\n"
                     "\n"
-                    "For more information, visit: https://hikyuu.org"
+                    "For more information, visit: https://hikyuu.org",
                 )
 
             if hikyuu is None:
                 raise RuntimeError(
                     "Hikyuu import succeeded but module is None. "
-                    "This may indicate a broken installation."
+                    "This may indicate a broken installation.",
                 )
 
             self.hikyuu = hikyuu
@@ -92,7 +91,7 @@ class IndicatorCalculatorAdapter(IIndicatorCalculator):
         # 默认返回原始名称，无参数
         return (indicator_name, [])
 
-    def _convert_kline_to_hikyuu(self, kline_data: List[KLineData]):
+    def _convert_kline_to_hikyuu(self, kline_data: list[KLineData]):
         """
         转换 Domain K 线数据到 Hikyuu 格式
 
@@ -119,8 +118,8 @@ class IndicatorCalculatorAdapter(IIndicatorCalculator):
         return kdata
 
     async def calculate_indicators(
-        self, kline_data: List[KLineData], indicator_names: List[str]
-    ) -> Dict[str, List[float]]:
+        self, kline_data: list[KLineData], indicator_names: list[str],
+    ) -> dict[str, list[float]]:
         """
         计算技术指标
 

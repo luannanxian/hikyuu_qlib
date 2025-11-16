@@ -4,10 +4,11 @@ LoadStockDataUseCase 单元测试
 测试 UC-001: Load Stock Data (加载股票数据) 用例
 """
 
-import pytest
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
+
+import pytest
 
 from domain.entities.kline_data import KLineData
 from domain.ports.stock_data_provider import IStockDataProvider
@@ -36,7 +37,7 @@ class TestLoadStockDataSuccess:
             low=Decimal("9.90"),
             close=Decimal("10.20"),
             volume=1000000,
-            amount=Decimal("10200000"),
+            amount=Decimal(10200000),
         )
         provider_mock.load_stock_data.return_value = [mock_kline]
 
@@ -46,12 +47,12 @@ class TestLoadStockDataSuccess:
         # Act: 执行用例
         stock_code = StockCode("sh600000")
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31),
         )
         kline_type = KLineType.DAY
 
         result = await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
 
         # Assert: 验证结果
@@ -61,7 +62,7 @@ class TestLoadStockDataSuccess:
 
         # 验证 provider 被正确调用
         provider_mock.load_stock_data.assert_called_once_with(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
 
 
@@ -98,13 +99,13 @@ class TestLoadStockDataErrorHandling:
         # Act & Assert: 应该传播异常
         stock_code = StockCode("sh600000")
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31),
         )
         kline_type = KLineType.DAY
 
         with pytest.raises(Exception, match="数据源连接失败"):
             await use_case.execute(
-                stock_code=stock_code, date_range=date_range, kline_type=kline_type
+                stock_code=stock_code, date_range=date_range, kline_type=kline_type,
             )
 
     @pytest.mark.asyncio
@@ -119,12 +120,12 @@ class TestLoadStockDataErrorHandling:
         # Act
         stock_code = StockCode("sh600000")
         date_range = DateRange(
-            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31)
+            start_date=datetime(2024, 1, 1), end_date=datetime(2024, 1, 31),
         )
         kline_type = KLineType.DAY
 
         result = await use_case.execute(
-            stock_code=stock_code, date_range=date_range, kline_type=kline_type
+            stock_code=stock_code, date_range=date_range, kline_type=kline_type,
         )
 
         # Assert: 空结果也是有效的

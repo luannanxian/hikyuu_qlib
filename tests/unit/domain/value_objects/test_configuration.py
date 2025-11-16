@@ -1,12 +1,13 @@
 """Configuration Value Objects 单元测试"""
 
 from decimal import Decimal
+
 import pytest
 
 from domain.value_objects.configuration import (
+    BacktestConfig,
     DataSourceConfig,
     ModelConfig,
-    BacktestConfig,
 )
 
 
@@ -59,18 +60,18 @@ class TestBacktestConfig:
     def test_valid_backtest_config(self):
         """测试有效的回测配置"""
         config = BacktestConfig(
-            initial_capital=Decimal("100000"),
+            initial_capital=Decimal(100000),
             commission_rate=Decimal("0.001"),
             slippage_rate=Decimal("0.001"),
         )
-        assert config.initial_capital == Decimal("100000")
+        assert config.initial_capital == Decimal(100000)
         assert config.commission_rate == Decimal("0.001")
 
     def test_invalid_initial_capital(self):
         """测试无效的初始资金"""
         with pytest.raises(ValueError, match="initial_capital must be > 0"):
             BacktestConfig(
-                initial_capital=Decimal("0"),
+                initial_capital=Decimal(0),
                 commission_rate=Decimal("0.001"),
                 slippage_rate=Decimal("0.001"),
             )
@@ -79,7 +80,7 @@ class TestBacktestConfig:
         """测试无效的手续费率"""
         with pytest.raises(ValueError, match="commission_rate must be between"):
             BacktestConfig(
-                initial_capital=Decimal("100000"),
+                initial_capital=Decimal(100000),
                 commission_rate=Decimal("0.2"),  # > 0.1
                 slippage_rate=Decimal("0.001"),
             )
@@ -88,7 +89,7 @@ class TestBacktestConfig:
         """测试无效的滑点率"""
         with pytest.raises(ValueError, match="slippage_rate must be between"):
             BacktestConfig(
-                initial_capital=Decimal("100000"),
+                initial_capital=Decimal(100000),
                 commission_rate=Decimal("0.001"),
                 slippage_rate=Decimal("-0.001"),  # < 0
             )

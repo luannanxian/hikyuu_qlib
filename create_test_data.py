@@ -6,15 +6,16 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from datetime import datetime, timedelta
 from decimal import Decimal
-import pandas as pd
+
 
 from domain.entities.kline_data import KLineData
-from domain.value_objects.stock_code import StockCode
 from domain.value_objects.kline_type import KLineType
+from domain.value_objects.stock_code import StockCode
 from utils.data_conversion import (
     convert_kline_to_training_data,
     save_to_file,
@@ -84,19 +85,19 @@ def main():
         csv_file = data_dir / f"{stock_code}_train.csv"
         parquet_file = data_dir / f"{stock_code}_train.parquet"
 
-        print(f"正在保存到文件...")
+        print("正在保存到文件...")
         save_to_file(training_data, str(csv_file))
         save_to_file(training_data, str(parquet_file))
 
-        print(f"✅ 已保存:")
+        print("✅ 已保存:")
         print(f"   CSV:     {csv_file}")
         print(f"   Parquet: {parquet_file}")
 
     print(f"\n{'='*60}")
     print("✅ 测试数据创建完成！")
     print('='*60)
-    print(f"\n现在您可以使用这些文件测试训练功能：")
-    print(f"\n示例命令:")
+    print("\n现在您可以使用这些文件测试训练功能：")
+    print("\n示例命令:")
     for stock_code in stocks:
         print(f"  ./run_cli.sh model train --type LGBM --name {stock_code}_model \\")
         print(f"      --data data/test/{stock_code}_train.csv\n")

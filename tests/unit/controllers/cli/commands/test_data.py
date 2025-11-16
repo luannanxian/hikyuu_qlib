@@ -6,18 +6,16 @@ Tests:
 - data list command
 """
 
-import pytest
-from click.testing import CliRunner
-from unittest.mock import AsyncMock, Mock, patch
 from datetime import datetime
 from decimal import Decimal
+from unittest.mock import AsyncMock, Mock, patch
+
+from click.testing import CliRunner
 
 from controllers.cli.commands.data import data_group
 from domain.entities.kline_data import KLineData
-from domain.value_objects.stock_code import StockCode
-from domain.value_objects.date_range import DateRange
 from domain.value_objects.kline_type import KLineType
-from datetime import date
+from domain.value_objects.stock_code import StockCode
 
 
 class TestDataLoadCommand:
@@ -48,7 +46,7 @@ class TestDataLoadCommand:
                         close=Decimal("10.5"),
                         volume=1000000,
                         amount=Decimal("10500000.0"),
-                    )
+                    ),
                 ]
                 mock_use_case.execute.return_value = mock_data
 
@@ -258,6 +256,7 @@ class TestDataListCommand:
         with runner.isolated_filesystem():
             # Create subdirectory with files
             import os
+
             import pandas as pd
 
             os.makedirs("data", exist_ok=True)
@@ -302,7 +301,7 @@ class TestDataListCommand:
                 "col2": [3, 4],
                 "col3": [5, 6],
                 "col4": [7, 8],
-                "col5": [9, 10]
+                "col5": [9, 10],
             })
             df.to_csv("test.csv", index=False)
 

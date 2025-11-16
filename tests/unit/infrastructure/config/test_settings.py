@@ -23,8 +23,9 @@ def test_settings_creation_with_defaults():
 
 def test_settings_validation():
     """Test settings validation with pydantic."""
-    from src.infrastructure.config.settings import Settings
     from pydantic import ValidationError
+
+    from src.infrastructure.config.settings import Settings
 
     # Test with invalid log level
     with pytest.raises(ValidationError):
@@ -132,13 +133,14 @@ def test_settings_from_env_variables(monkeypatch):
 
 def test_settings_log_level_validation():
     """Test log level validation."""
-    from src.infrastructure.config.settings import Settings
     from pydantic import ValidationError
+
+    from src.infrastructure.config.settings import Settings
 
     # Valid log levels
     for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
         settings = Settings(LOG_LEVEL=level)
-        assert settings.LOG_LEVEL == level
+        assert level == settings.LOG_LEVEL
 
     # Invalid log level
     with pytest.raises(ValidationError):
@@ -147,13 +149,14 @@ def test_settings_log_level_validation():
 
 def test_settings_environment_validation():
     """Test environment validation."""
-    from src.infrastructure.config.settings import Settings
     from pydantic import ValidationError
+
+    from src.infrastructure.config.settings import Settings
 
     # Valid environments
     for env in ["dev", "test", "prod"]:
         settings = Settings(ENVIRONMENT=env)
-        assert settings.ENVIRONMENT == env
+        assert env == settings.ENVIRONMENT
 
     # Invalid environment
     with pytest.raises(ValidationError):

@@ -9,9 +9,9 @@ from decimal import Decimal
 
 import pytest
 
-from domain.entities.trading_signal import SignalBatch, SignalType
-from domain.value_objects.date_range import DateRange
+from domain.entities.trading_signal import SignalBatch
 from domain.value_objects.configuration import BacktestConfig
+from domain.value_objects.date_range import DateRange
 
 
 @pytest.mark.asyncio
@@ -29,13 +29,13 @@ async def test_run_backtest_integration(run_backtest_use_case, sample_signals):
     from datetime import datetime
 
     signal_batch = SignalBatch(
-        strategy_name="test_strategy", batch_date=datetime(2023, 1, 1)
+        strategy_name="test_strategy", batch_date=datetime(2023, 1, 1),
     )
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
     config = BacktestConfig(
-        initial_capital=Decimal("100000"),
+        initial_capital=Decimal(100000),
         commission_rate=Decimal("0.001"),
         slippage_rate=Decimal("0.0005"),
     )
@@ -43,13 +43,13 @@ async def test_run_backtest_integration(run_backtest_use_case, sample_signals):
 
     # Act
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert
     assert result is not None
-    assert result.initial_capital == Decimal("100000")
-    assert result.final_capital > Decimal("0")
+    assert result.initial_capital == Decimal(100000)
+    assert result.final_capital > Decimal(0)
     # BacktestResult 的指标通过方法计算，不是存储的字段
     assert result.total_return() >= 0
     assert result.calculate_sharpe_ratio() is not None
@@ -57,7 +57,7 @@ async def test_run_backtest_integration(run_backtest_use_case, sample_signals):
 
 @pytest.mark.asyncio
 async def test_backtest_with_buy_and_sell_signals(
-    run_backtest_use_case, test_data_factory
+    run_backtest_use_case, test_data_factory,
 ):
     """
     测试包含买入和卖出信号的回测
@@ -71,7 +71,7 @@ async def test_backtest_with_buy_and_sell_signals(
         signal_batch.add_signal(signal)
 
     config = BacktestConfig(
-        initial_capital=Decimal("100000"),
+        initial_capital=Decimal(100000),
         commission_rate=Decimal("0.001"),
         slippage_rate=Decimal("0.001"),
     )
@@ -79,7 +79,7 @@ async def test_backtest_with_buy_and_sell_signals(
 
     # Act
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert
@@ -99,12 +99,12 @@ async def test_backtest_with_empty_signals(run_backtest_use_case):
     # Arrange
     signal_batch = SignalBatch(strategy_name="test_strategy", batch_date=datetime(2023, 1, 1))  # 空信号批次
 
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert
@@ -125,12 +125,12 @@ async def test_backtest_performance_metrics(run_backtest_use_case, sample_signal
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert - 验证性能指标
@@ -144,7 +144,7 @@ async def test_backtest_performance_metrics(run_backtest_use_case, sample_signal
 
 @pytest.mark.asyncio
 async def test_backtest_with_commission_and_slippage(
-    run_backtest_use_case, sample_signals
+    run_backtest_use_case, sample_signals,
 ):
     """
     测试考虑手续费和滑点的回测
@@ -157,7 +157,7 @@ async def test_backtest_with_commission_and_slippage(
         signal_batch.add_signal(signal)
 
     config = BacktestConfig(
-        initial_capital=Decimal("100000"),
+        initial_capital=Decimal(100000),
         commission_rate=Decimal("0.003"),  # 0.3%
         slippage_rate=Decimal("0.001"),  # 0.1%
     )
@@ -165,14 +165,14 @@ async def test_backtest_with_commission_and_slippage(
 
     # Act
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert
     assert result is not None
-    assert result.initial_capital == Decimal("100000")
+    assert result.initial_capital == Decimal(100000)
     # 考虑手续费和滑点后，收益应该略低
-    assert result.final_capital > Decimal("0")
+    assert result.final_capital > Decimal(0)
 
 
 @pytest.mark.asyncio
@@ -190,12 +190,12 @@ async def test_backtest_date_range_filtering(run_backtest_use_case, test_data_fa
         signal_batch.add_signal(signal)
 
     # 只回测1月份
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 1, 31))
 
     # Act
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert
@@ -220,7 +220,7 @@ async def test_backtest_handles_engine_error(mock_backtest_engine, sample_signal
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act & Assert
@@ -230,7 +230,7 @@ async def test_backtest_handles_engine_error(mock_backtest_engine, sample_signal
 
 @pytest.mark.asyncio
 async def test_backtest_with_different_initial_capitals(
-    run_backtest_use_case, sample_signals
+    run_backtest_use_case, sample_signals,
 ):
     """
     测试不同初始资金的回测
@@ -245,10 +245,10 @@ async def test_backtest_with_different_initial_capitals(
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     initial_capitals = [
-        Decimal("50000"),
-        Decimal("100000"),
-        Decimal("500000"),
-        Decimal("1000000"),
+        Decimal(50000),
+        Decimal(100000),
+        Decimal(500000),
+        Decimal(1000000),
     ]
 
     results = []
@@ -261,7 +261,7 @@ async def test_backtest_with_different_initial_capitals(
             slippage_rate=Decimal("0.001"),
         )
         result = await run_backtest_use_case.execute(
-            signals=signal_batch, config=config, date_range=date_range
+            signals=signal_batch, config=config, date_range=date_range,
         )
         results.append(result)
 
@@ -287,21 +287,21 @@ async def test_backtest_signal_conversion_integration(
     """
     # Arrange - 转换预测为信号
     signal_batch = await convert_predictions_to_signals_use_case.execute(
-        predictions=sample_predictions, strategy_params={"strategy_type": "threshold", "threshold": 0.5}
+        predictions=sample_predictions, strategy_params={"strategy_type": "threshold", "threshold": 0.5},
     )
 
     # Act - 运行回测
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert
     assert result is not None
     assert signal_batch.size() > 0
-    assert result.final_capital > Decimal("0")
+    assert result.final_capital > Decimal(0)
 
 
 @pytest.mark.asyncio
@@ -316,12 +316,12 @@ async def test_backtest_result_serialization(run_backtest_use_case, sample_signa
     for signal in sample_signals:
         signal_batch.add_signal(signal)
 
-    config = BacktestConfig(initial_capital=Decimal("100000"), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
+    config = BacktestConfig(initial_capital=Decimal(100000), commission_rate=Decimal("0.001"), slippage_rate=Decimal("0.001"))
     date_range = DateRange(date(2023, 1, 1), date(2023, 12, 31))
 
     # Act
     result = await run_backtest_use_case.execute(
-        signals=signal_batch, config=config, date_range=date_range
+        signals=signal_batch, config=config, date_range=date_range,
     )
 
     # Assert - 验证结果可以被序列化（通过访问所有属性）

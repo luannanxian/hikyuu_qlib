@@ -7,7 +7,6 @@ Commands:
 """
 
 import asyncio
-from typing import Optional
 
 import click
 
@@ -18,7 +17,6 @@ from controllers.cli.utils.output import CLIOutput
 @click.group(name="config")
 def config_group():
     """Configuration management commands."""
-    pass
 
 
 @config_group.command(name="show")
@@ -72,7 +70,7 @@ def show_command(section: str):
             output.print(f"  LOG_LEVEL: {settings.LOG_LEVEL}")
 
     except Exception as e:
-        output.error(f"Failed to show configuration: {str(e)}")
+        output.error(f"Failed to show configuration: {e!s}")
         raise click.Abort()
 
 
@@ -121,7 +119,7 @@ def set_command(key: str, value: str, persist: str):
         asyncio.run(_set_config(key, value, persist, output))
 
     except Exception as e:
-        output.error(f"Failed to set configuration: {str(e)}")
+        output.error(f"Failed to set configuration: {e!s}")
         raise click.Abort()
 
 
@@ -135,7 +133,6 @@ async def _set_config(key: str, value: str, persist: str, output: CLIOutput):
         persist: Persistence method (env or yaml)
         output: CLI output instance
     """
-    from pathlib import Path
 
     # Validate and parse key-value
     try:
@@ -194,18 +191,18 @@ def _parse_config_value(key: str, value: str):
     if key not in VALID_KEYS:
         raise ValueError(
             f"Invalid configuration key: {key}. "
-            f"Valid keys: {', '.join(VALID_KEYS.keys())}"
+            f"Valid keys: {', '.join(VALID_KEYS.keys())}",
         )
 
     expected_type = VALID_KEYS[key]
 
     # Parse value based on expected type
     try:
-        if expected_type == float:
+        if expected_type is float:
             parsed = float(value)
-        elif expected_type == int:
+        elif expected_type is int:
             parsed = int(value)
-        elif expected_type == bool:
+        elif expected_type is bool:
             parsed = value.lower() in ("true", "yes", "1")
         else:  # str
             parsed = value
@@ -215,7 +212,7 @@ def _parse_config_value(key: str, value: str):
             valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
             if parsed.upper() not in valid_levels:
                 raise ValueError(
-                    f"Invalid LOG_LEVEL: {parsed}. Must be one of {valid_levels}"
+                    f"Invalid LOG_LEVEL: {parsed}. Must be one of {valid_levels}",
                 )
             parsed = parsed.upper()
 
@@ -223,7 +220,7 @@ def _parse_config_value(key: str, value: str):
             valid_envs = ["dev", "test", "prod"]
             if parsed.lower() not in valid_envs:
                 raise ValueError(
-                    f"Invalid ENVIRONMENT: {parsed}. Must be one of {valid_envs}"
+                    f"Invalid ENVIRONMENT: {parsed}. Must be one of {valid_envs}",
                 )
             parsed = parsed.lower()
 
@@ -251,12 +248,13 @@ async def _save_to_yaml(key: str, value, container, output: CLIOutput):
         container: Dependency injection container
         output: CLI output instance
     """
+    from decimal import Decimal
+
     from domain.value_objects.configuration import (
+        BacktestConfig,
         DataSourceConfig,
         ModelConfig,
-        BacktestConfig,
     )
-    from decimal import Decimal
 
     # Get config repository
     config_repository = container.config_repository
@@ -268,7 +266,7 @@ async def _save_to_yaml(key: str, value, container, output: CLIOutput):
     except Exception:
         # If no config exists, create default one
         from infrastructure.config.settings import Settings
-        settings = Settings()
+        Settings()  # Initialize default settings
         config = None
 
     # Update appropriate section based on key
@@ -279,18 +277,17 @@ async def _save_to_yaml(key: str, value, container, output: CLIOutput):
             if key == "HIKYUU_DATA_PATH":
                 ds_config = DataSourceConfig(
                     hikyuu_path=value,
-                    qlib_path=ds_config.qlib_path
+                    qlib_path=ds_config.qlib_path,
                 )
             else:
                 ds_config = DataSourceConfig(
                     hikyuu_path=ds_config.hikyuu_path,
-                    qlib_path=value
+                    qlib_path=value,
                 )
+        elif key == "HIKYUU_DATA_PATH":
+            ds_config = DataSourceConfig(hikyuu_path=value, qlib_path=None)
         else:
-            if key == "HIKYUU_DATA_PATH":
-                ds_config = DataSourceConfig(hikyuu_path=value, qlib_path=None)
-            else:
-                ds_config = DataSourceConfig(hikyuu_path=None, qlib_path=value)
+            ds_config = DataSourceConfig(hikyuu_path=None, qlib_path=value)
 
         await config_repository.save_config("data_source", ds_config)
 
@@ -305,7 +302,7 @@ async def _save_to_yaml(key: str, value, container, output: CLIOutput):
         if key == "DEFAULT_MODEL_TYPE":
             mc_config = ModelConfig(
                 default_type=value,
-                hyperparameters=hyperparams
+                hyperparameters=hyperparams,
             )
         else:
             # MODEL_STORAGE_PATH is handled by settings, not in YAML
@@ -322,34 +319,33 @@ async def _save_to_yaml(key: str, value, container, output: CLIOutput):
                 bt_config = BacktestConfig(
                     initial_capital=Decimal(str(value)),
                     commission_rate=bt_config.commission_rate,
-                    slippage_rate=bt_config.slippage_rate
+                    slippage_rate=bt_config.slippage_rate,
                 )
             else:
                 bt_config = BacktestConfig(
                     initial_capital=bt_config.initial_capital,
                     commission_rate=Decimal(str(value)),
-                    slippage_rate=bt_config.slippage_rate
+                    slippage_rate=bt_config.slippage_rate,
                 )
+        elif key == "INITIAL_CAPITAL":
+            bt_config = BacktestConfig(
+                initial_capital=Decimal(str(value)),
+                commission_rate=Decimal("0.0003"),
+                slippage_rate=Decimal("0.001"),
+            )
         else:
-            if key == "INITIAL_CAPITAL":
-                bt_config = BacktestConfig(
-                    initial_capital=Decimal(str(value)),
-                    commission_rate=Decimal("0.0003"),
-                    slippage_rate=Decimal("0.001")
-                )
-            else:
-                bt_config = BacktestConfig(
-                    initial_capital=Decimal("100000"),
-                    commission_rate=Decimal(str(value)),
-                    slippage_rate=Decimal("0.001")
-                )
+            bt_config = BacktestConfig(
+                initial_capital=Decimal(100000),
+                commission_rate=Decimal(str(value)),
+                slippage_rate=Decimal("0.001"),
+            )
 
         await config_repository.save_config("backtest", bt_config)
 
     else:
         # Other settings are typically in .env
         output.warning(f"{key} is typically set via environment variables or .env file")
-        output.info(f"Use --persist env to save to .env file")
+        output.info("Use --persist env to save to .env file")
 
 
 def _save_to_env(key: str, value: str, output: CLIOutput):
@@ -367,7 +363,7 @@ def _save_to_env(key: str, value: str, output: CLIOutput):
 
     # Read existing .env file
     if env_path.exists():
-        with open(env_path, "r") as f:
+        with open(env_path) as f:
             lines = f.readlines()
     else:
         lines = []
