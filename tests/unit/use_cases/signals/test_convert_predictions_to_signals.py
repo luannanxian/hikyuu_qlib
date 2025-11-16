@@ -36,17 +36,19 @@ class TestConvertPredictionsSuccess:
         # 创建预测批次
         predictions = PredictionBatch(
             model_id="model-123",
-            batch_date=datetime(2024, 1, 10),
+            generated_at=datetime(2024, 1, 10),
             predictions=[
                 Prediction(
                     stock_code=StockCode("sh600000"),
-                    prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                    timestamp=datetime(2024, 1, 10),
                     predicted_value=Decimal("0.05"),
                     confidence=Decimal("0.85"),
                 ),
                 Prediction(
                     stock_code=StockCode("sz000001"),
-                    prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                    timestamp=datetime(2024, 1, 10),
                     predicted_value=Decimal("-0.02"),
                     confidence=Decimal("0.78"),
                 ),
@@ -97,23 +99,26 @@ class TestConvertPredictionsSuccess:
 
         predictions = PredictionBatch(
             model_id="model-123",
-            batch_date=datetime(2024, 1, 10),
+            generated_at=datetime(2024, 1, 10),
             predictions=[
                 Prediction(
                     stock_code=StockCode("sh600000"),
-                    prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                    timestamp=datetime(2024, 1, 10),
                     predicted_value=Decimal("0.08"),
                     confidence=Decimal("0.90"),
                 ),
                 Prediction(
                     stock_code=StockCode("sh600001"),
-                    prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                    timestamp=datetime(2024, 1, 10),
                     predicted_value=Decimal("0.05"),
                     confidence=Decimal("0.85"),
                 ),
                 Prediction(
                     stock_code=StockCode("sh600002"),
-                    prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                    timestamp=datetime(2024, 1, 10),
                     predicted_value=Decimal("0.02"),
                     confidence=Decimal("0.70"),
                 ),
@@ -162,17 +167,19 @@ class TestConvertPredictionsSuccess:
 
         predictions = PredictionBatch(
             model_id="model-123",
-            batch_date=datetime(2024, 1, 10),
+            generated_at=datetime(2024, 1, 10),
             predictions=[
                 Prediction(
                     stock_code=StockCode("sh600000"),
-                    prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                    timestamp=datetime(2024, 1, 10),
                     predicted_value=Decimal("0.08"),
                     confidence=Decimal("0.90"),
                 ),
                 Prediction(
                     stock_code=StockCode("sh600001"),
-                    prediction_date=datetime(2024, 1, 10),
+                    model_id="test-model",
+                    timestamp=datetime(2024, 1, 10),
                     predicted_value=Decimal("0.02"),
                     confidence=Decimal("0.70"),
                 ),
@@ -219,7 +226,7 @@ class TestConvertPredictionsValidation:
 
         predictions = PredictionBatch(
             model_id="model-123",
-            batch_date=datetime(2024, 1, 10),
+            generated_at=datetime(2024, 1, 10),
             predictions=[],
         )
 
@@ -236,7 +243,7 @@ class TestConvertPredictionsValidation:
         converter_mock = AsyncMock(spec=ISignalConverter)
 
         predictions = PredictionBatch(
-            model_id="model-123", batch_date=datetime(2024, 1, 10), predictions=[],
+            model_id="model-123", generated_at=datetime(2024, 1, 10), predictions=[],
         )
 
         use_case = ConvertPredictionsToSignalsUseCase(converter=converter_mock)
@@ -260,7 +267,7 @@ class TestConvertPredictionsErrorHandling:
         converter_mock.convert_to_signals.side_effect = Exception("转换失败")
 
         predictions = PredictionBatch(
-            model_id="model-123", batch_date=datetime(2024, 1, 10), predictions=[],
+            model_id="model-123", generated_at=datetime(2024, 1, 10), predictions=[],
         )
 
         use_case = ConvertPredictionsToSignalsUseCase(converter=converter_mock)
@@ -280,7 +287,7 @@ class TestConvertPredictionsErrorHandling:
 
         predictions = PredictionBatch(
             model_id="model-123",
-            batch_date=datetime(2024, 1, 10),
+            generated_at=datetime(2024, 1, 10),
             predictions=[],  # 空预测
         )
 

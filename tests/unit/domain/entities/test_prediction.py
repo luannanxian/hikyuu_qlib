@@ -26,7 +26,7 @@ class TestPredictionCreation:
         )
 
         assert prediction.stock_code == StockCode("sh600000")
-        assert prediction.prediction_date == datetime(2024, 1, 15)
+        assert prediction.timestamp == datetime(2024, 1, 15)
         assert prediction.predicted_value == 0.05
         assert prediction.confidence == 0.85
 
@@ -204,7 +204,7 @@ class TestPredictionBatchAggregation:
         batch.add_prediction(pred)
         assert len(batch.predictions) == 1
 
-        batch.remove_prediction(pred.stock_code, pred.prediction_date)
+        batch.remove_prediction(pred.stock_code, pred.timestamp)
         assert len(batch.predictions) == 0
 
     def test_get_prediction_by_stock(self):

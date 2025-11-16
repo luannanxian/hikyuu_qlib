@@ -104,7 +104,7 @@ class TestDataFactory:
         for i in range(count):
             pred = Prediction(
                 stock_code=StockCode("sh600000"),
-                prediction_date=datetime(2023, 1, i + 1),
+                timestamp=datetime(2023, 1, i + 1),
                 predicted_value=Decimal(str(0.5 + i * 0.05)),
                 confidence=Decimal("0.9"),
             )
