@@ -1,6 +1,8 @@
 """Configuration Value Objects 单元测试"""
 
+import tempfile
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -14,21 +16,22 @@ from domain.value_objects.configuration import (
 class TestDataSourceConfig:
     """测试 DataSourceConfig"""
 
-    def test_valid_hikyuu_config(self):
+    def test_valid_hikyuu_config(self, tmp_path):
         """测试有效的Hikyuu配置"""
-        config = DataSourceConfig(provider="hikyuu", data_path="/tmp/test_data")
+        # 使用 tmp_path fixture 提供的临时目录
+        config = DataSourceConfig(provider="hikyuu", data_path=str(tmp_path))
         assert config.provider == "hikyuu"
-        assert config.data_path == "/tmp/test_data"
+        assert config.data_path == str(tmp_path)
 
-    def test_valid_qlib_config(self):
+    def test_valid_qlib_config(self, tmp_path):
         """测试有效的Qlib配置"""
-        config = DataSourceConfig(provider="qlib", data_path="/tmp/test_data")
+        config = DataSourceConfig(provider="qlib", data_path=str(tmp_path))
         assert config.provider == "qlib"
 
-    def test_invalid_provider(self):
+    def test_invalid_provider(self, tmp_path):
         """测试无效的提供商"""
         with pytest.raises(ValueError, match="Invalid provider"):
-            DataSourceConfig(provider="invalid", data_path="/tmp/test_data")
+            DataSourceConfig(provider="invalid", data_path=str(tmp_path))
 
     def test_invalid_path(self):
         """测试不存在的路径"""

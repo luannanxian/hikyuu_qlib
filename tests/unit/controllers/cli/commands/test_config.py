@@ -73,10 +73,10 @@ class TestConfigSetCommand:
         # Arrange
         runner = CliRunner()
 
-        # Act
+        # Act - 使用 ARGUMENT 而不是 --key/--value 选项
         result = runner.invoke(
             config_group,
-            ["set", "--key", "HIKYUU_DATA_PATH", "--value", "/path/to/data"],
+            ["set", "HIKYUU_DATA_PATH", "/path/to/data"],
         )
 
         # Assert
@@ -89,8 +89,8 @@ class TestConfigSetCommand:
         # Arrange
         runner = CliRunner()
 
-        # Act
-        result = runner.invoke(config_group, ["set", "--value", "value"])
+        # Act - 只提供一个参数,缺少 value
+        result = runner.invoke(config_group, ["set", "SOME_KEY"])
 
         # Assert
         assert result.exit_code != 0
@@ -113,10 +113,10 @@ class TestConfigSetCommand:
         # Arrange
         runner = CliRunner()
 
-        # Act
+        # Act - 使用 ARGUMENT 而不是 --key/--value 选项
         result = runner.invoke(
             config_group,
-            ["set", "--key", "INITIAL_CAPITAL", "--value", "200000"],
+            ["set", "INITIAL_CAPITAL", "200000"],
         )
 
         # Assert

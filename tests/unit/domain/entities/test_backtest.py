@@ -113,6 +113,15 @@ class TestBacktestResultCreation:
             final_capital=Decimal(120000),
         )
 
+        # 添加权益曲线数据(必须有至少2个点才能计算夏普比率)
+        result.equity_curve = [
+            Decimal(100000),
+            Decimal(105000),
+            Decimal(110000),
+            Decimal(115000),
+            Decimal(120000),
+        ]
+
         # 简化的夏普比率计算
         sharpe = result.calculate_sharpe_ratio(risk_free_rate=Decimal("0.03"))
         assert sharpe > Decimal(0)

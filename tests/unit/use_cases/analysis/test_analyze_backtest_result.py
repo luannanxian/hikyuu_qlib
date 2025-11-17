@@ -83,14 +83,20 @@ class TestCalculateSharpeRatio:
     @pytest.mark.asyncio
     async def test_calculate_sharpe_ratio(self):
         """测试计算夏普比率"""
-        # Arrange: 创建回测结果
+        # Arrange: 创建回测结果 (需要多个数据点以计算有效的标准差)
         result = BacktestResult(
             strategy_name="测试策略",
             start_date=datetime(2024, 1, 1),
             end_date=datetime(2024, 12, 31),
             initial_capital=Decimal(100000),
             final_capital=Decimal(120000),
-            equity_curve=[Decimal(100000), Decimal(120000)],
+            equity_curve=[
+                Decimal(100000),
+                Decimal(105000),
+                Decimal(110000),
+                Decimal(115000),
+                Decimal(120000),
+            ],
         )
 
         use_case = AnalyzeBacktestResultUseCase()

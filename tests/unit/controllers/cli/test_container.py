@@ -44,9 +44,12 @@ class TestContainer:
         assert container.settings.APP_NAME == "Test App"
         assert container.settings.ENVIRONMENT == "test"
 
-    def test_container_provides_load_stock_data_use_case(self):
+    @patch("adapters.hikyuu.hikyuu_data_adapter.HIKYUU_AVAILABLE", True)
+    @patch("adapters.hikyuu.hikyuu_data_adapter.hku")
+    def test_container_provides_load_stock_data_use_case(self, mock_hku):
         """Test container provides LoadStockDataUseCase."""
         # Arrange
+        mock_hku.return_value = MagicMock()
         container = Container()
 
         # Act
@@ -58,9 +61,14 @@ class TestContainer:
 
         assert isinstance(use_case, LoadStockDataUseCase)
 
-    def test_container_provides_train_model_use_case(self):
+    @patch("adapters.hikyuu.hikyuu_data_adapter.HIKYUU_AVAILABLE", True)
+    @patch("adapters.hikyuu.hikyuu_data_adapter.hku")
+    @patch("adapters.qlib.qlib_model_trainer_adapter.lgb")
+    def test_container_provides_train_model_use_case(self, mock_lgb, mock_hku):
         """Test container provides TrainModelUseCase."""
         # Arrange
+        mock_hku.return_value = MagicMock()
+        mock_lgb.return_value = MagicMock()
         container = Container()
 
         # Act
@@ -72,7 +80,8 @@ class TestContainer:
 
         assert isinstance(use_case, TrainModelUseCase)
 
-    @patch("adapters.hikyuu.hikyuu_backtest_adapter.hku")
+    @patch("adapters.hikyuu.hikyuu_data_adapter.HIKYUU_AVAILABLE", True)
+    @patch("adapters.hikyuu.hikyuu_data_adapter.hku")
     def test_container_provides_run_backtest_use_case(self, mock_hku):
         """Test container provides RunBacktestUseCase."""
         # Arrange
@@ -88,9 +97,12 @@ class TestContainer:
 
         assert isinstance(use_case, RunBacktestUseCase)
 
-    def test_container_singleton_pattern(self):
+    @patch("adapters.hikyuu.hikyuu_data_adapter.HIKYUU_AVAILABLE", True)
+    @patch("adapters.hikyuu.hikyuu_data_adapter.hku")
+    def test_container_singleton_pattern(self, mock_hku):
         """Test container returns same instance for multiple calls."""
         # Arrange
+        mock_hku.return_value = MagicMock()
         container = Container()
 
         # Act
