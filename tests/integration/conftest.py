@@ -312,19 +312,21 @@ def train_model_use_case(mock_model_trainer, mock_model_repository):
 
 
 @pytest.fixture
-def generate_predictions_use_case(mock_model_trainer, mock_model_repository):
+def generate_predictions_use_case(mock_model_repository):
     """GeneratePredictionsUseCase 实例"""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from domain.ports.stock_data_provider import IStockDataProvider
     from use_cases.model.generate_predictions import GeneratePredictionsUseCase
 
-    # Mock trainer to return predictions
-    async def predict_side_effect(model, input_data):
-        """预测副作用：返回模拟预测"""
-        return TestDataFactory.create_predictions(len(input_data))
+    # Create mock data provider
+    mock_data_provider = AsyncMock(spec=IStockDataProvider)
 
-    mock_model_trainer.predict.side_effect = predict_side_effect
+    # Mock data provider to return empty list (tests don't actually generate predictions)
+    mock_data_provider.load_stock_data.return_value = []
 
     return GeneratePredictionsUseCase(
-        repository=mock_model_repository, trainer=mock_model_trainer,
+        repository=mock_model_repository, data_provider=mock_data_provider,
     )
 
 

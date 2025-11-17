@@ -682,7 +682,7 @@ class TestQlibModelTrainerAdapterPredictBatch:
         batch = await adapter.predict_batch(
             model=model_entity,
             input_data=input_data,
-            timestamp=timestamp,
+            prediction_date=timestamp,
         )
 
         # 验证

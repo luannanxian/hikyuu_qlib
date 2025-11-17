@@ -80,12 +80,15 @@ class TestContainer:
 
         assert isinstance(use_case, TrainModelUseCase)
 
+    @patch("adapters.hikyuu.hikyuu_backtest_adapter.HIKYUU_AVAILABLE", True)
+    @patch("adapters.hikyuu.hikyuu_backtest_adapter.hku")
     @patch("adapters.hikyuu.hikyuu_data_adapter.HIKYUU_AVAILABLE", True)
     @patch("adapters.hikyuu.hikyuu_data_adapter.hku")
-    def test_container_provides_run_backtest_use_case(self, mock_hku):
+    def test_container_provides_run_backtest_use_case(self, mock_hku_data, mock_hku_backtest):
         """Test container provides RunBacktestUseCase."""
         # Arrange
-        mock_hku.return_value = MagicMock()
+        mock_hku_data.return_value = MagicMock()
+        mock_hku_backtest.return_value = MagicMock()
         container = Container()
 
         # Act

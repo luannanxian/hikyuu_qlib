@@ -16,6 +16,8 @@ from domain.value_objects.kline_type import KLineType
 from domain.value_objects.stock_code import StockCode
 
 
+@patch("adapters.hikyuu.indicator_calculator_adapter.HIKYUU_AVAILABLE", True)
+@patch("adapters.hikyuu.indicator_calculator_adapter.hikyuu")
 class TestIndicatorCalculatorAdapter:
     """测试 IndicatorCalculatorAdapter"""
 
@@ -46,7 +48,7 @@ class TestIndicatorCalculatorAdapter:
         return data_list
 
     @pytest.mark.asyncio
-    async def test_calculate_ma_indicator(self, kline_data_list):
+    async def test_calculate_ma_indicator(self, mock_hikyuu, kline_data_list):
         """
         测试计算 MA（移动平均）指标
 
@@ -81,7 +83,7 @@ class TestIndicatorCalculatorAdapter:
             assert isinstance(result["MA5"][0], float)
 
     @pytest.mark.asyncio
-    async def test_calculate_multiple_indicators(self, kline_data_list):
+    async def test_calculate_multiple_indicators(self, mock_hikyuu, kline_data_list):
         """
         测试计算多个指标
 
@@ -128,7 +130,7 @@ class TestIndicatorCalculatorAdapter:
             assert len(result["RSI14"]) == len(kline_data_list)
 
     @pytest.mark.asyncio
-    async def test_kline_data_conversion(self, kline_data_list):
+    async def test_kline_data_conversion(self, mock_hikyuu, kline_data_list):
         """
         测试 K 线数据转换
 
@@ -163,7 +165,7 @@ class TestIndicatorCalculatorAdapter:
             assert result is not None
 
     @pytest.mark.asyncio
-    async def test_empty_kline_data(self):
+    async def test_empty_kline_data(self, mock_hikyuu):
         """
         测试空 K 线数据
 
@@ -190,7 +192,7 @@ class TestIndicatorCalculatorAdapter:
             assert len(result["MA5"]) == 0
 
     @pytest.mark.asyncio
-    async def test_hikyuu_error_handling(self, kline_data_list):
+    async def test_hikyuu_error_handling(self, mock_hikyuu, kline_data_list):
         """
         测试 Hikyuu 错误处理
 
@@ -217,7 +219,7 @@ class TestIndicatorCalculatorAdapter:
             )
 
     @pytest.mark.asyncio
-    async def test_indicator_name_parsing(self, kline_data_list):
+    async def test_indicator_name_parsing(self, mock_hikyuu, kline_data_list):
         """
         测试指标名称解析
 
