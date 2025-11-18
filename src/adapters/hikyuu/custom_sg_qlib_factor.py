@@ -10,8 +10,20 @@ from pathlib import Path
 
 import pandas as pd
 
+from abc import ABCMeta
+
 try:
     from hikyuu import Datetime, SignalBase, Stock
+
+    # 创建组合元类来解决 pybind11_type 和 ABCMeta 的冲突
+    _SignalBaseMeta = type(SignalBase)
+
+    class CombinedMeta(_SignalBaseMeta, ABCMeta):
+        """组合元类：同时继承 pybind11_type (SignalBase) 和 ABCMeta"""
+
+        pass
+
+    _HIKYUU_AVAILABLE = True
 except ImportError:
     # 如果Hikyuu未安装,提供Mock类用于测试
     class SignalBase:
@@ -19,16 +31,16 @@ except ImportError:
             self.name = name
             self._params: dict = {}
 
-        def setParam(self, name: str, value):
+        def set_param(self, name: str, value):
             self._params[name] = value
 
-        def getParam(self, name: str):
+        def get_param(self, name: str):
             return self._params.get(name)
 
-        def _addBuySignal(self, datetime):
+        def _add_buy_signal(self, datetime):
             pass
 
-        def _addSellSignal(self, datetime):
+        def _add_sell_signal(self, datetime):
             pass
 
     class Datetime:
@@ -42,6 +54,10 @@ except ImportError:
         def __init__(self, market_code: str):
             self.market_code = market_code
 
+    # Mock时使用ABCMeta
+    CombinedMeta = ABCMeta
+    _HIKYUU_AVAILABLE = False
+
 
 from domain.entities.prediction import Prediction, PredictionBatch
 from domain.entities.trading_signal import (
@@ -54,7 +70,7 @@ from domain.ports.signal_provider import ISignalProvider
 from domain.value_objects.stock_code import StockCode
 
 
-class CustomSG_QlibFactor(SignalBase, ISignalProvider):
+class CustomSG_QlibFactor(SignalBase, ISignalProvider, metaclass=CombinedMeta):
     """
     基于Qlib预测结果的自定义信号指示器
 
@@ -99,10 +115,11 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         self._cached_signal_batch: SignalBatch | None = None
 
         # 配置参数
-        self.setParam("pred_pkl_path", pred_pkl_path)
-        self.setParam("buy_threshold", buy_threshold)
-        self.setParam("sell_threshold", sell_threshold)
-        self.setParam("top_k", top_k)
+        self.set_param("pred_pkl_path", pred_pkl_path)
+        self.set_param("buy_threshold", buy_threshold)
+        self.set_param("sell_threshold", sell_threshold)
+        # Hikyuu set_param doesn't accept None, use -1 to represent "no limit"
+        self.set_param("top_k", top_k if top_k is not None else -1)
 
     def _reset(self):
         """复位内部状态"""
@@ -113,11 +130,12 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
 
     def _clone(self):
         """克隆信号指示器"""
+        top_k_value = self.get_param("top_k")
         cloned = CustomSG_QlibFactor(
-            pred_pkl_path=self.getParam("pred_pkl_path"),
-            buy_threshold=self.getParam("buy_threshold"),
-            sell_threshold=self.getParam("sell_threshold"),
-            top_k=self.getParam("top_k"),
+            pred_pkl_path=self.get_param("pred_pkl_path"),
+            buy_threshold=self.get_param("buy_threshold"),
+            sell_threshold=self.get_param("sell_threshold"),
+            top_k=top_k_value if top_k_value != -1 else None,
             name=self.name,
         )
         cloned._pred_df = self._pred_df
@@ -136,7 +154,7 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         if self._pred_df is not None:
             return
 
-        pred_path = Path(self.getParam("pred_pkl_path"))
+        pred_path = Path(self.get_param("pred_pkl_path"))
         if not pred_path.exists():
             raise FileNotFoundError(f"Prediction file not found: {pred_path}")
 
@@ -151,6 +169,14 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
             raise ValueError(
                 f"pred.pkl must have 2-level MultiIndex, got {len(self._pred_df.index.levels)} levels",
             )
+
+        # 检查索引顺序,如果是(stock_code, timestamp)则交换为(timestamp, stock_code)
+        if self._pred_df.index.names == ['stock_code', 'timestamp']:
+            self._pred_df = self._pred_df.swaplevel(0, 1).sort_index()
+        elif self._pred_df.index.names != ['timestamp', 'stock_code']:
+            # 如果索引名称不是预期的任何一个,尝试推断
+            # 假设第一个级别应该是timestamp,第二个是stock_code
+            self._pred_df.index.names = ['timestamp', 'stock_code']
 
         # 获取分数列名
         score_col = self._detect_score_column()
@@ -179,55 +205,49 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
 
     def _preprocess_predictions(self, score_col: str):
         """
-        预处理预测结果,计算Top-K股票
+        预处理预测结果,存储所有预测数据并计算每日Top-K股票
 
         Args:
             score_col: 预测分数列名
         """
-        top_k = self.getParam("top_k")
+        top_k_param = self.get_param("top_k")
+        # -1 means no limit (None)
+        top_k = top_k_param if top_k_param != -1 else None
 
         # 按日期分组处理
         for date, group in self._pred_df.groupby(level=0):
             # 确保date是pandas Timestamp并标准化为日级别
             date = pd.Timestamp(date).normalize()
 
+            # 存储所有股票的预测数据(买入和卖出都需要)
+            for instrument in group.index.get_level_values(1):
+                if instrument not in self._stock_predictions:
+                    self._stock_predictions[instrument] = pd.Series(dtype=float)
+                score_value = group.loc[(date, instrument), score_col]
+                self._stock_predictions[instrument][date] = score_value
+
+            # 如果设置了Top-K,记录该日期的Top-K股票列表(仅用于买入信号过滤)
             if top_k is not None:
-                # 按预测分数排序,取Top-K
                 top_stocks = group.nlargest(top_k, score_col)
-                # 记录该日期的Top-K股票
                 self._top_k_stocks_by_date[date] = top_stocks.index.get_level_values(
                     1,
                 ).tolist()
-
-                # 只存储Top-K股票的预测
-                for instrument in top_stocks.index.get_level_values(1):
-                    if instrument not in self._stock_predictions:
-                        self._stock_predictions[instrument] = pd.Series(dtype=float)
-                    score_value = group.loc[(date, instrument), score_col]
-                    self._stock_predictions[instrument][date] = score_value
-            else:
-                # 如果不限制Top-K,存储所有股票预测
-                for instrument in group.index.get_level_values(1):
-                    if instrument not in self._stock_predictions:
-                        self._stock_predictions[instrument] = pd.Series(dtype=float)
-                    score_value = group.loc[(date, instrument), score_col]
-                    self._stock_predictions[instrument][date] = score_value
 
     def _normalize_stock_code(self, stock: Stock) -> str:
         """
         标准化股票代码格式
 
-        Hikyuu可能使用小写,Qlib使用大写
-        例: sh600000 -> SH600000
+        保持小写以匹配预测数据的格式
+        例: SH600000 -> sh600000
 
         Args:
             stock: Hikyuu Stock对象
 
         Returns:
-            str: 标准化的股票代码
+            str: 标准化的股票代码(小写)
         """
         market_code = stock.market_code
-        return market_code.upper()
+        return market_code.lower()
 
     def _hikyuu_to_pandas_datetime(self, hq_datetime: Datetime) -> pd.Timestamp:
         """
@@ -279,11 +299,12 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         Args:
             kdata: Hikyuu KData对象,包含股票的K线数据
         """
-        # 1. 加载预测结果
-        self._load_predictions()
+        # 1. 确保预测已加载(仅首次调用会实际加载)
+        if self._pred_df is None:
+            self._load_predictions()
 
         # 2. 获取当前股票代码
-        stock = kdata.getStock()
+        stock = kdata.get_stock()
         stock_code = self._normalize_stock_code(stock)
 
         # 3. 检查该股票是否有预测结果
@@ -295,9 +316,11 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
         stock_pred_series = self._stock_predictions[stock_code]
 
         # 5. 获取阈值
-        buy_threshold = self.getParam("buy_threshold")
-        sell_threshold = self.getParam("sell_threshold")
-        top_k = self.getParam("top_k")
+        buy_threshold = self.get_param("buy_threshold")
+        sell_threshold = self.get_param("sell_threshold")
+        top_k_param = self.get_param("top_k")
+        # -1 means no limit (None)
+        top_k = top_k_param if top_k_param != -1 else None
 
         # 6. 遍历K线数据,匹配预测结果
         for i in range(len(kdata)):
@@ -321,16 +344,16 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
             ):
                 # 不在Top-K中,只生成卖出信号,不生成买入信号
                 if pred_score < sell_threshold:
-                    self._addSellSignal(k_datetime)
+                    self._add_sell_signal(k_datetime)
                 continue
 
             # 8. 根据阈值生成信号
             if pred_score > buy_threshold:
                 # 买入信号
-                self._addBuySignal(k_datetime)
+                self._add_buy_signal(k_datetime)
             elif pred_score < sell_threshold:
                 # 卖出信号
-                self._addSellSignal(k_datetime)
+                self._add_sell_signal(k_datetime)
 
     # ========== ISignalProvider Interface Implementation ==========
 
@@ -454,8 +477,8 @@ class CustomSG_QlibFactor(SignalBase, ISignalProvider):
             return None
 
         pred_score = stock_pred_series[date_key]
-        buy_threshold = self.getParam("buy_threshold")
-        sell_threshold = self.getParam("sell_threshold")
+        buy_threshold = self.get_param("buy_threshold")
+        sell_threshold = self.get_param("sell_threshold")
 
         # 判断信号类型
         signal_type = SignalType.HOLD
