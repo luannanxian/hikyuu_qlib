@@ -50,23 +50,23 @@ def prepare_hikyuu_training_data(stock_list, start_date, end_date):
 
     for stock_code in stock_list:
         try:
-            # 获取 Hikyuu 股票对象
-            stock = sm.getStock(stock_code.upper())
-            if stock.isNull():
+            # 获取 Hikyuu 股票对象（注意：方法名是 get_stock 不是 getStock）
+            stock = sm.get_stock(stock_code.upper())
+            if not stock or stock.is_null():
                 print(f"  ⚠️  跳过: {stock_code} (未找到)")
                 continue
 
-            # 获取日线数据
-            kdata = stock.getKData(Query(-500))  # 获取最近500天数据
+            # 获取日线数据（注意：方法名是 get_kdata 不是 getKData）
+            kdata = stock.get_kdata(Query(-500))  # 获取最近500天数据
 
             if len(kdata) < 50:  # 至少需要50天数据来计算特征
                 print(f"  ⚠️  跳过: {stock_code} (数据不足)")
                 continue
 
-            # 提取价格数据
-            close_prices = np.array([k.closePrice for k in kdata])
-            high_prices = np.array([k.highPrice for k in kdata])
-            low_prices = np.array([k.lowPrice for k in kdata])
+            # 提取价格数据（注意：属性名是 close 不是 closePrice）
+            close_prices = np.array([k.close for k in kdata])
+            high_prices = np.array([k.high for k in kdata])
+            low_prices = np.array([k.low for k in kdata])
             volumes = np.array([k.volume for k in kdata])
 
             # 计算技术指标特征
@@ -162,8 +162,13 @@ async def main():
     print("Hikyuu → Qlib 训练 → Hikyuu 回测 完整工作流")
     print("=" * 70)
 
+    # ===== 初始化 Hikyuu =====
+    print("\n🔧 初始化 Hikyuu 系统...")
+    hikyuu_init("./config/hikyuu.ini")
+    print("✅ Hikyuu 初始化完成\n")
+
     # ===== 步骤1: 准备训练数据 (Hikyuu) =====
-    print("\n【步骤1】从 Hikyuu 准备训练数据")
+    print("【步骤1】从 Hikyuu 准备训练数据")
 
     stock_list = [
         'sh600000',  # 浦发银行

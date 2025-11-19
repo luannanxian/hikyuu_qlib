@@ -51,8 +51,8 @@ class QlibModelTrainerAdapter(IModelTrainer):
         Returns:
             X_train, X_test, y_train, y_test
         """
-        # 排除非特征列
-        exclude_cols = ['stock_code', 'label_return', 'label_direction', 'label_multiclass']
+        # 排除非特征列（包括 date 列）
+        exclude_cols = ['stock_code', 'date', 'label_return', 'label_direction', 'label_multiclass']
         feature_cols = [col for col in training_data.columns if col not in exclude_cols]
 
         # 准备特征和标签
@@ -243,6 +243,7 @@ class QlibModelTrainerAdapter(IModelTrainer):
         Raises:
             ValueError: 当没有找到特征列时
         """
+        # 排除非特征列（与训练时保持一致）
         exclude_cols = [
             'stock_code',
             'date',
