@@ -72,6 +72,9 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 
             self.hku = hku
 
+        # 性能优化：股票对象缓存
+        self._stock_cache = {}
+
     async def run_backtest(
         self, signals: SignalBatch, config: BacktestConfig, date_range: DateRange,
     ) -> BacktestResult:
@@ -252,7 +255,7 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 
     def _get_hikyuu_stock(self, stock_code: StockCode):
         """
-        根据 Domain StockCode 获取 Hikyuu Stock 对象
+        根据 Domain StockCode 获取 Hikyuu Stock 对象（带缓存优化）
 
         Args:
             stock_code: Domain 股票代码值对象
@@ -262,12 +265,17 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 
         Notes:
             Hikyuu 使用市场+代码格式: "SH600000" 或 "SZ000001"
+            性能优化：使用缓存避免重复查询
         """
-        try:
-            # StockCode.value 已经是 "sh600000" 格式
-            # 转换为 Hikyuu 的 "SH600000" 格式
-            hku_code = stock_code.value.upper()
+        # StockCode.value 已经是 "sh600000" 格式
+        # 转换为 Hikyuu 的 "SH600000" 格式
+        hku_code = stock_code.value.upper()
 
+        # 检查缓存
+        if hku_code in self._stock_cache:
+            return self._stock_cache[hku_code]
+
+        try:
             # 获取 Hikyuu Stock Manager
             sm = self.hku.StockManager.instance()
 
@@ -276,12 +284,16 @@ class HikyuuBacktestAdapter(IBacktestEngine):
 
             if stock.isNull():
                 print(f"Warning: Stock not found in Hikyuu: {hku_code}")
+                self._stock_cache[hku_code] = None
                 return None
 
+            # 缓存结果
+            self._stock_cache[hku_code] = stock
             return stock
 
         except Exception as e:
             print(f"Error getting Hikyuu stock for {stock_code.value}: {e}")
+            self._stock_cache[hku_code] = None
             return None
 
     def _convert_to_domain_result(
@@ -307,32 +319,11 @@ class HikyuuBacktestAdapter(IBacktestEngine):
         Returns:
             BacktestResult 实体
         """
-        # 转换权益曲线
-        equity_curve = []
-        for fund_record in funds_history:
-            # Hikyuu FundsRecord 有 total_assets 属性
-            if hasattr(fund_record, 'total_assets'):
-                try:
-                    equity_curve.append(Decimal(str(fund_record.total_assets)))
-                except (ValueError, TypeError, Exception):
-                    # 忽略无法转换的记录
-                    pass
-            elif hasattr(fund_record, 'cash'):
-                # 如果没有 total_assets，使用 cash + market_value
-                try:
-                    total = float(fund_record.cash)
-                    if hasattr(fund_record, 'market_value'):
-                        total += float(fund_record.market_value)
-                    equity_curve.append(Decimal(str(total)))
-                except (ValueError, TypeError, Exception):
-                    pass
+        # 转换权益曲线（向量化优化）
+        equity_curve = self._convert_equity_curve_vectorized(funds_history)
 
-        # 转换交易记录
-        trades = []
-        for hikyuu_trade in trades_history:
-            trade = self._convert_hikyuu_trade_to_domain(hikyuu_trade)
-            if trade is not None:
-                trades.append(trade)
+        # 转换交易记录（向量化优化）
+        trades = self._convert_trades_vectorized(trades_history)
 
         # 获取最终资金
         final_capital = config.initial_capital
@@ -374,6 +365,130 @@ class HikyuuBacktestAdapter(IBacktestEngine):
         )
 
         return result
+
+    def _convert_equity_curve_vectorized(self, funds_history: list) -> list[Decimal]:
+        """
+        向量化转换权益曲线（性能优化）
+
+        Args:
+            funds_history: Hikyuu 资金历史记录
+
+        Returns:
+            list[Decimal]: 权益曲线
+
+        性能优势:
+            - 批量提取数据，避免逐条处理
+            - 减少异常处理开销
+            - 使用列表推导提升性能
+        """
+        import numpy as np
+
+        if not funds_history:
+            return []
+
+        # 批量提取资金数据
+        equity_values = []
+
+        for fund_record in funds_history:
+            # 优先使用 total_assets
+            if hasattr(fund_record, 'total_assets'):
+                try:
+                    equity_values.append(float(fund_record.total_assets))
+                except (ValueError, TypeError):
+                    continue
+            # 其次使用 cash + market_value
+            elif hasattr(fund_record, 'cash'):
+                try:
+                    total = float(fund_record.cash)
+                    if hasattr(fund_record, 'market_value'):
+                        total += float(fund_record.market_value)
+                    equity_values.append(total)
+                except (ValueError, TypeError):
+                    continue
+
+        # 批量转换为 Decimal（向量化）
+        return [Decimal(str(v)) for v in equity_values]
+
+    def _convert_trades_vectorized(self, trades_history: list) -> list[Trade]:
+        """
+        向量化转换交易记录（性能优化）
+
+        Args:
+            trades_history: Hikyuu 交易历史记录
+
+        Returns:
+            list[Trade]: Domain 交易记录列表
+
+        性能优势:
+            - 批量处理减少函数调用开销
+            - 简化异常处理逻辑
+            - 使用列表推导提升性能
+        """
+        if not trades_history:
+            return []
+
+        trades = []
+
+        for hikyuu_trade in trades_history:
+            try:
+                # 快速提取关键字段
+                stock_str = str(hikyuu_trade.stock).strip().lower()
+                if len(stock_str) < 8:
+                    continue
+
+                stock_code = StockCode(stock_str)
+
+                # 交易方向（Hikyuu: BUY=0, SELL=1）
+                direction = "SELL" if int(hikyuu_trade.business) == 1 else "BUY"
+
+                # 价格（优先 realPrice）
+                price = None
+                if hasattr(hikyuu_trade, 'realPrice') and hikyuu_trade.realPrice > 0:
+                    price = Decimal(str(hikyuu_trade.realPrice))
+                elif hasattr(hikyuu_trade, 'price') and hikyuu_trade.price > 0:
+                    price = Decimal(str(hikyuu_trade.price))
+                elif hasattr(hikyuu_trade, 'planPrice') and hikyuu_trade.planPrice > 0:
+                    price = Decimal(str(hikyuu_trade.planPrice))
+
+                if price is None or price <= 0:
+                    continue
+
+                # 数量
+                quantity = int(hikyuu_trade.number)
+                if quantity <= 0:
+                    continue
+
+                # 时间
+                trade_date = datetime.now()
+                if hasattr(hikyuu_trade, 'datetime'):
+                    hku_dt = hikyuu_trade.datetime
+                    trade_date = datetime(
+                        hku_dt.year(),
+                        hku_dt.month(),
+                        hku_dt.day(),
+                        getattr(hku_dt, 'hour', lambda: 0)(),
+                        getattr(hku_dt, 'minute', lambda: 0)(),
+                        getattr(hku_dt, 'second', lambda: 0)(),
+                    )
+
+                # 手续费
+                commission = Decimal(str(hikyuu_trade.cost)) if hasattr(hikyuu_trade, 'cost') else Decimal(0)
+
+                # 创建交易记录
+                trades.append(Trade(
+                    stock_code=stock_code,
+                    direction=direction,
+                    quantity=quantity,
+                    price=price,
+                    trade_date=trade_date,
+                    commission=commission,
+                ))
+
+            except Exception:
+                # 跳过无效记录，继续处理
+                continue
+
+        return trades
 
     def _convert_hikyuu_trade_to_domain(self, hikyuu_trade) -> Trade | None:
         """

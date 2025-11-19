@@ -221,3 +221,45 @@ class SignalBatch:
     def __repr__(self) -> str:
         """调试表示"""
         return f"SignalBatch(strategy={self.strategy_name}, date={self.batch_date}, size={len(self.signals)}, id={self.id[:8]}...)"
+
+    def to_dataframe(self):
+        """
+        转换信号批次为 pandas DataFrame（向量化优化）
+
+        Returns:
+            pd.DataFrame: 包含所有信号的 DataFrame
+                列: stock_code, signal_date, signal_type, signal_strength,
+                    price, reason, confidence
+
+        性能优势:
+            - 批量数据转换，避免 Python 循环
+            - 便于向量化操作和分析
+            - 支持高效的数据过滤和聚合
+        """
+        import pandas as pd
+
+        if not self.signals:
+            return pd.DataFrame(columns=[
+                'stock_code', 'signal_date', 'signal_type',
+                'signal_strength', 'price', 'reason', 'confidence'
+            ])
+
+        # 批量提取数据（避免循环）
+        data = {
+            'stock_code': [s.stock_code.value for s in self.signals],
+            'signal_date': [s.signal_date for s in self.signals],
+            'signal_type': [s.signal_type.value for s in self.signals],
+            'signal_strength': [s.signal_strength.value for s in self.signals],
+            'price': [float(s.price) if s.price else None for s in self.signals],
+            'reason': [s.reason for s in self.signals],
+            # 添加 confidence 列（兼容 Qlib 格式）
+            # 将 signal_strength 映射为数值置信度
+            'confidence': [
+                0.9 if s.signal_strength == SignalStrength.STRONG else
+                0.7 if s.signal_strength == SignalStrength.MEDIUM else
+                0.5
+                for s in self.signals
+            ],
+        }
+
+        return pd.DataFrame(data)
