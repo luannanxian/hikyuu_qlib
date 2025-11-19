@@ -217,11 +217,10 @@ async def main():
     # ===== 步骤3: 生成预测 =====
     print("\n【步骤3】生成预测信号")
 
-    # 使用最新数据生成预测
-    prediction_df = training_df.tail(len(stock_list)).copy()  # 每只股票取最新一条
-    prediction_df = prediction_df.drop_duplicates(subset=['stock_code'], keep='last')
+    # 使用最新数据生成预测 - 为每只股票取最新一条
+    prediction_df = training_df.groupby('stock_code').tail(1).copy()
 
-    print(f"  预测样本: {len(prediction_df)}")
+    print(f"  预测样本: {len(prediction_df)} 只股票")
 
     predictions_batch = await adapter.predict_batch(
         model=trained_model,
@@ -251,25 +250,28 @@ async def main():
     import pickle
     from pathlib import Path
 
-    # 准备预测数据格式（Qlib 兼容格式）
-    # 将 PredictionBatch 转换为 Qlib pred.pkl 格式
+    # 准备预测数据格式（CustomSG_QlibFactor兼容格式）
+    # 将 PredictionBatch 转换为 MultiIndex DataFrame
     pred_df = predictions_batch.to_dataframe()
 
-    # Qlib 格式需要: datetime index, instrument columns, score values
-    # 这里简化处理，使用字典格式
-    pred_data = {
-        'predictions': pred_df,
-        'scores': dict(zip(pred_df['stock_code'], pred_df['predicted_value']))
-    }
+    # 创建 MultiIndex: (timestamp, stock_code)
+    pred_df_multiindex = pred_df.set_index(['timestamp', 'stock_code'])
+
+    # 重命名 predicted_value 为 score（CustomSG_QlibFactor期望的列名）
+    if 'predicted_value' in pred_df_multiindex.columns:
+        pred_df_multiindex = pred_df_multiindex.rename(columns={'predicted_value': 'score'})
 
     output_path = Path("./outputs/predictions")
     output_path.mkdir(parents=True, exist_ok=True)
     pred_file = output_path / "workflow_pred.pkl"
 
-    with open(pred_file, 'wb') as f:
-        pickle.dump(pred_data, f)
+    # 直接保存DataFrame（不要用dict包装）
+    pred_df_multiindex.to_pickle(pred_file)
 
     print(f"✅ 预测结果已保存: {pred_file}")
+    print(f"   格式: MultiIndex DataFrame (timestamp, stock_code)")
+    print(f"   列: {list(pred_df_multiindex.columns)}")
+    print(f"   样本数: {len(pred_df_multiindex)}")
 
     # ===== 步骤6: 使用 CustomSG_QlibFactor 回测 =====
     print("\n【步骤6】使用 Hikyuu CustomSG_QlibFactor 回测")

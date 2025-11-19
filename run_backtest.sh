@@ -96,8 +96,13 @@ case "${1:-help}" in
         ;;
 
     workflow)
-        echo "运行完整工作流（Hikyuu数据 → 训练 → 回测）..."
+        echo "运行完整工作流（Hikyuu数据 → 训练 → 预测）..."
         python "${PROJECT_ROOT}/examples/hikyuu_train_backtest_workflow.py"
+        ;;
+
+    backtest-workflow)
+        echo "使用工作流预测结果进行回测..."
+        python "${PROJECT_ROOT}/examples/backtest_workflow_pred.py"
         ;;
 
     help|--help|-h|"")
