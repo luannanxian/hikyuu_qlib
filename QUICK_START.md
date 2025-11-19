@@ -1,18 +1,58 @@
 # Hikyuu × Qlib 量化交易平台 - 快速开始
 
 **版本**: 0.1.0
-**更新日期**: 2025-11-13
+**更新日期**: 2025-11-19
 
 ---
 
 ## 📋 目录
 
-1. [系统要求](#系统要求)
-2. [安装步骤](#安装步骤)
-3. [运行CLI](#运行cli)
-4. [基本使用](#基本使用)
-5. [常见问题](#常见问题)
-6. [下一步](#下一步)
+1. [一键运行](#一键运行) ⭐ **新增**
+2. [系统要求](#系统要求)
+3. [安装步骤](#安装步骤)
+4. [运行CLI](#运行cli)
+5. [机器学习与回测](#机器学习与回测) ⭐ **新增**
+6. [基本使用](#基本使用)
+7. [常见问题](#常见问题)
+8. [下一步](#下一步)
+
+---
+
+## 🚀 一键运行（自动配置 PYTHONPATH）
+
+### 使用 Bash 脚本（推荐）⭐
+
+```bash
+# 验证环境
+./run_backtest.sh verify
+
+# 性能基准测试
+./run_backtest.sh benchmark
+
+# 简单回测示例
+./run_backtest.sh simple
+
+# Qlib 回测测试
+./run_backtest.sh qlib-test
+
+# 查看所有命令
+./run_backtest.sh help
+```
+
+### 使用 Python 环境检查
+
+```bash
+# 一键环境检查（自动配置 PYTHONPATH）
+python check_env.py
+```
+
+### 脚本功能
+
+`run_backtest.sh` 自动处理：
+- ✅ 配置 PYTHONPATH
+- ✅ 验证 Python 环境
+- ✅ 提供简洁的命令接口
+- ✅ 显示清晰的错误信息
 
 ---
 
@@ -112,6 +152,62 @@ python -m pytest tests/ -v
 
 # 预期输出: 462 passed, 2 warnings
 ```
+
+---
+
+## 🤖 机器学习与回测
+
+### 完整工作流（训练 → 预测 → 回测）
+
+```bash
+# 1. 训练模型
+./run_backtest.sh train --model-type LGBM --index HS300 \
+    --start-date 2020-01-01 --end-date 2023-12-31
+
+# 2. 生成预测
+./run_backtest.sh predict --model-name lgbm_hs300 \
+    --start-date 2024-01-01 --end-date 2024-12-31 \
+    --output pred.pkl
+
+# 3. 运行回测
+./run_backtest.sh qlib --predictions pred.pkl \
+    --start-date 2024-01-01 --end-date 2024-12-31
+```
+
+### 快速测试（无需真实数据）
+
+```bash
+# 性能基准测试（包含模拟回测）
+./run_backtest.sh benchmark
+
+# Qlib 回测测试（使用模拟信号）
+./run_backtest.sh qlib-test
+```
+
+### 手动配置 PYTHONPATH
+
+如果不使用脚本，需要手动配置：
+
+```bash
+# 方式 1: 导出环境变量（当前会话有效）
+export PYTHONPATH="${PWD}/src:${PYTHONPATH}"
+
+# 方式 2: 每次运行时指定
+PYTHONPATH=src python examples/performance_benchmark.py
+```
+
+### 可用命令列表
+
+| 命令 | 说明 | 示例 |
+|------|------|------|
+| `verify` | 验证环境安装 | `./run_backtest.sh verify` |
+| `benchmark` | 性能基准测试 | `./run_backtest.sh benchmark` |
+| `simple` | 简单回测示例 | `./run_backtest.sh simple` |
+| `advanced` | 高级回测示例 | `./run_backtest.sh advanced` |
+| `train` | 训练模型 | `./run_backtest.sh train --model-type LGBM` |
+| `predict` | 生成预测 | `./run_backtest.sh predict --model-name xxx` |
+| `qlib-test` | Qlib 测试（模拟） | `./run_backtest.sh qlib-test` |
+| `qlib` | Qlib 回测（生产） | `./run_backtest.sh qlib --predictions xxx.pkl` |
 
 ---
 
