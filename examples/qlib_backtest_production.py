@@ -91,9 +91,23 @@ def main():
         import pandas as pd
         import numpy as np
 
+        # 检查数据目录
+        data_path = Path.home() / ".qlib" / "qlib_data" / "cn_data"
+        print("🔧 检查 Qlib 数据...")
+
+        if not data_path.exists():
+            print(f"❌ 错误: Qlib 数据目录不存在: {data_path}")
+            print()
+            print("请先下载 Qlib 数据:")
+            print("  python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn")
+            return 1
+
+        print(f"✅ 数据目录: {data_path}")
+        print()
+
         # 初始化 Qlib
         print("🔧 初始化 Qlib...")
-        qlib.init(provider_uri="~/.qlib/qlib_data/cn_data", region=REG_CN)
+        qlib.init(provider_uri=str(data_path), region=REG_CN)
         print("✅ Qlib 初始化成功")
         print()
 

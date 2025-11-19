@@ -81,10 +81,35 @@ def main():
     try:
         import qlib
         from qlib.constant import REG_CN
+        import os
+
+        # 检查数据目录
+        data_path = Path.home() / ".qlib" / "qlib_data" / "cn_data"
+        print("🔧 检查 Qlib 数据...")
+
+        if not data_path.exists():
+            print(f"❌ 错误: Qlib 数据目录不存在: {data_path}")
+            print()
+            print("请先下载 Qlib 数据:")
+            print("  python -m qlib.run.get_data qlib_data --target_dir ~/.qlib/qlib_data/cn_data --region cn")
+            print()
+            print("或者使用本地已有的数据目录:")
+            print("  export QLIB_DATA_PATH=/path/to/your/qlib/data")
+            return 1
+
+        # 检查数据完整性
+        instrument_path = data_path / "instruments"
+        if not instrument_path.exists():
+            print(f"❌ 错误: Qlib 数据不完整，缺少 instruments 目录")
+            print(f"   请重新下载数据或检查数据完整性")
+            return 1
+
+        print(f"✅ 数据目录: {data_path}")
+        print()
 
         # 初始化 Qlib
         print("🔧 初始化 Qlib...")
-        qlib.init(provider_uri="~/.qlib/qlib_data/cn_data", region=REG_CN)
+        qlib.init(provider_uri=str(data_path), region=REG_CN)
         print("✅ Qlib 初始化成功")
         print()
 
