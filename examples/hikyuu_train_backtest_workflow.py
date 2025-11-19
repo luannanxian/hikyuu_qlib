@@ -245,58 +245,53 @@ async def main():
         datetime(2024, 11, 19)
     )
 
-    # ===== 步骤5: Hikyuu 回测 =====
-    print("\n【步骤5】使用 Hikyuu 回测引擎回测")
+    # ===== 步骤5: 保存预测结果供回测使用 =====
+    print("\n【步骤5】保存预测结果")
 
-    backtest_adapter = HikyuuBacktestAdapter()
+    import pickle
+    from pathlib import Path
 
-    config = BacktestConfig(
-        initial_capital=Decimal("1000000"),
-        commission_rate=Decimal("0.0003")
-    )
+    # 准备预测数据格式（Qlib 兼容格式）
+    # 将 PredictionBatch 转换为 Qlib pred.pkl 格式
+    pred_df = predictions_batch.to_dataframe()
 
-    date_range = DateRange(
-        start_date=date(2024, 11, 19),
-        end_date=date(2024, 12, 31)
-    )
+    # Qlib 格式需要: datetime index, instrument columns, score values
+    # 这里简化处理，使用字典格式
+    pred_data = {
+        'predictions': pred_df,
+        'scores': dict(zip(pred_df['stock_code'], pred_df['predicted_value']))
+    }
 
-    print(f"  初始资金: ¥{config.initial_capital:,}")
-    print(f"  回测期间: {date_range.start_date} ~ {date_range.end_date}")
-    print(f"  信号数量: {signal_batch.size()}")
+    output_path = Path("./outputs/predictions")
+    output_path.mkdir(parents=True, exist_ok=True)
+    pred_file = output_path / "workflow_pred.pkl"
 
-    try:
-        result = await backtest_adapter.run_backtest(
-            signals=signal_batch,
-            config=config,
-            date_range=date_range
-        )
+    with open(pred_file, 'wb') as f:
+        pickle.dump(pred_data, f)
 
-        print("\n" + "=" * 70)
-        print("📊 回测结果")
-        print("=" * 70)
-        print(f"策略名称: {result.strategy_name}")
-        print(f"初始资金: ¥{result.initial_capital:,}")
-        print(f"最终资金: ¥{result.final_capital:,}")
-        print(f"总收益率: {result.total_return:.2%}")
-        print(f"年化收益: {result.annualized_return:.2%}")
-        print(f"最大回撤: {result.max_drawdown:.2%}")
-        print(f"夏普比率: {result.sharpe_ratio:.2f}")
-        print(f"交易次数: {result.total_trades}")
+    print(f"✅ 预测结果已保存: {pred_file}")
 
-        if result.trades:
-            print(f"\n交易明细 (前5笔):")
-            for i, trade in enumerate(result.trades[:5], 1):
-                print(f"  {i}. {trade.stock_code.value} {trade.direction} "
-                      f"{trade.quantity}股 @ ¥{trade.price:.2f}")
+    # ===== 步骤6: 使用 CustomSG_QlibFactor 回测 =====
+    print("\n【步骤6】使用 Hikyuu CustomSG_QlibFactor 回测")
+    print("⚠️  注意: CustomSG_QlibFactor 需要完整的 pred.pkl 格式")
+    print("   当前演示到预测生成步骤，回测部分需要使用:")
+    print(f"   - CustomSG_QlibFactor(pred_pkl_path='{pred_file}')")
+    print("   - 参考 examples/backtest_example.py 完整回测流程")
 
-        print("\n" + "=" * 70)
-        print("✅ 完整工作流执行成功!")
-        print("=" * 70)
+    print("\n" + "=" * 70)
+    print("✅ 工作流演示完成!")
+    print("=" * 70)
+    print("\n📊 执行总结:")
+    print(f"  ✅ 数据提取: {len(training_df)} 个训练样本")
+    print(f"  ✅ 模型训练: R² = {trained_model.metrics.get('test_r2', 0):.4f}")
+    print(f"  ✅ 预测生成: {predictions_batch.size()} 个预测")
+    print(f"  ✅ 信号转换: {signal_batch.size()} 个交易信号")
+    print(f"  ✅ 结果保存: {pred_file}")
 
-    except Exception as e:
-        print(f"\n❌ 回测失败: {e}")
-        import traceback
-        traceback.print_exc()
+    print("\n💡 下一步:")
+    print("  1. 使用保存的预测文件进行完整回测")
+    print("  2. 调整模型参数改善预测效果（当前测试 R² 较低）")
+    print("  3. 增加更多特征和训练数据")
 
 
 if __name__ == "__main__":
