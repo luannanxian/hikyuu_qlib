@@ -35,8 +35,8 @@ Hikyuu 数据 → QlibModelTrainerAdapter (LGBM训练) → predict_batch → Hik
 - ✅ 从 Hikyuu 获取5只股票的历史数据
 - ✅ 计算技术指标特征 (5/10/20日收益率, 波动率, 相对成交量)
 - ✅ 训练 LGBM 模型预测未来5日收益
-- ✅ 生成交易信号 (Top-10 做多)
-- ✅ Hikyuu 回测验证策略
+- ✅ 生成交易信号 (Top-1 做多)
+- ✅ 保存预测结果供回测使用
 
 **输出示例**:
 ```
@@ -45,35 +45,39 @@ Hikyuu → Qlib 训练 → Hikyuu 回测 完整工作流
 ======================================================================
 
 【步骤1】从 Hikyuu 准备训练数据
-  ✅ sh600000: 450 样本
-  ✅ sh600016: 450 样本
-  ...
-✅ 总样本数: 2250
+  ✅ sh600000: 445 样本
+  ✅ sh600016: 890 样本
+  ✅ sh600036: 1335 样本
+  ✅ sh600519: 1780 样本
+  ✅ sh600887: 2225 样本
+
+✅ 总样本数: 2225
+   特征列: ['feature_ret_5d', 'feature_ret_10d', 'feature_ret_20d',
+            'feature_volatility', 'feature_rel_volume']
 
 【步骤2】训练 LGBM 模型
 ✅ 模型训练完成
-   训练 R²: 0.8524
-   测试 R²: 0.6723
+   训练 R²: 0.4566
+   测试 R²: -96.3673
 
 【步骤3】生成预测信号
 ✅ 预测完成
-   批次大小: 5
-   平均置信度: 75.3%
+   批次大小: 1
+   平均置信度: 100.00%
 
 【步骤4】转换为交易信号
-✅ 生成 10 个交易信号
+✅ 生成 1 个交易信号
 
-【步骤5】使用 Hikyuu 回测引擎回测
-======================================================================
-📊 回测结果
-======================================================================
-总收益率: 5.23%
-年化收益: 45.67%
-最大回撤: -3.21%
-夏普比率: 1.85
-交易次数: 20
+【步骤5】保存预测结果
+✅ 预测结果已保存: outputs/predictions/workflow_pred.pkl
 
-✅ 完整工作流执行成功!
+【步骤6】使用 Hikyuu CustomSG_QlibFactor 回测
+⚠️  注意: CustomSG_QlibFactor 需要完整的 pred.pkl 格式
+   当前演示到预测生成步骤，回测部分需要使用:
+   - CustomSG_QlibFactor(pred_pkl_path='outputs/predictions/workflow_pred.pkl')
+   - 参考 examples/backtest_example.py 完整回测流程
+
+✅ 工作流演示完成!
 ```
 
 ### 方式2: 分步执行
@@ -344,6 +348,97 @@ hyperparameters={
 3. 调整超参数(网格搜索)
 4. 增加训练样本量
 5. 检查信号选股逻辑(Top-N 数量, 阈值)
+
+## Troubleshooting 常见错误
+
+### 错误1: `'StockManager' object has no attribute 'getStock'`
+
+**原因**: Hikyuu API 方法名错误
+
+**解决方案**:
+```python
+# ❌ 错误
+stock = sm.getStock('sh600000')
+
+# ✅ 正确
+stock = sm.get_stock('sh600000')
+```
+
+**相关方法**:
+- `get_stock()` 不是 `getStock()`
+- `get_kdata()` 不是 `getKData()`
+- `is_null()` 不是 `isNull()`
+- K线属性: `k.close`, `k.high`, `k.low` (小写)
+
+### 错误2: `Total stocks: 0` - 找不到股票
+
+**原因**: Hikyuu 未初始化或配置文件路径错误
+
+**解决方案**:
+```python
+# 在使用 StockManager 之前初始化
+from hikyuu import *
+hikyuu_init("./config/hikyuu.ini")  # 确保配置文件存在
+
+sm = StockManager.instance()
+print(f"Total stocks: {len(sm.get_stock_list())}")  # 应该 > 0
+```
+
+### 错误3: `pandas dtypes must be int, float or bool. Fields with bad pandas dtypes: date: object`
+
+**原因**: DataFrame 包含 object 类型的列（如 date）
+
+**解决方案**:
+```python
+# 在 QlibModelTrainerAdapter 中已修复
+exclude_cols = ['stock_code', 'date', 'label_return', ...]
+feature_cols = [col for col in df.columns if col not in exclude_cols]
+```
+
+### 错误4: 测试 R² 为负值（严重过拟合）
+
+**原因**: 训练数据过少或特征过多
+
+**解决方案**:
+1. **增加训练数据**:
+   ```python
+   kdata = stock.get_kdata(Query(-2000))  # 获取更多历史数据
+   ```
+
+2. **减少特征或增加正则化**:
+   ```python
+   hyperparameters={
+       "learning_rate": 0.05,
+       "num_leaves": 15,          # 减少叶子数
+       "min_data_in_leaf": 50,    # 增加最小叶子样本
+       "lambda_l1": 0.1,          # L1 正则化
+       "lambda_l2": 0.1,          # L2 正则化
+   }
+   ```
+
+3. **使用交叉验证**:
+   ```python
+   # 时间序列交叉验证，避免数据泄露
+   from sklearn.model_selection import TimeSeriesSplit
+   ```
+
+### 错误5: `SG_Flex(): incompatible function arguments`
+
+**原因**: HikyuuBacktestAdapter 的 SG_Flex() 调用参数不正确
+
+**解决方案**: 当前工作流已修改为保存预测结果，使用 `CustomSG_QlibFactor` 进行回测:
+```python
+# 方式1: 使用保存的预测文件
+from adapters.hikyuu.custom_sg_qlib_factor import CustomSG_QlibFactor
+
+sg = CustomSG_QlibFactor(
+    pred_pkl_path="outputs/predictions/workflow_pred.pkl",
+    buy_threshold=0.01,
+    top_k=10
+)
+```
+
+参考 [backtest_example.py](../examples/backtest_example.py) 完整回测流程。
 
 ## 下一步
 
