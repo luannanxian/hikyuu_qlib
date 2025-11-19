@@ -35,6 +35,7 @@ show_usage() {
     echo "  benchmark        - 运行性能基准测试"
     echo "  simple           - 简单回测示例"
     echo "  advanced         - 高级回测示例"
+    echo "  workflow         - 完整工作流（Hikyuu数据 → 训练 → 回测）⭐"
     echo "  train [参数]     - 训练机器学习模型"
     echo "  predict [参数]   - 生成预测信号"
     echo "  qlib-test        - Qlib 回测测试（模拟数据）"
@@ -43,6 +44,7 @@ show_usage() {
     echo "示例:"
     echo "  $0 verify"
     echo "  $0 benchmark"
+    echo "  $0 workflow      # 完整工作流演示"
     echo "  $0 train --model-type LGBM --index HS300"
     echo "  $0 qlib --predictions pred.pkl --start-date 2024-01-01"
     echo ""
@@ -91,6 +93,11 @@ case "${1:-help}" in
         shift  # 移除 'qlib' 参数
         echo "运行 Qlib 回测..."
         python "${PROJECT_ROOT}/examples/qlib_backtest_production.py" "$@"
+        ;;
+
+    workflow)
+        echo "运行完整工作流（Hikyuu数据 → 训练 → 回测）..."
+        python "${PROJECT_ROOT}/examples/hikyuu_train_backtest_workflow.py"
         ;;
 
     help|--help|-h|"")
