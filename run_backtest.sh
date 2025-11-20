@@ -35,17 +35,25 @@ show_usage() {
     echo "  benchmark        - 运行性能基准测试"
     echo "  simple           - 简单回测示例"
     echo "  advanced         - 高级回测示例"
-    echo "  workflow         - 完整工作流（Hikyuu数据 → 训练 → 回测）⭐"
+    echo "  workflow [参数]  - 完整工作流（Hikyuu数据 → 训练 → 回测）⭐"
     echo "  train [参数]     - 训练机器学习模型"
     echo "  predict [参数]   - 生成预测信号"
     echo "  qlib-test        - Qlib 回测测试（模拟数据）"
     echo "  qlib [参数]      - Qlib 回测（真实预测）"
     echo ""
+    echo "workflow 参数:"
+    echo "  --index <名称>       使用指数成分股（如：沪深300、中证500、上证50）"
+    echo "  --max-stocks <数量>  限制最大股票数量（随机采样）"
+    echo "  --stocks <代码...>   手动指定股票代码（如：sh600000 sh600016）"
+    echo ""
     echo "示例:"
     echo "  $0 verify"
     echo "  $0 benchmark"
-    echo "  $0 workflow      # 完整工作流演示"
-    echo "  $0 train --model-type LGBM --index HS300"
+    echo "  $0 workflow                              # 默认5只示例股票"
+    echo "  $0 workflow --index 沪深300              # 使用沪深300全部成分股"
+    echo "  $0 workflow --index 沪深300 --max-stocks 50  # 随机采样50只"
+    echo "  $0 workflow --index 中证500 --max-stocks 100"
+    echo "  $0 workflow --stocks sh600000 sh600016 sh600519"
     echo "  $0 qlib --predictions pred.pkl --start-date 2024-01-01"
     echo ""
 }
@@ -96,8 +104,9 @@ case "${1:-help}" in
         ;;
 
     workflow)
+        shift  # 移除 'workflow' 参数
         echo "运行完整工作流（Hikyuu数据 → 训练 → 预测）..."
-        python "${PROJECT_ROOT}/examples/hikyuu_train_backtest_workflow.py"
+        python "${PROJECT_ROOT}/examples/hikyuu_train_backtest_workflow.py" "$@"
         ;;
 
     backtest-workflow)

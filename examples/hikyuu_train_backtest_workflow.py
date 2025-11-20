@@ -156,8 +156,79 @@ def predictions_to_signals(predictions_batch, signal_date):
     return signal_batch
 
 
+def get_index_stocks(index_name: str, max_stocks: int = None) -> list[str]:
+    """
+    获取指数成分股列表
+
+    Args:
+        index_name: 指数名称，如 "沪深300", "中证500", "上证50"
+        max_stocks: 最大股票数量限制（可选）
+
+    Returns:
+        股票代码列表
+    """
+    from hikyuu import get_block, StockManager
+
+    print(f"\n📊 获取 {index_name} 成分股...")
+
+    # 获取指数板块
+    block = get_block("指数板块", index_name)
+
+    if not block:
+        print(f"⚠️  警告: 无法加载 {index_name} 板块")
+        return []
+
+    # 获取成分股列表
+    stock_list_obj = block.get_stock_list()
+
+    # 转换为股票代码列表
+    stock_codes = []
+    sm = StockManager.instance()
+
+    for stock in stock_list_obj:
+        if not stock.is_null():
+            code = stock.market_code.lower()
+            stock_codes.append(code)
+
+    print(f"✅ {index_name} 总成分股: {len(stock_codes)} 只")
+
+    # 如果指定了最大数量，随机采样
+    if max_stocks and len(stock_codes) > max_stocks:
+        import random
+        stock_codes = random.sample(stock_codes, max_stocks)
+        print(f"   随机采样: {max_stocks} 只股票")
+
+    return stock_codes
+
+
 async def main():
     """完整工作流"""
+    import argparse
+
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="Hikyuu → Qlib 训练工作流")
+    parser.add_argument(
+        "--index",
+        type=str,
+        default=None,
+        help="指数名称（如：沪深300、中证500、上证50）"
+    )
+    parser.add_argument(
+        "--max-stocks",
+        type=int,
+        default=None,
+        help="最大训练股票数量"
+    )
+    parser.add_argument(
+        "--stocks",
+        type=str,
+        nargs="+",
+        default=None,
+        help="手动指定股票代码列表（如：sh600000 sh600016）"
+    )
+
+    args = parser.parse_args()
+
     print("=" * 70)
     print("Hikyuu → Qlib 训练 → Hikyuu 回测 完整工作流")
     print("=" * 70)
@@ -170,13 +241,28 @@ async def main():
     # ===== 步骤1: 准备训练数据 (Hikyuu) =====
     print("【步骤1】从 Hikyuu 准备训练数据")
 
-    stock_list = [
-        'sh600000',  # 浦发银行
-        'sh600016',  # 民生银行
-        'sh600036',  # 招商银行
-        'sh600519',  # 贵州茅台
-        'sh600887',  # 伊利股份
-    ]
+    # 确定股票列表
+    if args.index:
+        # 从指数获取成分股
+        stock_list = get_index_stocks(args.index, args.max_stocks)
+        if not stock_list:
+            print("❌ 无法获取指数成分股，退出")
+            return
+        print(f"\n📈 使用 {args.index} 成分股训练")
+    elif args.stocks:
+        # 使用手动指定的股票
+        stock_list = args.stocks
+        print(f"\n📋 使用手动指定的 {len(stock_list)} 只股票")
+    else:
+        # 默认使用示例股票
+        stock_list = [
+            'sh600000',  # 浦发银行
+            'sh600016',  # 民生银行
+            'sh600036',  # 招商银行
+            'sh600519',  # 贵州茅台
+            'sh600887',  # 伊利股份
+        ]
+        print(f"\n📋 使用默认示例股票: {len(stock_list)} 只")
 
     training_df = prepare_hikyuu_training_data(
         stock_list=stock_list,
@@ -197,7 +283,10 @@ async def main():
         model_type=ModelType.LGBM,
         hyperparameters={
             "learning_rate": 0.05,
-            "num_leaves": 31,
+            "num_leaves": 15,          # 减少叶子数，降低模型复杂度
+            "min_data_in_leaf": 50,     # 增加最小叶子样本数
+            "lambda_l1": 0.1,           # L1 正则化
+            "lambda_l2": 0.1,           # L2 正则化
             "verbose": -1,
         }
     )
@@ -273,15 +362,133 @@ async def main():
     print(f"   列: {list(pred_df_multiindex.columns)}")
     print(f"   样本数: {len(pred_df_multiindex)}")
 
-    # ===== 步骤6: 使用 CustomSG_QlibFactor 回测 =====
-    print("\n【步骤6】使用 Hikyuu CustomSG_QlibFactor 回测")
-    print("⚠️  注意: CustomSG_QlibFactor 需要完整的 pred.pkl 格式")
-    print("   当前演示到预测生成步骤，回测部分需要使用:")
-    print(f"   - CustomSG_QlibFactor(pred_pkl_path='{pred_file}')")
-    print("   - 参考 examples/backtest_example.py 完整回测流程")
+    # ===== 步骤6: 使用 Hikyuu 进行回测 =====
+    print("\n【步骤6】使用 Hikyuu 进行回测")
+
+    # 导入 Hikyuu 回测所需组件
+    from hikyuu import (
+        Query, crtTM, TC_FixedA,
+        MM_FixedCount, ST_FixedPercent, PG_NoGoal, SP_FixedPercent,
+        SYS_Simple, SE_Fixed, PF_Simple, BUSINESS
+    )
+    from adapters.hikyuu.custom_sg_qlib_factor import CustomSG_QlibFactor
+
+    try:
+        # 回测参数设置
+        # 使用 pred_df_multiindex (已经设置了 MultiIndex)
+        pred_start = pred_df_multiindex.index.get_level_values(0).unique()[0]
+        start_date = Datetime(pred_start.year, pred_start.month, pred_start.day)
+        end_date = Datetime(2024, 12, 31)
+        init_cash = 1000000
+
+        print(f"  回测时间: {start_date} ~ {end_date}")
+        print(f"  初始资金: ¥{init_cash:,.0f}")
+        print(f"  持仓数量: {len(stock_list)} 只股票")
+
+        # 创建信号指示器
+        print("\n  🎯 创建 CustomSG_QlibFactor 信号指示器...")
+        sg = CustomSG_QlibFactor(
+            pred_pkl_path=str(pred_file),
+            buy_threshold=0.0,
+            sell_threshold=-0.1,
+            top_k=min(5, len(stock_list)),
+            name="WorkflowQlibFactor"
+        )
+
+        # 资金管理
+        mm = MM_FixedCount(n=init_cash * 0.95 / min(5, len(stock_list)))
+
+        # 止损策略
+        st = ST_FixedPercent(p=0.15)
+
+        # 盈利目标策略
+        pg = PG_NoGoal()
+
+        # 滑点
+        sp = SP_FixedPercent(p=0.0005)
+
+        # 获取股票对象列表
+        sm = StockManager.instance()
+        stk_list = []
+        for code in stock_list:
+            stock = sm.get_stock(code.upper())
+            if stock and not stock.is_null():
+                stk_list.append(stock)
+
+        print(f"  ✅ 股票池大小: {len(stk_list)} 只")
+
+        # 创建交易账户
+        my_tm = crtTM(
+            date=start_date,
+            init_cash=init_cash,
+            cost_func=TC_FixedA(commission=0.0003, lowest_commission=5),
+            name="WorkflowBacktest"
+        )
+
+        # 创建交易系统
+        print("\n  🚀 开始回测...")
+        proto_sys = SYS_Simple(mm=mm, sg=sg, st=st, sp=sp, pg=pg)
+        selector = SE_Fixed(stk_list, proto_sys)
+        pf = PF_Simple(tm=my_tm, se=selector)
+        pf.name = "WorkflowBacktest"
+
+        # 执行回测
+        pf.run(Query(start_date, end_date))
+
+        # 显示回测结果
+        print("\n  " + "=" * 68)
+        print("  📊 回测结果")
+        print("  " + "=" * 68)
+
+        # 获取最终资产
+        final_funds = my_tm.get_funds(Datetime.max())
+        final_cash = final_funds.cash
+        final_total = final_funds.total_assets
+        final_market_value = final_total - final_cash
+
+        # 计算收益
+        total_return = (final_total - init_cash) / init_cash
+
+        print(f"\n  💰 资金情况:")
+        print(f"    初始资金: ¥{init_cash:,.2f}")
+        print(f"    最终现金: ¥{final_cash:,.2f}")
+        print(f"    持仓市值: ¥{final_market_value:,.2f}")
+        print(f"    总资产:   ¥{final_total:,.2f}")
+        print(f"\n  📈 收益指标:")
+        print(f"    总收益率: {total_return:.2%}")
+
+        # 获取交易记录
+        trade_list = my_tm.get_trade_list()
+        print(f"\n  📋 交易记录:")
+        print(f"    总交易次数: {len(trade_list)}")
+
+        if trade_list:
+            print(f"\n    最近5笔交易:")
+            for i, trade in enumerate(trade_list[-5:], 1):
+                direction = "买入" if trade.business == BUSINESS.BUY else "卖出"
+                print(f"      {i}. {trade.datetime} {direction} {trade.stock.market_code} "
+                      f"{trade.number}股 @ ¥{trade.real_price:.2f}")
+
+        # 获取持仓
+        positions = my_tm.get_position_list()
+        if positions:
+            print(f"\n  💼 当前持仓 ({len(positions)}只):")
+            for pos in positions:
+                print(f"      {pos.stock.market_code}: {pos.number}股 "
+                      f"成本¥{pos.buy_money/pos.number if pos.number > 0 else 0:.2f}")
+
+        print("\n  " + "=" * 68)
+        print("  ✅ Hikyuu 回测完成!")
+        print("  " + "=" * 68)
+
+    except Exception as e:
+        print(f"\n  ❌ 回测失败: {e}")
+        print("\n  💡 提示: 可以单独运行 backtest_workflow_pred.py 进行回测")
+        import traceback
+        traceback.print_exc()
 
     print("\n" + "=" * 70)
-    print("✅ 工作流演示完成!")
+    print("✅ 完整工作流执行完成!")
     print("=" * 70)
     print("\n📊 执行总结:")
     print(f"  ✅ 数据提取: {len(training_df)} 个训练样本")
@@ -289,11 +496,12 @@ async def main():
     print(f"  ✅ 预测生成: {predictions_batch.size()} 个预测")
     print(f"  ✅ 信号转换: {signal_batch.size()} 个交易信号")
     print(f"  ✅ 结果保存: {pred_file}")
+    print(f"  ✅ Hikyuu 回测: 已执行")
 
-    print("\n💡 下一步:")
-    print("  1. 使用保存的预测文件进行完整回测")
-    print("  2. 调整模型参数改善预测效果（当前测试 R² 较低）")
-    print("  3. 增加更多特征和训练数据")
+    print("\n💡 优化建议:")
+    print("  1. 增加训练数据: Query(-2000) 获取更多历史数据")
+    print("  2. 增加正则化参数改善过拟合")
+    print("  3. 添加更多技术指标特征（MACD, RSI, Bollinger Bands）")
 
 
 if __name__ == "__main__":
